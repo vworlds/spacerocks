@@ -1,4 +1,4 @@
-import { World, type Component, type ComponentClass } from '@vworlds/vecs';
+import { World, type ComponentClass } from '@vworlds/vecs';
 import {
   Arc,
   Drawable,
@@ -15,22 +15,20 @@ import {
 type SharedComponentTypeEntry = readonly [ComponentClass, number];
 
 export const SHARED_COMPONENT_TYPES = [
-  [Position, 0],
-  [Rotation, 1],
-  [Drawable, 2],
-  [Arc, 3],
-  [Shape, 4],
-  [StrokeStyle, 5],
-  [FillStyle, 6],
-  [FilledRect, 7],
-  [Networked, 8],
+  [Position, 7],
+  [Rotation, 8],
+  [Drawable, 9],
+  [Arc, 10],
+  [Shape, 11],
+  [StrokeStyle, 12],
+  [FillStyle, 13],
+  [FilledRect, 14],
+  [Networked, 15],
 ] satisfies readonly SharedComponentTypeEntry[];
 
 export type ComponentType = number;
 
-export type SerializableComponentClass = ComponentClass<
-  Component & ISerializable
->;
+export type SerializableComponentClass = ComponentClass<ISerializable>;
 
 export const SERIALIZABLE_COMPONENTS = SHARED_COMPONENT_TYPES.map(
   ([ComponentClass]) => ComponentClass,
@@ -47,18 +45,31 @@ type CreateWorldOptions = {
 };
 
 export function createWorld(options: CreateWorldOptions = {}): World {
-  const world = new World();
+  const world = new World(
+    options.entityIdStart === undefined
+      ? undefined
+      : {
+          idPools: [
+            { name: 'component', min: 1, max: 899 },
+            { name: 'module', min: 900, max: options.entityIdStart - 1 },
+            { name: 'entity', min: options.entityIdStart },
+          ],
+        },
+  );
   registerSharedComponents(world);
-
-  if (options.entityIdStart !== undefined) {
-    world.setEntityIdRange(options.entityIdStart);
-  }
 
   return world;
 }
 
 export function registerSharedComponents(world: World): void {
   for (const [ComponentClass, type] of SHARED_COMPONENT_TYPES) {
-    world.registerComponent(ComponentClass, type);
+    world.component(ComponentClass, type);
   }
+}
+
+export function getComponentType(
+  world: World,
+  ComponentClass: ComponentClass,
+): ComponentType {
+  return world.component(ComponentClass).eid;
 }

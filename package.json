@@ -35,7 +35,7 @@
     "vitest": "^1.6.0"
   },
   "overrides": {
-    "@vworlds/vecs": "^1.0.14"
+    "@vworlds/vecs": "^1.0.16"
   },
   "lint-staged": {
     "*.ts": [

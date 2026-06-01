@@ -28,10 +28,10 @@ world
     if (!keys.state[input.shootKey] || input.shootCooldown > 0) return;
 
     const color = e.get(StrokeStyle)?.style ?? '#fff';
-    const aura = e.get(AuraWeapon);
-    const laser = e.get(LaserWeapon);
-    const rocketWeapon = e.get(RocketWeapon);
-    const boomerangWeapon = e.get(BoomerangWeapon);
+    const aura = e.getMut(AuraWeapon);
+    const laser = e.getMut(LaserWeapon);
+    const rocketWeapon = e.getMut(RocketWeapon);
+    const boomerangWeapon = e.getMut(BoomerangWeapon);
 
     if (aura && aura.shots > 0) {
       for (let i = 0; i < 8; i++) {

@@ -97,12 +97,12 @@ function triggerLose(): void {
 }
 
 function damagePlayer(player: Entity, shieldDmg: number): void {
-  const shield = player.get(Shield);
+  const shield = player.getMut(Shield);
   if (shield) {
     shield.shieldTime = Math.max(0, shield.shieldTime - shieldDmg);
     if (shield.shieldTime <= 0) player.remove(Shield);
   } else {
-    const health = player.get(Health);
+    const health = player.getMut(Health);
     if (!health) return;
     health.hp -= 10;
     health.healthBarTimer = 60;
@@ -144,7 +144,7 @@ registerCollisionEffect(BIT_PLAYER_BULLET, BIT_ASTEROID, (bullet, asteroid) => {
 
 // Player Bullet ↔ Alien
 registerCollisionEffect(BIT_PLAYER_BULLET, BIT_ENEMY, (bullet, alien) => {
-  const health = alien.get(Health);
+  const health = alien.getMut(Health);
   if (health) {
     const damage = bullet.get(Rocket)
       ? ENTITY_CONFIG.ROCKET.DAMAGE
@@ -216,7 +216,7 @@ registerCollisionEffect(BIT_BOOMERANG, BIT_ASTEROID, (boom, asteroid) => {
 
 // Boomerang ↔ Alien: damage HP and destroy boomerang
 registerCollisionEffect(BIT_BOOMERANG, BIT_ENEMY, (boom, alien) => {
-  const health = alien.get(Health);
+  const health = alien.getMut(Health);
   if (health) {
     health.hp -= ENTITY_CONFIG.BOOMERANG.DAMAGE;
     health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
@@ -236,7 +236,7 @@ registerCollisionEffect(BIT_BOOMERANG, BIT_ENEMY, (boom, alien) => {
 registerCollisionEffect(BIT_PLAYER, BIT_BOOMERANG, (player, boom) => {
   const b = boom.get(Boomerang);
   if (!b || b.owner !== player || !b.armed) return;
-  const w = player.get(BoomerangWeapon);
+  const w = player.getMut(BoomerangWeapon);
   if (w) w.shots = Math.min(w.shots + 1, ENTITY_CONFIG.BOOMERANG.MAX_SHOTS);
   boom.destroy();
 });
@@ -265,7 +265,7 @@ world
   .phase(updatePhase)
   .run(() => {
     if (gameState.state !== 'playing') return;
-    const entities = [...colliderQuery.entities] as Entity[];
+    const entities = [...colliderQuery] as Entity[];
     for (let i = 0; i < entities.length; i++) {
       const a = entities[i]!;
       const colA = a.get(Collider);

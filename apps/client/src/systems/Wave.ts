@@ -11,7 +11,7 @@ world
   .phase(updatePhase)
   .run(() => {
     if (gameState.state !== 'playing') return;
-    if (asteroidQuery.entities.size === 0 && alienQuery.entities.size === 0) {
+    if (asteroidQuery.count === 0 && alienQuery.count === 0) {
       gameState.wave++;
       const count = 3 + gameState.wave * 2;
       const { width, height } = canvasSize;

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { Position, SHARED_COMPONENT_TYPES, createWorld } from '../src/index';
+import {
+  Position,
+  SHARED_COMPONENT_TYPES,
+  createWorld,
+  getComponentType,
+} from '../src/index';
 
 class LocalComponent {}
 
@@ -11,9 +16,11 @@ describe('createWorld', () => {
       ([ComponentClass]) => ComponentClass === Position,
     )?.[1];
 
-    expect(world.getComponentType(Position)).toBe(positionType);
+    expect(getComponentType(world, Position)).toBe(positionType);
 
-    world.registerComponent(LocalComponent);
-    expect(world.getComponentType(LocalComponent)).toBe(256);
+    world.component(LocalComponent);
+    expect(getComponentType(world, LocalComponent)).toBe(
+      Math.max(...SHARED_COMPONENT_TYPES.map(([, type]) => type)) + 1,
+    );
   });
 });

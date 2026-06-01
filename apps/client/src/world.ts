@@ -1,4 +1,5 @@
 import { CLIENT_ENTITY_ID_START, createWorld } from '@spacerocks/common';
+import { Query } from '@vworlds/vecs';
 import {
   Velocity,
   AngularVelocity,
@@ -37,37 +38,37 @@ import { initStars } from './utils';
 export const world = createWorld({ entityIdStart: CLIENT_ENTITY_ID_START });
 
 // ── Register all components ───────────────────────────────────────────────
-world.registerComponent(Velocity);
-world.registerComponent(AngularVelocity);
-world.registerComponent(Friction);
-world.registerComponent(Thrust);
-world.registerComponent(Label);
-world.registerComponent(Alpha);
-world.registerComponent(Collider);
-world.registerComponent(Health);
-world.registerComponent(Shield);
-world.registerComponent(LaserWeapon);
-world.registerComponent(AuraWeapon);
-world.registerComponent(RocketWeapon);
-world.registerComponent(BoomerangWeapon);
-world.registerComponent(Boomerang);
-world.registerComponent(DefaultWeapon);
-world.registerComponent(Pickup);
-world.registerComponent(HealthPickup);
-world.registerComponent(Player);
-world.registerComponent(ShipInput);
-world.registerComponent(Bullet);
-world.registerComponent(Rocket);
-world.registerComponent(Asteroid);
-world.registerComponent(Alien);
-world.registerComponent(Particle);
-world.registerComponent(Decay);
-world.registerComponent(Wraps);
-world.registerComponent(CanvasSize);
-world.registerComponent(GameStateComp);
-world.registerComponent(RenderContext);
-world.registerComponent(Keys);
-world.registerComponent(RandomClock);
+world.component(Velocity);
+world.component(AngularVelocity);
+world.component(Friction);
+world.component(Thrust);
+world.component(Label);
+world.component(Alpha);
+world.component(Collider);
+world.component(Health);
+world.component(Shield);
+world.component(LaserWeapon);
+world.component(AuraWeapon);
+world.component(RocketWeapon);
+world.component(BoomerangWeapon);
+world.component(Boomerang);
+world.component(DefaultWeapon);
+world.component(Pickup);
+world.component(HealthPickup);
+world.component(Player);
+world.component(ShipInput);
+world.component(Bullet);
+world.component(Rocket);
+world.component(Asteroid);
+world.component(Alien);
+world.component(Particle);
+world.component(Decay);
+world.component(Wraps);
+world.component(CanvasSize);
+world.component(GameStateComp);
+world.component(RenderContext);
+world.component(Keys);
+world.component(RandomClock);
 
 // Weapons are mutually exclusive
 world.setExclusiveComponents(
@@ -85,10 +86,23 @@ export const resourceEntity = world
   .add(GameStateComp)
   .add(RenderContext)
   .add(Keys);
-export const canvasSize = resourceEntity.get(CanvasSize)!;
-export const gameState = resourceEntity.get(GameStateComp)!;
-export const renderCtx = resourceEntity.get(RenderContext)!;
-export const keys = resourceEntity.get(Keys)!;
+export const canvasSize = resourceEntity.get(CanvasSize)! as CanvasSize;
+export const gameState = resourceEntity.get(GameStateComp)! as GameStateComp;
+export const renderCtx = resourceEntity.get(RenderContext)! as RenderContext;
+export const keys = resourceEntity.get(Keys)! as Keys;
+
+world.clearAllEntities = () => {
+  for (const entity of world.entities.values()) {
+    if (
+      entity.eid < CLIENT_ENTITY_ID_START ||
+      entity === resourceEntity ||
+      entity.get(Query)
+    )
+      continue;
+    entity.destroy();
+  }
+  world.flush();
+};
 
 // ── Phases ────────────────────────────────────────────────────────────────
 export const updatePhase = world.addPhase('update');

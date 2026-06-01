@@ -65,7 +65,7 @@ describe('RandomClockSystem', () => {
       maxWait: 20000,
       nextTick: past,
     });
-    const clock = entity.get(RandomClock);
+    const clock = entity.get(RandomClock) as RandomClock | undefined;
     if (!clock) throw new Error('RandomClock component was not attached');
     clock.effectFunc = () => {
       callCount++;

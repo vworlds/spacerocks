@@ -80,7 +80,7 @@ function makeEffectFunc(
       gameState.score += SCORING.BOOMERANG;
     } else {
       const hp = source.get(HealthPickup)!;
-      const health = picker.get(Health);
+      const health = picker.getMut(Health);
       if (health) {
         health.hp = Math.min(
           health.hp + health.maxHp * hp.amount,

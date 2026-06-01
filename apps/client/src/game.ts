@@ -43,7 +43,7 @@ export function initGame(): void {
     minWait: GAME_CONFIG.ALIEN_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.ALIEN_SPAWN_MAX_WAIT,
     effectFunc: () => {
-      if (alienQuery.entities.size < GAME_CONFIG.ALIEN_CAP) createAlien();
+      if (alienQuery.count < GAME_CONFIG.ALIEN_CAP) createAlien();
     },
   });
   world.entity().set(RandomClock, {

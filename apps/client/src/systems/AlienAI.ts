@@ -30,7 +30,7 @@ world
     // Find closest asteroid
     let closestAst: Entity | null = null;
     let minAstDist = Infinity;
-    for (const ae of asteroidQuery.entities) {
+    for (const ae of asteroidQuery) {
       const ap = ae.get(Position)!;
       const d = Math.hypot(pos.x - ap.x, pos.y - ap.y);
       if (d < minAstDist) {
@@ -66,7 +66,7 @@ world
     if (alien.shootCooldown <= 0) {
       let closestPlayer: Entity | null = null;
       let minDist = Infinity;
-      for (const pe of playerQuery.entities) {
+      for (const pe of playerQuery) {
         const pp = pe.get(Position)!;
         const d = Math.hypot(pos.x - pp.x, pos.y - pp.y);
         if (d < minDist) {

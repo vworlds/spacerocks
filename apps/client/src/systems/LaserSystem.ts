@@ -45,7 +45,7 @@ world
       y: pos.y + Math.sin(rot.angle) * LASER_LEN,
     };
 
-    for (const ae of asteroidQuery.entities) {
+    for (const ae of asteroidQuery) {
       const apos = ae.get(Position)!;
       const acol = ae.get(Collider)!;
       const acomp = ae.get(Asteroid)!;
@@ -61,7 +61,7 @@ world
       }
     }
 
-    for (const ale of alienOnlyQuery.entities) {
+    for (const ale of alienOnlyQuery) {
       const alpos = ale.get(Position)!;
       const alcol = ale.get(Collider)!;
       if (distToSegment({ x: alpos.x, y: alpos.y }, v, w) < alcol.radius) {

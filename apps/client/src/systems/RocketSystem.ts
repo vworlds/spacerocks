@@ -38,7 +38,7 @@ world
       let targetY: number | null = null;
       let minDist = Infinity;
 
-      for (const ae of alienQuery.entities) {
+      for (const ae of alienQuery) {
         const ap = ae.get(Position)!;
         const d = Math.hypot(pos.x - ap.x, pos.y - ap.y);
         if (d < range && d < minDist) {
@@ -49,7 +49,7 @@ world
       }
 
       if (targetX === null) {
-        for (const ae of asteroidQuery.entities) {
+        for (const ae of asteroidQuery) {
           const ap = ae.get(Position)!;
           const d = Math.hypot(pos.x - ap.x, pos.y - ap.y);
           if (d < range && d < minDist) {

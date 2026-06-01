@@ -1,5 +1,5 @@
 import { Room, type Client } from 'colyseus';
-import type { Component, Entity } from '@vworlds/vecs';
+import type { Entity } from '@vworlds/vecs';
 import {
   Arc,
   Drawable,
@@ -10,6 +10,7 @@ import {
   SERIALIZABLE_COMPONENTS,
   StrokeStyle,
   createWorld,
+  getComponentType,
   type ComponentSnapshot,
   type ComponentType,
   type EcsDeltaMessage,
@@ -88,7 +89,7 @@ export class UniverseRoom extends Room {
   }
 
   private registerComponents(): void {
-    this.world.registerComponent(DebugMotion);
+    this.world.component(DebugMotion);
   }
 
   private registerSystems(): void {
@@ -149,14 +150,14 @@ export class UniverseRoom extends Room {
   private registerComponentReplicationSystem(
     ComponentClass: SerializableComponentClass,
   ): void {
-    const componentType = this.world.getComponentType(ComponentClass);
+    const componentType = getComponentType(this.world, ComponentClass);
 
     this.world
       .system(`Replicate${ComponentClass.name}`)
       .phase(this.replicationPhase)
       .requires(Networked, ComponentClass)
       .update(ComponentClass, (entity, component) => {
-        const serializable = component as Component & ISerializable;
+        const serializable = component as ISerializable;
         this.markComponentPatch(
           entity.eid,
           componentType,
@@ -226,10 +227,10 @@ export class UniverseRoom extends Room {
     for (const ComponentClass of SERIALIZABLE_COMPONENTS) {
       const component = entity.get(ComponentClass);
       if (!component) continue;
-      const serializable = component as Component & ISerializable;
+      const serializable = component as ISerializable;
 
       components.push({
-        componentType: this.world.getComponentType(ComponentClass),
+        componentType: getComponentType(this.world, ComponentClass),
         data: serializable.serialize(),
       });
     }
