@@ -2,17 +2,27 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createWorld,
   Arc,
+  CLIENT_ENTITY_ID_START,
+  Decay,
   Drawable,
+  ExplosionView,
   FillStyle,
+  FilledRect,
   HealthView,
   Position,
   Rotation,
   Shape,
   ShieldView,
   StrokeStyle,
+  Velocity,
   WeaponView,
 } from '@spacerocks/common';
-import { drawNetworkRenderableEntity } from '@src/systems/NetworkRender';
+import { Alpha, Particle } from '@src/components';
+import {
+  clearExplosionMarkerVisitCache,
+  drawNetworkRenderableEntity,
+  spawnLocalExplosionParticlesFromMarkers,
+} from '@src/systems/NetworkRender';
 
 vi.mock('@src/network/vecsClient', () => ({
   getVecsClientWorld: () => null,
@@ -46,6 +56,16 @@ function createNetworkWorld() {
   world.component(HealthView);
   world.component(ShieldView);
   world.component(WeaponView);
+  world.component(ExplosionView);
+  return world;
+}
+
+function createLocalWorld() {
+  const world = createWorld({ entityIdStart: CLIENT_ENTITY_ID_START });
+  world.component(Velocity);
+  world.component(Decay);
+  world.component(Alpha);
+  world.component(Particle);
   return world;
 }
 
@@ -144,5 +164,47 @@ describe('NetworkRender', () => {
     expect(ctx.strokeRect).toHaveBeenCalledWith(-15, -27, 30, 5);
     expect(ctx.fillRect).toHaveBeenCalledWith(-15, -27, 15, 5);
     expect(ctx.arc).toHaveBeenCalledWith(0, 0, 20, 0, Math.PI * 2);
+  });
+
+  it('spawns deterministic client-local particles when explosion markers appear', () => {
+    clearExplosionMarkerVisitCache();
+    const networkWorld = createNetworkWorld();
+    const localWorld = createLocalWorld();
+    const marker = networkWorld
+      .entity()
+      .set(Position, { x: 25, y: 40 })
+      .set(ExplosionView, {
+        color: '#fa0',
+        size: 12,
+        seed: 123,
+        duration: 30,
+      });
+
+    const spawned = spawnLocalExplosionParticlesFromMarkers(
+      [marker],
+      localWorld,
+    );
+    const spawnedAgain = spawnLocalExplosionParticlesFromMarkers(
+      [marker],
+      localWorld,
+    );
+
+    const particles = [...localWorld.entities.values()].filter((entity) =>
+      entity.get(Particle),
+    );
+    expect(spawned).toBe(12);
+    expect(spawnedAgain).toBe(0);
+    expect(particles).toHaveLength(12);
+    expect(
+      particles.every((entity) => entity.eid >= CLIENT_ENTITY_ID_START),
+    ).toBe(true);
+    expect(particles[0]?.get(Position)).toMatchObject({ x: 25, y: 40 });
+    expect(particles[0]?.get(FillStyle)).toMatchObject({ style: '#fa0' });
+    expect(particles[0]?.get(FilledRect)?.width).toBeGreaterThan(1);
+    expect(particles[0]?.get(Decay)).toMatchObject({ life: 1, decay: 1 / 30 });
+    expect(particles[0]?.get(Velocity)).toMatchObject({
+      vx: -0.1997144327000843,
+      vy: 0.9280048889903895,
+    });
   });
 });

@@ -39,6 +39,10 @@ import {
   createAsteroid,
   registerSpawningComponents,
 } from '../../src/game/spawning';
+import {
+  installShootingSystems,
+  registerShootingComponents,
+} from '../../src/game/shooting';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -61,10 +65,16 @@ function createTestWorld(): { world: World; simulationPhase: Phase } {
   registerSpawningComponents(
     world as unknown as Parameters<typeof registerSpawningComponents>[0],
   );
+  registerShootingComponents(
+    world as unknown as Parameters<typeof registerShootingComponents>[0],
+  );
   registerCombatComponents(
     world as unknown as Parameters<typeof registerCombatComponents>[0],
   );
-  world.component(Bullet);
+  installShootingSystems(
+    world as unknown as Parameters<typeof installShootingSystems>[0],
+    simulationPhase,
+  );
   installCombatSystems(
     world as unknown as Parameters<typeof installCombatSystems>[0],
     simulationPhase,
@@ -127,6 +137,31 @@ describe('server combat systems', () => {
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
       SCORING.ASTEROID_BASE * 3,
     );
+  });
+
+  it('expires explosion markers through server-side decay', () => {
+    const { world, simulationPhase } = createTestWorld();
+    createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      createPrng(1),
+      100,
+      100,
+      3,
+    );
+    world.entity().set(Position, { x: 100, y: 100 }).add(Bullet).set(Collider, {
+      radius: 2,
+      category: CAT_PLAYER_BULLET,
+      mask: CAT_ASTEROID,
+    });
+
+    runFrame(world, simulationPhase);
+    expect(count(world, ExplosionView)).toBe(1);
+
+    for (let i = 0; i <= ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES; i += 1) {
+      runFrame(world, simulationPhase);
+    }
+
+    expect(count(world, ExplosionView)).toBe(0);
   });
 
   it('applies health pickups with server-side handlers and syncs health view', () => {
