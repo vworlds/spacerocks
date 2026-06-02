@@ -3,6 +3,11 @@ import { initGame } from './game';
 import { setInitGameCallback } from './systems/Collision';
 import { initCheats } from './cheats';
 import { connectEcsMirror } from './network/ecsMirror';
+import {
+  connectVecsClient,
+  createKeyboardInputSource,
+  tickVecsClient,
+} from './network/vecsClient';
 
 window.addEventListener('DOMContentLoaded', () => {
   const canvasEl = document.getElementById('gameCanvas');
@@ -23,10 +28,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
   initGame();
   void connectEcsMirror();
+  void connectVecsClient();
+
+  const vecsInput = createKeyboardInputSource();
 
   let last = 0;
   function loop(now: number): void {
-    world.progress(now, now - last);
+    const delta = now - last;
+    world.progress(now, delta);
+    tickVecsClient(vecsInput.readInput(), now, delta);
     last = now;
     requestAnimationFrame(loop);
   }
