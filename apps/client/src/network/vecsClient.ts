@@ -4,7 +4,6 @@ import { CLIENT_ENTITY_ID_START, NETWORK_COMPONENTS } from '@spacerocks/common';
 const SERVER_PORT = 2567;
 const WORLD_NAME = 'main';
 const RECONNECT_DELAY_MS = 1_000;
-const NETWORK_TICK_INTERVAL_MS = 1000 / 60;
 
 export type PlayerInputIntent = {
   thrust: boolean;
@@ -19,15 +18,7 @@ type KeyboardInputSource = {
 
 let client: ClientWorld | null = null;
 let reconnectTimer: number | null = null;
-let networkTimer: number | null = null;
-let lastNetworkTick = 0;
 let connecting = false;
-let latestInput: PlayerInputIntent = {
-  thrust: false,
-  rotateLeft: false,
-  rotateRight: false,
-  shoot: false,
-};
 
 export function createKeyboardInputSource(
   target: Pick<Window, 'addEventListener'> = window,
@@ -71,14 +62,12 @@ export async function connectVecsClient(): Promise<void> {
     nextClient.start();
     nextClient.onDisconnect(() => {
       if (client !== nextClient) return;
-      stopNetworkTicker();
       nextClient.clearAllEntities();
       client = null;
       scheduleReconnect();
     });
 
     client = nextClient;
-    startNetworkTicker(nextClient);
     console.info(`Connected to vecs world "${WORLD_NAME}"`);
   } catch (error) {
     console.warn('Vecs client connection unavailable', error);
@@ -90,10 +79,13 @@ export async function connectVecsClient(): Promise<void> {
 
 export function tickVecsClient(
   input: PlayerInputIntent,
-  _now: number,
-  _delta: number,
+  now: number,
+  delta: number,
 ): void {
-  latestInput = input;
+  if (!client) return;
+
+  client.setInput(input);
+  client.progress(now, delta);
 }
 
 export function getVecsClientWorld(): ClientWorld | null {
@@ -107,29 +99,4 @@ function scheduleReconnect(): void {
     reconnectTimer = null;
     void connectVecsClient();
   }, RECONNECT_DELAY_MS);
-}
-
-function startNetworkTicker(nextClient: ClientWorld): void {
-  stopNetworkTicker();
-  lastNetworkTick = performance.now();
-  progressNetworkClient(nextClient, lastNetworkTick);
-  networkTimer = window.setInterval(() => {
-    progressNetworkClient(nextClient, performance.now());
-  }, NETWORK_TICK_INTERVAL_MS);
-}
-
-function stopNetworkTicker(): void {
-  if (networkTimer === null) return;
-
-  window.clearInterval(networkTimer);
-  networkTimer = null;
-}
-
-function progressNetworkClient(nextClient: ClientWorld, now: number): void {
-  if (client !== nextClient) return;
-
-  const delta = Math.max(0, now - lastNetworkTick);
-  lastNetworkTick = now;
-  nextClient.setInput(latestInput);
-  nextClient.progress(now, delta);
 }
