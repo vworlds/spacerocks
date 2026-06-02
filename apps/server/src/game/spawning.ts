@@ -19,6 +19,7 @@ import {
   GAME_CONFIG,
   GameStateView,
   Health,
+  HealthView,
   HealthPickup,
   Pickup,
   PickupKind,
@@ -183,6 +184,11 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
       hp: ENTITY_CONFIG.ALIEN.MAX_HP,
       maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
       healthBarTimer: 0,
+    })
+    .set(HealthView, {
+      hp: ENTITY_CONFIG.ALIEN.MAX_HP,
+      maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
+      barTimer: 0,
     })
     .set(Collider, {
       radius: ENTITY_CONFIG.ALIEN.RADIUS,

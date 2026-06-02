@@ -18,10 +18,13 @@ import {
   ENTITY_CONFIG,
   Friction,
   Health,
+  HealthView,
   PlayerShip,
   Position,
   Rotation,
   Shape,
+  Shield,
+  ShieldView,
   StrokeStyle,
   Thrust,
   Velocity,
@@ -66,6 +69,9 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(Thrust);
   world.component(Friction);
   world.component(Health);
+  world.component(HealthView);
+  world.component(Shield);
+  world.component(ShieldView);
   world.component(DefaultWeapon);
   world.component(Collider);
   world.component(Drawable);
@@ -135,6 +141,11 @@ export function createPlayerShip(
       hp: ENTITY_CONFIG.SHIP.MAX_HP,
       maxHp: ENTITY_CONFIG.SHIP.MAX_HP,
       healthBarTimer: 0,
+    })
+    .set(HealthView, {
+      hp: ENTITY_CONFIG.SHIP.MAX_HP,
+      maxHp: ENTITY_CONFIG.SHIP.MAX_HP,
+      barTimer: 0,
     })
     .add(DefaultWeapon)
     .set(Collider, {
