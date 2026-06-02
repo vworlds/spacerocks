@@ -12,6 +12,10 @@ import {
   installSpawningSystems,
   registerSpawningComponents,
 } from './game/spawning';
+import {
+  installShootingSystems,
+  registerShootingComponents,
+} from './game/shooting';
 
 const TICK_RATE = 60;
 const TICK_INTERVAL_MS = 1000 / TICK_RATE;
@@ -29,8 +33,10 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const sendPhase = world.addPhase('send');
   registerPlayerSessionComponents(world);
   registerSpawningComponents(world);
+  registerShootingComponents(world);
   installPlayerSessionSystems(world, simulationPhase);
   installSpawningSystems(world, simulationPhase);
+  installShootingSystems(world, simulationPhase);
   installMovementSystems(world, simulationPhase);
 
   world
