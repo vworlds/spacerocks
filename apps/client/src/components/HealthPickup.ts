@@ -1,3 +1,1 @@
-export class HealthPickup {
-  amount = 0;
-}
+export { HealthPickup } from '@spacerocks/common';

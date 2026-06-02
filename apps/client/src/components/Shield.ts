@@ -1,3 +1,1 @@
-export class Shield {
-  shieldTime = 0;
-}
+export { Shield } from '@spacerocks/common';

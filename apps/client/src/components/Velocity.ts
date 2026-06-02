@@ -1,4 +1,1 @@
-export class Velocity {
-  vx = 0;
-  vy = 0;
-}
+export { Velocity } from '@spacerocks/common';

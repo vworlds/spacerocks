@@ -1,3 +1,1 @@
-export class AuraWeapon {
-  shots = 0;
-}
+export { AuraWeapon } from '@spacerocks/common';

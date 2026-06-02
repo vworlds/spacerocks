@@ -26,7 +26,7 @@ describe('BoomerangSystem', () => {
       .entity()
       .set(Position, { x: 100, y: 0 })
       .set(Velocity, { vx: 0, vy: 0 })
-      .set(Boomerang, { owner, armed: true });
+      .set(Boomerang, { ownerId: owner.eid, armed: true });
     tick();
     const vel = boom.get(Velocity)!;
     // Owner is to the left, so vx should be negative (pulled toward owner)
@@ -39,7 +39,7 @@ describe('BoomerangSystem', () => {
       .entity()
       .set(Position, { x: 0, y: 100 })
       .set(Velocity, { vx: 0, vy: 0 })
-      .set(Boomerang, { owner, armed: true });
+      .set(Boomerang, { ownerId: owner.eid, armed: true });
     tick();
     const vel = boom.get(Velocity)!;
     expect(vel.vy).toBeLessThan(0);
@@ -52,7 +52,7 @@ describe('BoomerangSystem', () => {
       .entity()
       .set(Position, { x: 50, y: 0 })
       .set(Velocity, { vx: -ms * 2, vy: 0 })
-      .set(Boomerang, { owner, armed: true });
+      .set(Boomerang, { ownerId: owner.eid, armed: true });
     tick();
     const vel = boom.get(Velocity)!;
     const speed = Math.hypot(vel.vx, vel.vy);
@@ -65,7 +65,7 @@ describe('BoomerangSystem', () => {
       .entity()
       .set(Position, { x: ENTITY_CONFIG.BOOMERANG.ARM_DISTANCE + 10, y: 0 })
       .set(Velocity, { vx: 0, vy: 0 })
-      .set(Boomerang, { owner, armed: false });
+      .set(Boomerang, { ownerId: owner.eid, armed: false });
     tick();
     expect(boom.get(Boomerang)!.armed).toBe(true);
   });
@@ -76,7 +76,7 @@ describe('BoomerangSystem', () => {
       .entity()
       .set(Position, { x: 5, y: 0 })
       .set(Velocity, { vx: 0, vy: 0 })
-      .set(Boomerang, { owner, armed: false });
+      .set(Boomerang, { ownerId: owner.eid, armed: false });
     tick();
     expect(boom.get(Boomerang)!.armed).toBe(false);
   });
@@ -84,13 +84,12 @@ describe('BoomerangSystem', () => {
   it('removes BoomerangWeapon and adds DefaultWeapon when all shots are gone and boomerang exits', () => {
     const owner = world
       .entity()
-      .set(BoomerangWeapon, { shots: 0, inFlight: new Set() });
+      .set(BoomerangWeapon, { shots: 0, inFlight: 1 });
     const boom = world
       .entity()
       .set(Position, { x: 50, y: 0 })
       .set(Velocity, { vx: 0, vy: 0 })
-      .set(Boomerang, { owner, armed: false });
-    owner.get(BoomerangWeapon)!.inFlight.add(boom);
+      .set(Boomerang, { ownerId: owner.eid, armed: false });
     // Run a frame first so the entity is tracked in the system query (enter fires).
     // Then destroy and run another frame so the exit fires and processes the owner swap.
     tick();
@@ -103,18 +102,17 @@ describe('BoomerangSystem', () => {
   it('removes boomerang from inFlight set on exit', () => {
     const owner = world
       .entity()
-      .set(BoomerangWeapon, { shots: 1, inFlight: new Set() });
+      .set(BoomerangWeapon, { shots: 1, inFlight: 1 });
     const boom = world
       .entity()
       .set(Position, { x: 50, y: 0 })
       .set(Velocity, { vx: 0, vy: 0 })
-      .set(Boomerang, { owner, armed: false });
+      .set(Boomerang, { ownerId: owner.eid, armed: false });
     const bw = owner.get(BoomerangWeapon)!;
-    bw.inFlight.add(boom);
     tick();
     boom.destroy();
     tick();
-    expect(bw.inFlight.has(boom)).toBe(false);
+    expect(bw.inFlight).toBe(0);
   });
 
   it('does nothing when owner has no Position', () => {
@@ -123,7 +121,7 @@ describe('BoomerangSystem', () => {
       .entity()
       .set(Position, { x: 100, y: 0 })
       .set(Velocity, { vx: 0, vy: 0 })
-      .set(Boomerang, { owner, armed: false });
+      .set(Boomerang, { ownerId: owner.eid, armed: false });
     // Should not throw
     tick();
     expect(boom.get(Velocity)!.vx).toBe(0);

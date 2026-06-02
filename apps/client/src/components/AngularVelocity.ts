@@ -1,3 +1,1 @@
-export class AngularVelocity {
-  omega = 0;
-}
+export { AngularVelocity } from '@spacerocks/common';

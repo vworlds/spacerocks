@@ -1,1 +1,1 @@
-export class DefaultWeapon {}
+export { DefaultWeapon } from '@spacerocks/common';

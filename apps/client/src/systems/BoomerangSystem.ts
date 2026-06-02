@@ -13,7 +13,8 @@ world
   .requires(Position, Velocity, Boomerang)
   .phase(updatePhase)
   .each([Position, Velocity, Boomerang], (_e, [pos, vel, boom]) => {
-    const owner = boom.owner;
+    const owner =
+      boom.ownerId === null ? undefined : world.entities.get(boom.ownerId);
     if (owner && owner.get(Position)) {
       const op = owner.get(Position);
       if (op) {
@@ -37,12 +38,13 @@ world
     }
   })
   .exit([Boomerang], (e, [boom]) => {
-    const owner = boom.owner;
+    const owner =
+      boom.ownerId === null ? undefined : world.entities.get(boom.ownerId);
     if (!owner) return;
-    const bw = owner.get(BoomerangWeapon);
+    const bw = owner.getMut(BoomerangWeapon);
     if (!bw) return;
-    bw.inFlight.delete(e);
-    if (bw.shots === 0 && bw.inFlight.size === 0) {
+    bw.inFlight = Math.max(0, bw.inFlight - 1);
+    if (bw.shots === 0 && bw.inFlight === 0) {
       owner.remove(BoomerangWeapon);
       owner.add(DefaultWeapon);
     }

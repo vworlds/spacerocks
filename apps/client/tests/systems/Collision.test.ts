@@ -21,6 +21,7 @@ import {
   Player,
   Bullet,
   Pickup,
+  PickupKind,
   Boomerang,
   BoomerangWeapon,
 } from '@src/components';
@@ -334,9 +335,8 @@ describe('Collision – enemy bullet vs player', () => {
 });
 
 describe('Collision – player vs pickup', () => {
-  it('calls pickup effectFunc and destroys pickup', () => {
-    let called = false;
-    world
+  it('applies pickup kind effect and destroys pickup', () => {
+    const player = world
       .entity()
       .set(Position, place())
       .set(Collider, { radius: 12, category: CAT_PLAYER, mask: CAT_PICKUP })
@@ -346,16 +346,12 @@ describe('Collision – player vs pickup', () => {
       .entity()
       .set(Position, place())
       .set(Collider, { radius: 15, category: CAT_PICKUP, mask: CAT_PLAYER })
-      .set(Pickup, {
-        effectFunc: (_picker, _src) => {
-          called = true;
-        },
-      });
+      .set(Pickup, { kind: PickupKind.Shield });
     pickup.events.on('destroy', () => {
       pickupDead = true;
     });
     tick();
-    expect(called).toBe(true);
+    expect(player.get(Shield)).toBeDefined();
     expect(pickupDead).toBe(true);
   });
 });
@@ -366,7 +362,7 @@ describe('Collision – boomerang vs asteroid', () => {
       .entity()
       .set(Position, place())
       .set(Collider, { radius: 7, category: CAT_BOOMERANG, mask: CAT_ASTEROID })
-      .set(Boomerang, { owner: null, armed: true });
+      .set(Boomerang, { ownerId: null, armed: true });
     const asteroid = world
       .entity()
       .set(Position, place())
@@ -397,13 +393,13 @@ describe('Collision – player catches boomerang', () => {
       .set(Position, place())
       .set(Collider, { radius: 12, category: CAT_PLAYER, mask: CAT_BOOMERANG })
       .set(Player, { playerId: 0 })
-      .set(BoomerangWeapon, { shots: 2, inFlight: new Set() });
+      .set(BoomerangWeapon, { shots: 2, inFlight: 1 });
     let boomDead = false;
     const boom = world
       .entity()
       .set(Position, place())
       .set(Collider, { radius: 7, category: CAT_BOOMERANG, mask: CAT_PLAYER })
-      .set(Boomerang, { owner: player, armed: true });
+      .set(Boomerang, { ownerId: player.eid, armed: true });
     boom.events.on('destroy', () => {
       boomDead = true;
     });
@@ -418,13 +414,13 @@ describe('Collision – player catches boomerang', () => {
       .set(Position, place())
       .set(Collider, { radius: 12, category: CAT_PLAYER, mask: CAT_BOOMERANG })
       .set(Player, { playerId: 0 })
-      .set(BoomerangWeapon, { shots: 2, inFlight: new Set() });
+      .set(BoomerangWeapon, { shots: 2, inFlight: 1 });
     let boomDead = false;
     const boom = world
       .entity()
       .set(Position, place())
       .set(Collider, { radius: 7, category: CAT_BOOMERANG, mask: CAT_PLAYER })
-      .set(Boomerang, { owner: player, armed: false });
+      .set(Boomerang, { ownerId: player.eid, armed: false });
     boom.events.on('destroy', () => {
       boomDead = true;
     });
