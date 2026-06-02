@@ -395,9 +395,11 @@ function switchToDefaultWeapon(ship: Entity): void {
 
 function updateWeaponView(ship: Entity): void {
   const weapon = currentWeapon(ship);
+  const laser = ship.get(LaserWeapon);
   const view = ship.getMut(WeaponView, (weaponView) => {
     weaponView.activeWeapon = weapon.kind;
     weaponView.ammo = weapon.ammo;
+    weaponView.firing = laser?.firing ? 1 : 0;
   });
   if (view) ship.modified(WeaponView);
 }

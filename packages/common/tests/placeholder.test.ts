@@ -93,7 +93,7 @@ describe('NETWORK_COMPONENTS', () => {
       [PickupView, Object.assign(new PickupView(), { amount: 9 })],
       [HealthView, Object.assign(new HealthView(), { hp: 10 })],
       [ShieldView, Object.assign(new ShieldView(), { remainingTime: 11 })],
-      [WeaponView, Object.assign(new WeaponView(), { ammo: 12 })],
+      [WeaponView, Object.assign(new WeaponView(), { ammo: 12, firing: 1 })],
       [GameStateView, Object.assign(new GameStateView(), { wave: 13 })],
       [ExplosionView, Object.assign(new ExplosionView(), { seed: 14 })],
     ] as const;

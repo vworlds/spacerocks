@@ -19,6 +19,7 @@ import './Wave';
 
 // Render phase systems
 import './Render';
+import './NetworkRender';
 import './UI';
 
 // Draw statement systems (render phase, enter/exit only)
