@@ -16,6 +16,7 @@ import {
   installShootingSystems,
   registerShootingComponents,
 } from './game/shooting';
+import { installCombatSystems, registerCombatComponents } from './game/combat';
 
 const TICK_RATE = 60;
 const TICK_INTERVAL_MS = 1000 / TICK_RATE;
@@ -34,10 +35,12 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   registerPlayerSessionComponents(world);
   registerSpawningComponents(world);
   registerShootingComponents(world);
+  registerCombatComponents(world);
   installPlayerSessionSystems(world, simulationPhase);
   installSpawningSystems(world, simulationPhase);
   installShootingSystems(world, simulationPhase);
   installMovementSystems(world, simulationPhase);
+  installCombatSystems(world, simulationPhase);
 
   world
     .system('SetClientView')

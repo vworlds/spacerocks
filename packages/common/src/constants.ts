@@ -69,6 +69,9 @@ export const ENTITY_CONFIG = {
     MAX_SHOTS: 20,
     ARM_DISTANCE: 30,
   },
+  EXPLOSION: {
+    LIFE_FRAMES: 30,
+  },
   SHIP: {
     RADIUS: 12,
     FRICTION: 0.98,
