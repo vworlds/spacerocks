@@ -7,13 +7,16 @@ import {
   Pickup,
   PickupKind,
   PickupView,
+  Point,
   Position,
+  Shape,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from '@spacerocks/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPrng } from '../../src/game/rng';
 import {
+  createAlien,
   createAsteroid,
   createPickup,
   installSpawningSystems,
@@ -99,6 +102,9 @@ describe('server spawning systems', () => {
     );
     expect(count(world, GameStateView)).toBe(1);
     expect(count(world, Asteroid)).toBe(5);
+    expect(firstEntity(world, Asteroid)?.get(Shape)?.points[0]).toBeInstanceOf(
+      Point,
+    );
 
     world
       .filter([Asteroid, Position])
@@ -108,6 +114,21 @@ describe('server spawning systems', () => {
         expect(position.y).toBeGreaterThanOrEqual(0);
         expect(position.y).toBeLessThanOrEqual(WORLD_HEIGHT);
       });
+  });
+
+  it('creates wire-encodable alien shape points', () => {
+    const { world } = createTestWorld();
+    const alien = createAlien(
+      world as unknown as Parameters<typeof createAlien>[0],
+      createPrng(1234),
+    );
+
+    expect(alien.get(Shape)?.points).toEqual([
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+    ]);
   });
 
   it('progresses waves when asteroids and aliens are cleared', () => {

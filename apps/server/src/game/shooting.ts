@@ -22,6 +22,7 @@ import {
   FillStyle,
   LaserWeapon,
   PlayerShip,
+  Point,
   Position,
   ProjectileView,
   Rocket,
@@ -326,11 +327,7 @@ export function createRocket(
     .add(Wraps)
     .set(FillStyle, { style: '#ff6600' })
     .set(Shape, {
-      points: [
-        { x: 6, y: 0 },
-        { x: -3, y: 3 },
-        { x: -3, y: -3 },
-      ],
+      points: [new Point(6, 0), new Point(-3, 3), new Point(-3, -3)],
     });
 }
 
@@ -369,12 +366,12 @@ export function createBoomerang(
     .set(FillStyle, { style: '#006400' })
     .set(Shape, {
       points: [
-        { x: 0, y: 0 },
-        { x: 2, y: 5 },
-        { x: 5, y: 5 },
-        { x: 3, y: 0 },
-        { x: 5, y: -5 },
-        { x: 2, y: -5 },
+        new Point(0, 0),
+        new Point(2, 5),
+        new Point(5, 5),
+        new Point(3, 0),
+        new Point(5, -5),
+        new Point(2, -5),
       ],
     });
 

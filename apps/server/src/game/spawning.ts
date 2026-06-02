@@ -24,6 +24,7 @@ import {
   Pickup,
   PickupKind,
   PickupView,
+  Point,
   Position,
   RandomClockKind,
   Rotation,
@@ -33,7 +34,6 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
   Wraps,
-  type Point,
 } from '@spacerocks/common';
 import { createPrng, type Prng } from './rng';
 
@@ -137,7 +137,7 @@ export function createAsteroid(
   for (let i = 0; i < vert; i += 1) {
     const r = radius * rng.range(0.8, 1.2);
     const a = (i / vert) * Math.PI * 2;
-    points.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+    points.push(new Point(Math.cos(a) * r, Math.sin(a) * r));
   }
 
   return world
@@ -200,10 +200,10 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
     .set(StrokeStyle, { style: '#ffaa00', lineWidth: 2 })
     .set(Shape, {
       points: [
-        { x: 15, y: 0 },
-        { x: -10, y: 10 },
-        { x: -5, y: 0 },
-        { x: -10, y: -10 },
+        new Point(15, 0),
+        new Point(-10, 10),
+        new Point(-5, 0),
+        new Point(-10, -10),
       ],
     });
 }

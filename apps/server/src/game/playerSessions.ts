@@ -20,6 +20,7 @@ import {
   Health,
   HealthView,
   PlayerShip,
+  Point,
   Position,
   Rotation,
   Shape,
@@ -164,11 +165,7 @@ export function createPlayerShip(
     .add(Wraps)
     .set(StrokeStyle, { style: color, lineWidth: 2 })
     .set(Shape, {
-      points: [
-        { x: 15, y: 0 },
-        { x: -10, y: 10 },
-        { x: -10, y: -10 },
-      ],
+      points: [new Point(15, 0), new Point(-10, 10), new Point(-10, -10)],
     });
 }
 

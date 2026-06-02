@@ -2,7 +2,9 @@ import { ChildOf, World, type Entity } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
 import {
   PlayerShip,
+  Point,
   Position,
+  Shape,
   WORLD_HEIGHT,
   WORLD_WIDTH,
 } from '@spacerocks/common';
@@ -82,6 +84,11 @@ describe('player session ownership', () => {
     expect(positionA.x).toBeLessThanOrEqual(WORLD_WIDTH);
     expect(positionB.y).toBeGreaterThanOrEqual(0);
     expect(positionB.y).toBeLessThanOrEqual(WORLD_HEIGHT);
+    expect(shipA.get(Shape)?.points).toEqual([
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+    ]);
   });
 
   it('applies network input only to the owning ship', () => {

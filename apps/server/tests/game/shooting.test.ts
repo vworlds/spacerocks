@@ -12,11 +12,13 @@ import {
   BoomerangWeapon,
   Bullet,
   ENTITY_CONFIG,
+  Point,
   Position,
   ProjectileView,
   Rocket,
   RocketWeapon,
   Rotation,
+  Shape,
   Velocity,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -28,6 +30,7 @@ import {
 } from '../../src/game/playerSessions';
 import {
   createBoomerang,
+  createRocket,
   installShootingSystems,
   registerShootingComponents,
   ShootingCooldown,
@@ -169,5 +172,37 @@ describe('server shooting systems', () => {
     world.flush();
 
     expect(world.getEntity(boomerang.eid)).toBeUndefined();
+  });
+
+  it('creates wire-encodable projectile shape points', () => {
+    const { world, ship } = createStartedWorldWithShip();
+    const rocket = createRocket(
+      world as unknown as Parameters<typeof createRocket>[0],
+      ship,
+      0,
+      0,
+      0,
+    );
+    const boomerang = createBoomerang(
+      world as unknown as Parameters<typeof createBoomerang>[0],
+      ship,
+      0,
+      0,
+      0,
+    );
+
+    expect(rocket.get(Shape)?.points).toEqual([
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+    ]);
+    expect(boomerang.get(Shape)?.points).toEqual([
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+      expect.any(Point),
+    ]);
   });
 });
