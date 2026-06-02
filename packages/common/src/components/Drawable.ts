@@ -1,4 +1,5 @@
 import type { ISerializable } from './ISerializable';
+import { type as wireType } from '@vworlds/vecs-wire';
 
 export interface DrawContext {
   globalAlpha: number;
@@ -33,6 +34,7 @@ export interface Statement {
 }
 
 export class Drawable implements ISerializable {
+  @wireType('i32')
   zIndex = 0;
   _statements: Statement[] = [];
   _sortedFns: ((ctx: DrawContext) => void)[] | undefined = undefined;
