@@ -1,7 +1,8 @@
-import type { Entity } from '@vworlds/vecs';
+import type { Entity, World } from '@vworlds/vecs';
 import {
   Arc,
   Drawable,
+  ExplosionView,
   FillStyle,
   FilledRect,
   GameStateView,
@@ -15,11 +16,17 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
   ENTITY_CONFIG,
+  Velocity,
+  Decay,
 } from '@spacerocks/common';
 import { canvasSize, renderCtx, renderPhase, world } from '../world';
 import { getVecsClientWorld } from '../network/vecsClient';
+import { Alpha, Particle } from '../components';
 
 const WEAPON_KIND_LASER = 1;
+const MIN_EXPLOSION_PARTICLES = 8;
+const MAX_EXPLOSION_PARTICLES = 36;
+const visitedExplosionMarkers = new Set<number>();
 
 type CanvasScale = {
   x: number;
@@ -72,6 +79,29 @@ export function renderNetworkWorld(
   }
 }
 
+export function spawnLocalExplosionParticlesFromMarkers(
+  markerEntities: Iterable<Entity>,
+  localWorld: World = world,
+): number {
+  let spawned = 0;
+  for (const marker of markerEntities) {
+    if (visitedExplosionMarkers.has(marker.eid)) continue;
+
+    const position = marker.get(Position);
+    const explosion = marker.get(ExplosionView);
+    if (!position || !explosion) continue;
+
+    visitedExplosionMarkers.add(marker.eid);
+    spawned += spawnLocalExplosionParticles(localWorld, position, explosion);
+  }
+
+  return spawned;
+}
+
+export function clearExplosionMarkerVisitCache(): void {
+  visitedExplosionMarkers.clear();
+}
+
 world
   .system('NetworkRender')
   .phase(renderPhase)
@@ -86,8 +116,57 @@ world
       entities.push(entity);
     });
 
+    const explosionMarkers: Entity[] = [];
+    clientWorld.filter([Position, ExplosionView]).forEach((entity: Entity) => {
+      explosionMarkers.push(entity);
+    });
+    spawnLocalExplosionParticlesFromMarkers(explosionMarkers);
+
     renderNetworkWorld(ctx, entities, canvasSize.width, canvasSize.height);
   });
+
+function spawnLocalExplosionParticles(
+  localWorld: World,
+  position: Position,
+  explosion: ExplosionView,
+): number {
+  const count = Math.max(
+    MIN_EXPLOSION_PARTICLES,
+    Math.min(MAX_EXPLOSION_PARTICLES, Math.round(explosion.size)),
+  );
+  const random = seededRandom(explosion.seed);
+  const speed = Math.max(1, explosion.size / 8);
+  const duration = Math.max(1, explosion.duration);
+
+  for (let i = 0; i < count; i += 1) {
+    const angle = random() * Math.PI * 2;
+    const magnitude = speed * (0.35 + random() * 0.65);
+    const side = 1 + random() * Math.max(1, explosion.size / 10);
+    localWorld
+      .entity()
+      .set(Position, { x: position.x, y: position.y })
+      .set(Velocity, {
+        vx: Math.cos(angle) * magnitude,
+        vy: Math.sin(angle) * magnitude,
+      })
+      .add(Particle)
+      .set(Decay, { life: 1, decay: 1 / duration })
+      .set(Drawable, { zIndex: 10 })
+      .set(Alpha, { value: 1 })
+      .set(FillStyle, { style: explosion.color })
+      .set(FilledRect, { width: side, height: side });
+  }
+
+  return count;
+}
+
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
 
 function drawLaser(ctx: CanvasRenderingContext2D, entity: Entity): void {
   const weapon = entity.get(WeaponView);
