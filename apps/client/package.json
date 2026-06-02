@@ -16,6 +16,7 @@
   "dependencies": {
     "@spacerocks/common": "file:../../packages/common",
     "@vworlds/vecs": "*",
+    "@vworlds/vecs-client": "^1.0.18",
     "colyseus.js": "^0.16.22"
   }
 }
