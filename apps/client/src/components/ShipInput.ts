@@ -1,7 +1,1 @@
-export class ShipInput {
-  thrustKey = '';
-  rotateLeftKey = '';
-  rotateRightKey = '';
-  shootKey = '';
-  shootCooldown = 0;
-}
+export { ShipInput } from '@spacerocks/common';

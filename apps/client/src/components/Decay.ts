@@ -1,4 +1,1 @@
-export class Decay {
-  life = 1;
-  decay = 0.02;
-}
+export { Decay } from '@spacerocks/common';

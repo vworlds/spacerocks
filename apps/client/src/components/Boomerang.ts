@@ -1,6 +1,1 @@
-import type { Entity } from '@vworlds/vecs';
-
-export class Boomerang {
-  owner: Entity | null = null;
-  armed = false;
-}
+export { Boomerang } from '@spacerocks/common';

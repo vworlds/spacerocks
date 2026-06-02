@@ -1,3 +1,1 @@
-export class Alien {
-  shootCooldown = 60;
-}
+export { Alien } from '@spacerocks/common';

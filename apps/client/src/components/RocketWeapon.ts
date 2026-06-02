@@ -1,3 +1,1 @@
-export class RocketWeapon {
-  shots = 0;
-}
+export { RocketWeapon } from '@spacerocks/common';

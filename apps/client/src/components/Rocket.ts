@@ -1,3 +1,1 @@
-export class Rocket {
-  straightTimer = 0;
-}
+export { Rocket } from '@spacerocks/common';

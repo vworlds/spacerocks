@@ -31,7 +31,7 @@ export function createBoomerang(
   // Spawn just outside the player's catch radius so we don't trigger an
   // immediate self-catch on frame 0. Ship radius (12) + boomerang radius (5).
   const spawnOffset = ENTITY_CONFIG.SHIP.RADIUS + cfg.RADIUS + 4;
-  const entity = world
+  world
     .entity()
     .set(Position, {
       x: x + Math.cos(angle) * spawnOffset,
@@ -43,7 +43,7 @@ export function createBoomerang(
     })
     .set(Rotation, { angle })
     .set(AngularVelocity, { omega: cfg.SPIN })
-    .set(Boomerang, { owner, armed: false })
+    .set(Boomerang, { ownerId: owner.eid, armed: false })
     .set(Collider, {
       radius: cfg.RADIUS,
       category: CAT_BOOMERANG,
@@ -62,5 +62,6 @@ export function createBoomerang(
         { x: 2, y: -5 },
       ],
     });
-  owner.get(BoomerangWeapon)?.inFlight.add(entity);
+  const weapon = owner.getMut(BoomerangWeapon);
+  if (weapon) weapon.inFlight++;
 }

@@ -178,7 +178,7 @@ describe('Shooting – RocketWeapon', () => {
 
 describe('Shooting – BoomerangWeapon', () => {
   it('creates a boomerang when shoot key pressed', () => {
-    makeShip().set(BoomerangWeapon, { shots: 3, inFlight: new Set() });
+    makeShip().set(BoomerangWeapon, { shots: 3, inFlight: 0 });
     keys.state[SHOOT_KEY] = true;
     const before = count(Boomerang);
     tick();
@@ -188,7 +188,7 @@ describe('Shooting – BoomerangWeapon', () => {
   it('decrements shots', () => {
     const e = makeShip().set(BoomerangWeapon, {
       shots: 3,
-      inFlight: new Set(),
+      inFlight: 0,
     });
     keys.state[SHOOT_KEY] = true;
     tick();

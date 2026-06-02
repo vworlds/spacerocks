@@ -2,13 +2,9 @@ import { world, gameState, canvasSize, msgEl } from './world';
 import './systems/index';
 import { createShip } from './factories/Ship';
 import { createAsteroid } from './factories/Asteroid';
-import { createAlien } from './factories/Alien';
-import { createPickup } from './factories/Pickup';
-import { Position, RandomClock, Alien } from './components/index';
+import { Position, RandomClock, RandomClockKind } from './components/index';
 import { GAME_CONFIG } from './constants';
 import type { Entity } from '@vworlds/vecs';
-
-const alienQuery = world.query('AlienClockCap').requires(Alien);
 
 function destroyAllGameEntities(): void {
   const toDestroy: Entity[] = [];
@@ -42,39 +38,37 @@ export function initGame(): void {
   world.entity().set(RandomClock, {
     minWait: GAME_CONFIG.ALIEN_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.ALIEN_SPAWN_MAX_WAIT,
-    effectFunc: () => {
-      if (alienQuery.count < GAME_CONFIG.ALIEN_CAP) createAlien();
-    },
+    kind: RandomClockKind.Alien,
   });
   world.entity().set(RandomClock, {
     minWait: GAME_CONFIG.SHIELD_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.SHIELD_SPAWN_MAX_WAIT,
-    effectFunc: () => createPickup('shield'),
+    kind: RandomClockKind.ShieldPickup,
   });
   world.entity().set(RandomClock, {
     minWait: GAME_CONFIG.LASER_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.LASER_SPAWN_MAX_WAIT,
-    effectFunc: () => createPickup('laser'),
+    kind: RandomClockKind.LaserPickup,
   });
   world.entity().set(RandomClock, {
     minWait: GAME_CONFIG.AURA_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.AURA_SPAWN_MAX_WAIT,
-    effectFunc: () => createPickup('aura'),
+    kind: RandomClockKind.AuraPickup,
   });
   world.entity().set(RandomClock, {
     minWait: GAME_CONFIG.ROCKET_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.ROCKET_SPAWN_MAX_WAIT,
-    effectFunc: () => createPickup('rocket'),
+    kind: RandomClockKind.RocketPickup,
   });
   world.entity().set(RandomClock, {
     minWait: GAME_CONFIG.BOOMERANG_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.BOOMERANG_SPAWN_MAX_WAIT,
-    effectFunc: () => createPickup('boomerang'),
+    kind: RandomClockKind.BoomerangPickup,
   });
   world.entity().set(RandomClock, {
     minWait: GAME_CONFIG.HEALTH_SPAWN_MIN_WAIT,
     maxWait: GAME_CONFIG.HEALTH_SPAWN_MAX_WAIT,
-    effectFunc: () => createPickup('health'),
+    kind: RandomClockKind.HealthPickup,
   });
 
   spawnWave(1);

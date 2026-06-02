@@ -1,3 +1,1 @@
-export class Friction {
-  value = 0.98;
-}
+export { Friction } from '@spacerocks/common';

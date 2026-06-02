@@ -1,1 +1,1 @@
-export class Wraps {}
+export { Wraps } from '@spacerocks/common';

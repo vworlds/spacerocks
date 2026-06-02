@@ -13,6 +13,7 @@ import {
 import { SHIELD_DAMAGE, SCORING, ENTITY_CONFIG } from '../constants';
 import { explode } from '../factories/Particle';
 import { createAsteroid } from '../factories/Asteroid';
+import { applyPickupEffect } from '../factories/Pickup';
 import type { Entity } from '@vworlds/vecs';
 
 type CollisionHandler = (a: Entity, b: Entity) => void;
@@ -122,7 +123,7 @@ registerCollisionEffect(BIT_PLAYER, BIT_PICKUP, (player, pickup) => {
   const pu = pickup.get(Pickup);
   if (!pu) return;
   const { x, y } = getPos(player);
-  pu.effectFunc(player, pickup);
+  applyPickupEffect(player, pickup);
   explode(x, y, '#fff', 20);
   pickup.destroy();
 });
@@ -235,7 +236,7 @@ registerCollisionEffect(BIT_BOOMERANG, BIT_ENEMY, (boom, alien) => {
 // armed (left the catch zone) so the launch frame doesn't self-catch.
 registerCollisionEffect(BIT_PLAYER, BIT_BOOMERANG, (player, boom) => {
   const b = boom.get(Boomerang);
-  if (!b || b.owner !== player || !b.armed) return;
+  if (!b || b.ownerId !== player.eid || !b.armed) return;
   const w = player.getMut(BoomerangWeapon);
   if (w) w.shots = Math.min(w.shots + 1, ENTITY_CONFIG.BOOMERANG.MAX_SHOTS);
   boom.destroy();
