@@ -12,6 +12,7 @@ import {
   CAT_ENEMY_BULLET,
   CAT_PICKUP,
   CAT_PLAYER,
+  AngularVelocity,
   DefaultWeapon,
   Drawable,
   ENTITY_CONFIG,
@@ -60,6 +61,7 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(Networked);
   world.component(Position);
   world.component(Velocity);
+  world.component(AngularVelocity);
   world.component(Rotation);
   world.component(Thrust);
   world.component(Friction);

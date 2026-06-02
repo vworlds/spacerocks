@@ -7,6 +7,7 @@ import {
   installPlayerSessionSystems,
   registerPlayerSessionComponents,
 } from './game/playerSessions';
+import { installMovementSystems } from './game/movement';
 
 const TICK_RATE = 60;
 const TICK_INTERVAL_MS = 1000 / TICK_RATE;
@@ -24,6 +25,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const sendPhase = world.addPhase('send');
   registerPlayerSessionComponents(world);
   installPlayerSessionSystems(world, simulationPhase);
+  installMovementSystems(world, simulationPhase);
 
   world
     .system('SetClientView')
