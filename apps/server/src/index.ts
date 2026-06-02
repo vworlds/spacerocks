@@ -8,6 +8,10 @@ import {
   registerPlayerSessionComponents,
 } from './game/playerSessions';
 import { installMovementSystems } from './game/movement';
+import {
+  installSpawningSystems,
+  registerSpawningComponents,
+} from './game/spawning';
 
 const TICK_RATE = 60;
 const TICK_INTERVAL_MS = 1000 / TICK_RATE;
@@ -24,7 +28,9 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const collectPhase = world.addPhase('collect');
   const sendPhase = world.addPhase('send');
   registerPlayerSessionComponents(world);
+  registerSpawningComponents(world);
   installPlayerSessionSystems(world, simulationPhase);
+  installSpawningSystems(world, simulationPhase);
   installMovementSystems(world, simulationPhase);
 
   world
