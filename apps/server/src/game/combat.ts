@@ -482,8 +482,9 @@ function applyPickupEffect(
   if (!pickup) return;
 
   if (pickup.kind === PickupKind.Shield) {
-    player.set(Shield, { shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION });
-    syncShieldView(player, player.get(Shield)!);
+    const shield = { shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION };
+    player.set(Shield, shield);
+    syncShieldView(player, shield);
     addScore(world, SCORING.SHIELD);
   } else if (pickup.kind === PickupKind.Laser) {
     setActiveWeapon(player, PickupKind.Laser);
@@ -531,18 +532,38 @@ function setActiveWeapon(player: Entity, kind: PickupKind): void {
       firing: false,
       timer: 0,
     });
+    player.set(WeaponView, {
+      activeWeapon: WEAPON_KIND_LASER,
+      ammo: ENTITY_CONFIG.SHIP.LASER_SHOT_COUNT,
+      firing: 0,
+    });
   } else if (kind === PickupKind.Aura) {
     player.set(AuraWeapon, { shots: ENTITY_CONFIG.SHIP.AURA_SHOT_COUNT });
+    player.set(WeaponView, {
+      activeWeapon: WEAPON_KIND_AURA,
+      ammo: ENTITY_CONFIG.SHIP.AURA_SHOT_COUNT,
+      firing: 0,
+    });
   } else if (kind === PickupKind.Rocket) {
     player.set(RocketWeapon, { shots: ENTITY_CONFIG.ROCKET.SHOT_COUNT });
+    player.set(WeaponView, {
+      activeWeapon: WEAPON_KIND_ROCKET,
+      ammo: ENTITY_CONFIG.ROCKET.SHOT_COUNT,
+      firing: 0,
+    });
   } else if (kind === PickupKind.Boomerang) {
     player.set(BoomerangWeapon, {
       shots: ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
       inFlight: 0,
     });
+    player.set(WeaponView, {
+      activeWeapon: WEAPON_KIND_BOOMERANG,
+      ammo: ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
+      firing: 0,
+    });
   }
 
-  syncWeaponView(player);
+  player.modified(WeaponView);
 }
 
 function projectileDamage(projectile: Entity): number {

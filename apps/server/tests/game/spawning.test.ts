@@ -87,7 +87,7 @@ describe('server spawning systems', () => {
     vi.useRealTimers();
   });
 
-  it('initializes game state and the first asteroid wave in fixed world bounds', () => {
+  it('creates one networked GameStateView and the first asteroid wave in fixed world bounds', () => {
     const { world } = createTestWorld();
 
     expect(firstEntity(world, GameStateView)?.get(GameStateView)).toMatchObject(
@@ -97,6 +97,7 @@ describe('server spawning systems', () => {
         score: 0,
       },
     );
+    expect(count(world, GameStateView)).toBe(1);
     expect(count(world, Asteroid)).toBe(5);
 
     world
@@ -129,6 +130,33 @@ describe('server spawning systems', () => {
       },
     );
     expect(count(world, Asteroid)).toBe(7);
+  });
+
+  it('does not progress the GameStateView lifecycle while paused', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const { world, simulationPhase } = createTestWorld();
+    const asteroids: Entity[] = [];
+    world.filter([Asteroid]).forEach([], (entity) => asteroids.push(entity));
+    for (const entity of asteroids) entity.destroy();
+    const gameStateEntity = firstEntity(world, GameStateView);
+    if (!gameStateEntity) throw new Error('Expected GameStateView entity');
+    gameStateEntity.set(GameStateView, {
+      state: 1,
+      wave: 1,
+      score: 0,
+      status: 'Paused',
+    });
+
+    runSimulation(world, simulationPhase, 1000);
+    runSimulation(world, simulationPhase, 2000);
+
+    expect(gameStateEntity.get(GameStateView)).toMatchObject({
+      state: 1,
+      wave: 1,
+      status: 'Paused',
+    });
+    expect(count(world, Asteroid)).toBe(0);
   });
 
   it('spawns aliens and pickups from server timers while playing', () => {

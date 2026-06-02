@@ -18,11 +18,16 @@ import {
   Health,
   HealthPickup,
   HealthView,
+  LaserWeapon,
   Pickup,
   PickupKind,
   PlayerShip,
   Position,
+  RocketWeapon,
   SCORING,
+  Shield,
+  ShieldView,
+  WeaponView,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -195,6 +200,81 @@ describe('server combat systems', () => {
     expect(count(world, Pickup)).toBe(0);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
       SCORING.HEALTH_LARGE,
+    );
+  });
+
+  it('applies shield pickups through server-side handlers and syncs shield view', () => {
+    const { world, simulationPhase } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    ship.set(Position, { x: 10, y: 20 });
+    world
+      .entity()
+      .set(Position, { x: 10, y: 20 })
+      .set(Pickup, { kind: PickupKind.Shield })
+      .set(Collider, {
+        radius: ENTITY_CONFIG.POWERUP.RADIUS,
+        category: CAT_PICKUP,
+        mask: CAT_PLAYER,
+      });
+
+    runFrame(world, simulationPhase);
+
+    expect(ship.get(Shield)).toMatchObject({
+      shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION,
+    });
+    expect(ship.get(ShieldView)).toMatchObject({
+      remainingTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION,
+    });
+    expect(count(world, Pickup)).toBe(0);
+    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
+      SCORING.SHIELD,
+    );
+  });
+
+  it('applies weapon pickups through server-side handlers and syncs weapon view', () => {
+    const { world, simulationPhase } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    ship.set(Position, { x: 10, y: 20 });
+    world
+      .entity()
+      .set(Position, { x: 10, y: 20 })
+      .set(Pickup, { kind: PickupKind.Rocket })
+      .set(Collider, {
+        radius: ENTITY_CONFIG.POWERUP.RADIUS,
+        category: CAT_PICKUP,
+        mask: CAT_PLAYER,
+      });
+
+    runFrame(world, simulationPhase);
+
+    expect(ship.get(RocketWeapon)).toMatchObject({
+      shots: ENTITY_CONFIG.ROCKET.SHOT_COUNT,
+    });
+    expect(ship.get(LaserWeapon)).toBeUndefined();
+    expect(ship.get(WeaponView)).toMatchObject({
+      activeWeapon: 3,
+      ammo: ENTITY_CONFIG.ROCKET.SHOT_COUNT,
+      firing: 0,
+    });
+    expect(count(world, Pickup)).toBe(0);
+    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
+      SCORING.ROCKET,
     );
   });
 

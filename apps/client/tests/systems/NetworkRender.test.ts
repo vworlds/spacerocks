@@ -143,6 +143,27 @@ describe('NetworkRender', () => {
     expect(ctx.fill).toHaveBeenCalled();
   });
 
+  it('reconstructs filled rect draw statements from mirrored entities', () => {
+    const networkWorld = createNetworkWorld();
+    const entity = networkWorld
+      .entity()
+      .set(Position, { x: 5, y: 6 })
+      .set(Drawable, { zIndex: 10 })
+      .set(FillStyle, { style: '#0f0' })
+      .set(FilledRect, { width: 4, height: 6 });
+    const ctx = createMockCtx();
+
+    drawNetworkRenderableEntity(
+      ctx as unknown as CanvasRenderingContext2D,
+      entity,
+      { x: 1, y: 1 },
+    );
+
+    expect(ctx.translate).toHaveBeenCalledWith(5, 6);
+    expect(ctx.fillStyle).toBe('#0f0');
+    expect(ctx.fillRect).toHaveBeenCalledWith(-2, -3, 4, 6);
+  });
+
   it('draws mirrored health bars, shields, and active laser beams', () => {
     const networkWorld = createNetworkWorld();
     const entity = networkWorld
