@@ -28,8 +28,8 @@ A fast-paced, two-player cooperative Asteroids-style game.
 
 ```bash
 npm install         # install all workspace dependencies
+npm run dev:server  # start the authoritative vecs server
 npm run dev:client  # start Vite dev server (http://localhost:5173)
-npm run dev:server  # run the server placeholder
 npm run build       # typecheck + build all workspaces
 npm run test        # run workspace tests
 ```
@@ -38,8 +38,8 @@ npm run test        # run workspace tests
 
 This project uses npm workspaces:
 
-- `apps/client`: Vite browser game
-- `apps/server`: server-side placeholder
+- `apps/client`: Vite browser renderer and input client
+- `apps/server`: authoritative server-side simulation
 - `packages/common`: shared code for client and server
 
 ## GitHub Pages previews

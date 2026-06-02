@@ -1,8 +1,5 @@
 import { world, initDOM } from './world';
-import { initGame } from './game';
-import { setInitGameCallback } from './systems/Collision';
-import { initCheats } from './cheats';
-import { connectEcsMirror } from './network/ecsMirror';
+import './systems/index';
 import {
   connectVecsClient,
   createKeyboardInputSource,
@@ -20,14 +17,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   initDOM(canvasEl as HTMLCanvasElement, scoreEl, waveEl, msgEl);
-  setInitGameCallback(initGame);
-  initCheats();
 
-  // Start world after all systems (imported via game.ts → systems/index) are registered
+  // Start after render/UI systems are registered by the side-effect import.
   world.start();
 
-  initGame();
-  void connectEcsMirror();
   void connectVecsClient();
 
   const vecsInput = createKeyboardInputSource();

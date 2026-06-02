@@ -1,5 +1,6 @@
 export const WORLD_WIDTH = 1024;
 export const WORLD_HEIGHT = 768;
+export const CLIENT_ENTITY_ID_START = 1_000_000;
 
 export const GAME_CONFIG = {
   ALIEN_SPAWN_MIN_WAIT: 10000,

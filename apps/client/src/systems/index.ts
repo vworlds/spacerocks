@@ -1,21 +1,4 @@
-// Update phase systems (import order = execution order)
-import './ShipControl';
-import './Thrust';
-import './AlienAI';
-import './Movement';
-import './AngularMovement';
-import './FrictionSystem';
-import './Wrap';
-import './Shooting';
-import './LaserSystem';
-import './RocketSystem';
-import './BoomerangSystem';
-import './ShieldSystem';
 import './DecaySystem';
-import './HealthSystem';
-import './Collision';
-import './RandomClockSystem';
-import './Wave';
 
 // Render phase systems
 import './Render';
