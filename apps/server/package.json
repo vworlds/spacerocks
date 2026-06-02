@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch --tsconfig ../../tsconfig.base.json src/index.ts",
+    "dev:inspect": "tsx watch --inspect --tsconfig ../../tsconfig.base.json src/index.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",

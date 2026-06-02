@@ -94,12 +94,18 @@ export function installPlayerSessionSystems(
     .requires(NetworkClient)
     .enter([NetworkClient], (clientEntity, [client]) => {
       const playerIndex = nextPlayerIndex++;
+      console.info(
+        `[srv] CreatePlayerSession enter client=${client.id} index=${playerIndex}`,
+      );
       const session = world
         .entity()
         .set(PlayerSession, { clientId: client.id, playerIndex })
         .set(ChildOf, { target: clientEntity });
 
       createPlayerShip(world, session, playerIndex);
+    })
+    .exit([NetworkClient], (_clientEntity, [client]) => {
+      console.info(`[srv] CreatePlayerSession exit client=${client.id}`);
     });
 
   world
