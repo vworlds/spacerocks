@@ -57,6 +57,9 @@ export class WeaponView {
 
   @wireType('u32')
   ammo = 0;
+
+  @wireType('u32')
+  firing = 0;
 }
 
 export class GameStateView {

@@ -575,7 +575,11 @@ function syncShieldView(entity: Entity, shield: Shield): void {
 
 function syncWeaponView(entity: Entity): void {
   const weapon = currentWeapon(entity);
-  entity.set(WeaponView, { activeWeapon: weapon.kind, ammo: weapon.ammo });
+  entity.set(WeaponView, {
+    activeWeapon: weapon.kind,
+    ammo: weapon.ammo,
+    firing: weapon.firing,
+  });
   entity.modified(WeaponView);
 }
 
@@ -584,16 +588,27 @@ function clearShield(entity: Entity): void {
   if (entity.get(ShieldView)) entity.remove(ShieldView);
 }
 
-function currentWeapon(entity: Entity): { kind: number; ammo: number } {
+function currentWeapon(entity: Entity): {
+  kind: number;
+  ammo: number;
+  firing: number;
+} {
   const laser = entity.get(LaserWeapon);
-  if (laser) return { kind: WEAPON_KIND_LASER, ammo: laser.shots };
+  if (laser)
+    return {
+      kind: WEAPON_KIND_LASER,
+      ammo: laser.shots,
+      firing: laser.firing ? 1 : 0,
+    };
   const aura = entity.get(AuraWeapon);
-  if (aura) return { kind: WEAPON_KIND_AURA, ammo: aura.shots };
+  if (aura) return { kind: WEAPON_KIND_AURA, ammo: aura.shots, firing: 0 };
   const rocket = entity.get(RocketWeapon);
-  if (rocket) return { kind: WEAPON_KIND_ROCKET, ammo: rocket.shots };
+  if (rocket)
+    return { kind: WEAPON_KIND_ROCKET, ammo: rocket.shots, firing: 0 };
   const boomerang = entity.get(BoomerangWeapon);
-  if (boomerang) return { kind: WEAPON_KIND_BOOMERANG, ammo: boomerang.shots };
-  return { kind: WEAPON_KIND_DEFAULT, ammo: 0 };
+  if (boomerang)
+    return { kind: WEAPON_KIND_BOOMERANG, ammo: boomerang.shots, firing: 0 };
+  return { kind: WEAPON_KIND_DEFAULT, ammo: 0, firing: 0 };
 }
 
 function createExplosion(
