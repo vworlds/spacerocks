@@ -16,6 +16,17 @@ type KeyboardInputSource = {
   readInput(): PlayerInputIntent;
 };
 
+const GAME_KEYS = new Set([
+  'KeyW',
+  'KeyA',
+  'KeyD',
+  'ArrowUp',
+  'ArrowLeft',
+  'ArrowRight',
+  'Space',
+  'Enter',
+]);
+
 let client: ClientWorld | null = null;
 let reconnectTimer: number | null = null;
 let connecting = false;
@@ -26,9 +37,11 @@ export function createKeyboardInputSource(
   const keys = new Set<string>();
 
   target.addEventListener('keydown', (event) => {
+    if (GAME_KEYS.has(event.code)) event.preventDefault();
     keys.add(event.code);
   });
   target.addEventListener('keyup', (event) => {
+    if (GAME_KEYS.has(event.code)) event.preventDefault();
     keys.delete(event.code);
   });
 

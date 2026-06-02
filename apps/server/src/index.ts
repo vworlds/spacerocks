@@ -19,7 +19,7 @@ import {
 } from './game/shooting';
 import { installCombatSystems, registerCombatComponents } from './game/combat';
 
-const TICK_RATE = 60;
+const TICK_RATE = 30;
 const TICK_INTERVAL_MS = 1000 / TICK_RATE;
 
 export async function startServer(port = Number(process.env.PORT ?? 2567)) {
