@@ -1,19 +1,22 @@
-import { world, renderPhase } from '../../world';
-import { Drawable, Label } from '../../components/index';
+import type { IPhase, World } from '@vworlds/vecs';
+import { Drawable } from '@spacerocks/common';
+import { Label } from '../../components/Label';
 
-world
-  .system('LabelSystem')
-  .requires(Drawable, Label)
-  .phase(renderPhase)
-  .enter([Drawable, Label], (_e, [drawable, lbl]) => {
-    drawable.addStatement(Label, 60, (ctx) => {
-      ctx.fillStyle = lbl.color;
-      ctx.font = lbl.font;
-      ctx.textAlign = lbl.textAlign;
-      ctx.textBaseline = lbl.textBaseline;
-      ctx.fillText(lbl.text, 0, 0);
+export function installLabelDrawSystem(world: World, phase: IPhase): void {
+  world
+    .system('LabelDraw')
+    .phase(phase)
+    .requires(Drawable, Label)
+    .enter([Drawable, Label], (_entity, [drawable, label]) => {
+      drawable.addStatement(Label, 60, (ctx) => {
+        ctx.fillStyle = label.color;
+        ctx.font = label.font;
+        ctx.textAlign = label.textAlign;
+        ctx.textBaseline = label.textBaseline;
+        ctx.fillText(label.text, 0, 0);
+      });
+    })
+    .exit([Drawable], (_entity, [drawable]) => {
+      drawable.removeStatement(Label);
     });
-  })
-  .exit([Drawable], (_e, [drawable]) => {
-    drawable.removeStatement(Label);
-  });
+}

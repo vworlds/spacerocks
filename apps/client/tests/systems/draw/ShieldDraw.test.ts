@@ -1,37 +1,52 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
-import { world, renderPhase } from '@src/world';
-import '@src/systems/draw/ShieldDraw';
-import { Drawable, Shield } from '@src/components';
-import { ENTITY_CONFIG } from '@src/constants';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Drawable, ENTITY_CONFIG, ShieldView } from '@spacerocks/common';
+import { installShieldDrawSystem } from '@src/systems/draw/ShieldDraw';
+import { createTestWorld, type TestWorld } from '../../helpers/world';
 
-beforeAll(() => world.start());
-afterEach(() => world.clearAllEntities());
+let testWorld: TestWorld;
+
+beforeEach(() => {
+  testWorld = createTestWorld([Drawable, ShieldView]);
+  installShieldDrawSystem(testWorld.world, testWorld.renderPhase);
+  testWorld.world.start();
+});
 
 function tick() {
-  world.beginFrame(16);
-  world.runPhase(renderPhase, Date.now(), 16);
-  world.endFrame();
+  testWorld.tickPhase(testWorld.renderPhase);
+}
+
+function ctxMock() {
+  return {
+    beginPath: vi.fn(),
+    arc: vi.fn(),
+    stroke: vi.fn(),
+    strokeStyle: '',
+    lineWidth: 1,
+  } as unknown as CanvasRenderingContext2D;
 }
 
 describe('ShieldDraw', () => {
-  it('adds Shield draw statement when entity gains Drawable + Shield', () => {
-    const e = world.entity().add(Drawable).set(Shield, { shieldTime: 2400 });
+  it('adds ShieldView draw statement when Drawable + ShieldView appear', () => {
+    const e = testWorld.world
+      .entity()
+      .add(Drawable)
+      .set(ShieldView, { remainingTime: 2400 });
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).toContain(Shield);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).toContain(
+      ShieldView,
+    );
   });
 
-  it('draws arc for shield circle', () => {
-    const e = world.entity().add(Drawable).set(Shield, { shieldTime: 2400 });
+  it('draws arc for shield circle when active', () => {
+    const e = testWorld.world
+      .entity()
+      .add(Drawable)
+      .set(ShieldView, { remainingTime: 2400 });
     tick();
-    const stmt = e.get(Drawable)!._statements.find((s) => s.key === Shield)!;
-    const ctx = {
-      beginPath: vi.fn(),
-      arc: vi.fn(),
-      stroke: vi.fn(),
-      strokeStyle: '',
-      lineWidth: 1,
-    } as unknown as CanvasRenderingContext2D;
+    const stmt = e
+      .get(Drawable)!
+      ._statements.find((s) => s.key === ShieldView)!;
+    const ctx = ctxMock();
     stmt.fn(ctx);
     expect(ctx.beginPath).toHaveBeenCalled();
     expect(ctx.arc).toHaveBeenCalledWith(
@@ -45,45 +60,60 @@ describe('ShieldDraw', () => {
     expect(ctx.lineWidth).toBe(3);
   });
 
+  it('does nothing when remainingTime is 0', () => {
+    const e = testWorld.world
+      .entity()
+      .add(Drawable)
+      .set(ShieldView, { remainingTime: 0 });
+    tick();
+    const stmt = e
+      .get(Drawable)!
+      ._statements.find((s) => s.key === ShieldView)!;
+    const ctx = ctxMock();
+    stmt.fn(ctx);
+    expect(ctx.beginPath).not.toHaveBeenCalled();
+    expect(ctx.stroke).not.toHaveBeenCalled();
+  });
+
   it('uses green color at full shield', () => {
     const full = ENTITY_CONFIG.SHIP.SHIELD_DURATION;
-    const e = world.entity().add(Drawable).set(Shield, { shieldTime: full });
+    const e = testWorld.world
+      .entity()
+      .add(Drawable)
+      .set(ShieldView, { remainingTime: full });
     tick();
-    const stmt = e.get(Drawable)!._statements.find((s) => s.key === Shield)!;
-    const ctx = {
-      beginPath: vi.fn(),
-      arc: vi.fn(),
-      stroke: vi.fn(),
-      strokeStyle: '',
-      lineWidth: 1,
-    } as unknown as CanvasRenderingContext2D;
+    const stmt = e
+      .get(Drawable)!
+      ._statements.find((s) => s.key === ShieldView)!;
+    const ctx = ctxMock();
     stmt.fn(ctx);
-    // progress=1.0, >=0.5 branch: t=(1-1)*2=0, r=0, g=255
     expect(ctx.strokeStyle).toBe('rgb(0,255,0)');
   });
 
   it('uses red color at near-zero shield', () => {
-    const e = world.entity().add(Drawable).set(Shield, { shieldTime: 1 });
+    const e = testWorld.world
+      .entity()
+      .add(Drawable)
+      .set(ShieldView, { remainingTime: 1 });
     tick();
-    const stmt = e.get(Drawable)!._statements.find((s) => s.key === Shield)!;
-    const ctx = {
-      beginPath: vi.fn(),
-      arc: vi.fn(),
-      stroke: vi.fn(),
-      strokeStyle: '',
-      lineWidth: 1,
-    } as unknown as CanvasRenderingContext2D;
+    const stmt = e
+      .get(Drawable)!
+      ._statements.find((s) => s.key === ShieldView)!;
+    const ctx = ctxMock();
     stmt.fn(ctx);
-    // progress≈0, <0.5 branch: t≈1, r=255, g=0
     expect(ctx.strokeStyle).toBe('rgb(255,0,0)');
   });
 
-  it('removes statement when Shield is removed', () => {
-    const e = world.entity().add(Drawable).set(Shield, { shieldTime: 2400 });
+  it('removes statement when ShieldView is removed', () => {
+    const e = testWorld.world
+      .entity()
+      .add(Drawable)
+      .set(ShieldView, { remainingTime: 2400 });
     tick();
-    e.remove(Shield);
+    e.remove(ShieldView);
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).not.toContain(Shield);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).not.toContain(
+      ShieldView,
+    );
   });
 });

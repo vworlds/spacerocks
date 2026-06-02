@@ -1,30 +1,34 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
-import { world, renderPhase } from '@src/world';
-import '@src/systems/draw/FilledRectSystem';
-import { Drawable, FilledRect } from '@src/components';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Drawable, FilledRect } from '@spacerocks/common';
+import { installFilledRectDrawSystem } from '@src/systems/draw/FilledRectSystem';
+import { createTestWorld, type TestWorld } from '../../helpers/world';
 
-beforeAll(() => world.start());
-afterEach(() => world.clearAllEntities());
+let testWorld: TestWorld;
+
+beforeEach(() => {
+  testWorld = createTestWorld([Drawable, FilledRect]);
+  installFilledRectDrawSystem(testWorld.world, testWorld.renderPhase);
+  testWorld.world.start();
+});
 
 function tick() {
-  world.beginFrame(16);
-  world.runPhase(renderPhase, Date.now(), 16);
-  world.endFrame();
+  testWorld.tickPhase(testWorld.renderPhase);
 }
 
-describe('FilledRectSystem', () => {
-  it('adds FilledRect draw statement when entity gains Drawable + FilledRect', () => {
-    const e = world
+describe('FilledRectDraw', () => {
+  it('adds FilledRect draw statement when Drawable + FilledRect appear', () => {
+    const e = testWorld.world
       .entity()
       .add(Drawable)
       .set(FilledRect, { width: 4, height: 4 });
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).toContain(FilledRect);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).toContain(
+      FilledRect,
+    );
   });
 
-  it('statement calls ctx.fillRect centered at origin', () => {
-    const e = world
+  it('statement calls fillRect centered at origin', () => {
+    const e = testWorld.world
       .entity()
       .add(Drawable)
       .set(FilledRect, { width: 10, height: 6 });
@@ -38,14 +42,15 @@ describe('FilledRectSystem', () => {
   });
 
   it('removes statement when FilledRect is removed', () => {
-    const e = world
+    const e = testWorld.world
       .entity()
       .add(Drawable)
       .set(FilledRect, { width: 4, height: 4 });
     tick();
     e.remove(FilledRect);
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).not.toContain(FilledRect);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).not.toContain(
+      FilledRect,
+    );
   });
 });

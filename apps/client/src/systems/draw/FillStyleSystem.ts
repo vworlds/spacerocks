@@ -1,21 +1,23 @@
-import { world, renderPhase } from '../../world';
-import { Drawable, FillStyle } from '../../components/index';
+import type { IPhase, World } from '@vworlds/vecs';
+import { Drawable, FillStyle } from '@spacerocks/common';
 
 const FILL_EXEC_KEY = {};
 
-world
-  .system('FillStyleSystem')
-  .requires(Drawable, FillStyle)
-  .phase(renderPhase)
-  .enter([Drawable, FillStyle], (_e, [drawable, fs]) => {
-    drawable.addStatement(FillStyle, 100, (ctx) => {
-      ctx.fillStyle = fs.style;
+export function installFillStyleDrawSystem(world: World, phase: IPhase): void {
+  world
+    .system('FillStyleDraw')
+    .phase(phase)
+    .requires(Drawable, FillStyle)
+    .enter([Drawable, FillStyle], (_entity, [drawable, fillStyle]) => {
+      drawable.addStatement(FillStyle, 100, (ctx) => {
+        ctx.fillStyle = fillStyle.style;
+      });
+      drawable.addStatement(FILL_EXEC_KEY, 45, (ctx) => {
+        ctx.fill();
+      });
+    })
+    .exit([Drawable], (_entity, [drawable]) => {
+      drawable.removeStatement(FillStyle);
+      drawable.removeStatement(FILL_EXEC_KEY);
     });
-    drawable.addStatement(FILL_EXEC_KEY, 45, (ctx) => {
-      ctx.fill();
-    });
-  })
-  .exit([Drawable], (_e, [drawable]) => {
-    drawable.removeStatement(FillStyle);
-    drawable.removeStatement(FILL_EXEC_KEY);
-  });
+}

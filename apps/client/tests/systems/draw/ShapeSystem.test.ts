@@ -1,26 +1,28 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
-import { world, renderPhase } from '@src/world';
-import '@src/systems/draw/ShapeSystem';
-import { Drawable, Shape } from '@src/components';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Drawable, Shape } from '@spacerocks/common';
+import { installShapeDrawSystem } from '@src/systems/draw/ShapeSystem';
+import { createTestWorld, type TestWorld } from '../../helpers/world';
 
-beforeAll(() => world.start());
-afterEach(() => world.clearAllEntities());
+let testWorld: TestWorld;
+
+beforeEach(() => {
+  testWorld = createTestWorld([Drawable, Shape]);
+  installShapeDrawSystem(testWorld.world, testWorld.renderPhase);
+  testWorld.world.start();
+});
 
 function tick() {
-  world.beginFrame(16);
-  world.runPhase(renderPhase, Date.now(), 16);
-  world.endFrame();
+  testWorld.tickPhase(testWorld.renderPhase);
 }
 
-describe('ShapeSystem', () => {
-  it('adds Shape draw statement when entity gains Drawable + Shape', () => {
-    const e = world
+describe('ShapeDraw', () => {
+  it('adds Shape draw statement when Drawable + Shape appear', () => {
+    const e = testWorld.world
       .entity()
       .add(Drawable)
       .set(Shape, { points: [{ x: 0, y: 0 }] });
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).toContain(Shape);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).toContain(Shape);
   });
 
   it('draws polygon using moveTo and lineTo', () => {
@@ -29,7 +31,7 @@ describe('ShapeSystem', () => {
       { x: 10, y: 5 },
       { x: -10, y: 5 },
     ];
-    const e = world.entity().add(Drawable).set(Shape, { points });
+    const e = testWorld.world.entity().add(Drawable).set(Shape, { points });
     tick();
     const stmt = e.get(Drawable)!._statements.find((s) => s.key === Shape)!;
     const ctx = {
@@ -47,7 +49,7 @@ describe('ShapeSystem', () => {
   });
 
   it('handles empty points array without error', () => {
-    const e = world.entity().add(Drawable).set(Shape, { points: [] });
+    const e = testWorld.world.entity().add(Drawable).set(Shape, { points: [] });
     tick();
     const stmt = e.get(Drawable)!._statements.find((s) => s.key === Shape)!;
     const ctx = {
@@ -61,11 +63,10 @@ describe('ShapeSystem', () => {
   });
 
   it('removes statement when Shape is removed', () => {
-    const e = world.entity().add(Drawable).set(Shape, { points: [] });
+    const e = testWorld.world.entity().add(Drawable).set(Shape, { points: [] });
     tick();
     e.remove(Shape);
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).not.toContain(Shape);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).not.toContain(Shape);
   });
 });

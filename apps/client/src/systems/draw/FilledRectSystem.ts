@@ -1,15 +1,22 @@
-import { world, renderPhase } from '../../world';
-import { Drawable, FilledRect } from '../../components/index';
+import type { IPhase, World } from '@vworlds/vecs';
+import { Drawable, FilledRect } from '@spacerocks/common';
 
-world
-  .system('FilledRectSystem')
-  .requires(Drawable, FilledRect)
-  .phase(renderPhase)
-  .enter([Drawable, FilledRect], (_e, [drawable, rect]) => {
-    drawable.addStatement(FilledRect, 50, (ctx) => {
-      ctx.fillRect(-rect.width / 2, -rect.height / 2, rect.width, rect.height);
+export function installFilledRectDrawSystem(world: World, phase: IPhase): void {
+  world
+    .system('FilledRectDraw')
+    .phase(phase)
+    .requires(Drawable, FilledRect)
+    .enter([Drawable, FilledRect], (_entity, [drawable, rect]) => {
+      drawable.addStatement(FilledRect, 50, (ctx) => {
+        ctx.fillRect(
+          -rect.width / 2,
+          -rect.height / 2,
+          rect.width,
+          rect.height,
+        );
+      });
+    })
+    .exit([Drawable], (_entity, [drawable]) => {
+      drawable.removeStatement(FilledRect);
     });
-  })
-  .exit([Drawable], (_e, [drawable]) => {
-    drawable.removeStatement(FilledRect);
-  });
+}

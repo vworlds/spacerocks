@@ -1,115 +1,119 @@
 import { ClientWorld } from '@vworlds/vecs-client';
-import { CLIENT_ENTITY_ID_START, NETWORK_COMPONENTS } from '@spacerocks/common';
+import {
+  CLIENT_ENTITY_ID_START,
+  Decay,
+  NETWORK_COMPONENTS,
+  Velocity,
+} from '@spacerocks/common';
+import { Alpha } from '../components/Alpha';
+import { Label } from '../components/Label';
+import { Particle } from '../components/Particle';
+import { installRenderSystem, type RenderTarget } from '../systems/Render';
+import { installUISystem, type UITargets } from '../systems/UI';
+import { installParticleSystem } from '../systems/Particles';
+import { installExplosionSystem } from '../systems/Explosion';
+import { installAlphaDrawSystem } from '../systems/draw/AlphaSystem';
+import { installArcDrawSystem } from '../systems/draw/ArcSystem';
+import { installFilledRectDrawSystem } from '../systems/draw/FilledRectSystem';
+import { installFillStyleDrawSystem } from '../systems/draw/FillStyleSystem';
+import { installHealthDrawSystem } from '../systems/draw/HealthDraw';
+import { installLabelDrawSystem } from '../systems/draw/LabelSystem';
+import { installLaserBeamDrawSystem } from '../systems/draw/LaserBeamDraw';
+import { installShapeDrawSystem } from '../systems/draw/ShapeSystem';
+import { installShieldDrawSystem } from '../systems/draw/ShieldDraw';
+import { installStrokeStyleDrawSystem } from '../systems/draw/StrokeStyleSystem';
 
 const SERVER_PORT = 2567;
 const WORLD_NAME = 'main';
-const RECONNECT_DELAY_MS = 1_000;
+const API_BASE_PATH = '/rtc/v1';
 
-export type PlayerInputIntent = {
-  thrust: boolean;
-  rotateLeft: boolean;
-  rotateRight: boolean;
-  shoot: boolean;
+export type ClientWorldConfig = {
+  renderTarget: RenderTarget;
+  ui: UITargets;
 };
 
-type KeyboardInputSource = {
-  readInput(): PlayerInputIntent;
+type DgramClientSocket = {
+  connect(): Promise<void>;
+  on(event: string, handler: (...args: unknown[]) => void): void;
+  send(data: Uint8Array): void;
+  close(): void;
 };
 
-const GAME_KEYS = new Set([
-  'KeyW',
-  'KeyA',
-  'KeyD',
-  'ArrowUp',
-  'ArrowLeft',
-  'ArrowRight',
-  'Space',
-  'Enter',
-]);
+// Build the entire world (component registration + phases + systems + start)
+// BEFORE opening the WebRTC data channel. The server starts a 5-frame (~166ms
+// at 30Hz) ack budget the moment its data channel emits open, and the
+// build-and-start work can take several hundred milliseconds on first load.
+// Doing it before the socket connects keeps the first ack well within budget.
+export async function createClientWorld(
+  config: ClientWorldConfig,
+): Promise<ClientWorld> {
+  const t0 = performance.now();
+  const dgramModule = await import('@vworlds/dgram-client');
+  const tImport = performance.now();
+  // The dgram ClientSocket is structurally a VecsSocket but its eventemitter
+  // overloads do not line up at the type level — ClientWorld.connectDgram does
+  // the same `as unknown as` cast internally.
+  const ClientSocketCtor = dgramModule.ClientSocket as unknown as new (
+    url: string,
+    rtcConfig: RTCConfiguration,
+  ) => DgramClientSocket;
 
-let client: ClientWorld | null = null;
-let reconnectTimer: number | null = null;
-let connecting = false;
+  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
+  const host = window.location.hostname;
+  const url = `${protocol}://${host}:${SERVER_PORT}${API_BASE_PATH}/world/${WORLD_NAME}`;
+  const socket = new ClientSocketCtor(url, {});
 
-export function createKeyboardInputSource(
-  target: Pick<Window, 'addEventListener'> = window,
-): KeyboardInputSource {
-  const keys = new Set<string>();
-
-  target.addEventListener('keydown', (event) => {
-    if (GAME_KEYS.has(event.code)) event.preventDefault();
-    keys.add(event.code);
+  const world = new ClientWorld({
+    networkComponents: NETWORK_COMPONENTS,
+    localEntityIdStart: CLIENT_ENTITY_ID_START,
   });
-  target.addEventListener('keyup', (event) => {
-    if (GAME_KEYS.has(event.code)) event.preventDefault();
-    keys.delete(event.code);
-  });
 
-  return {
-    readInput: () => ({
-      thrust: keys.has('KeyW') || keys.has('ArrowUp'),
-      rotateLeft: keys.has('KeyA') || keys.has('ArrowLeft'),
-      rotateRight: keys.has('KeyD') || keys.has('ArrowRight'),
-      shoot: keys.has('Space') || keys.has('Enter'),
-    }),
-  };
-}
+  world.component(Velocity);
+  world.component(Decay);
+  world.component(Alpha);
+  world.component(Label);
+  world.component(Particle);
 
-export async function connectVecsClient(): Promise<void> {
-  if (client || connecting) return;
-  connecting = true;
+  const applyPhase = world.addPhase('apply');
+  const updatePhase = world.addPhase('update');
+  const renderPhase = world.addPhase('render');
+  const sendPhase = world.addPhase('send');
 
-  try {
-    const nextClient = await ClientWorld.connectDgram({
-      host: window.location.hostname,
-      port: SERVER_PORT,
-      protocol: window.location.protocol === 'https:' ? 'https' : 'http',
-      worldName: WORLD_NAME,
-      networkComponents: NETWORK_COMPONENTS,
-      localEntityIdStart: CLIENT_ENTITY_ID_START,
-    });
+  world.installSystems({ applyPhase, sendPhase });
 
-    const applyPhase = nextClient.addPhase('apply');
-    const sendPhase = nextClient.addPhase('send');
-    nextClient.installSystems({ applyPhase, sendPhase });
-    nextClient.start();
-    nextClient.onDisconnect(() => {
-      if (client !== nextClient) return;
-      nextClient.clearAllEntities();
-      client = null;
-      scheduleReconnect();
-    });
+  installParticleSystem(world, updatePhase);
+  installExplosionSystem(world, updatePhase);
 
-    client = nextClient;
-    console.info(`Connected to vecs world "${WORLD_NAME}"`);
-  } catch (error) {
-    console.warn('Vecs client connection unavailable', error);
-    scheduleReconnect();
-  } finally {
-    connecting = false;
-  }
-}
+  installAlphaDrawSystem(world, renderPhase);
+  installArcDrawSystem(world, renderPhase);
+  installFilledRectDrawSystem(world, renderPhase);
+  installFillStyleDrawSystem(world, renderPhase);
+  installStrokeStyleDrawSystem(world, renderPhase);
+  installShapeDrawSystem(world, renderPhase);
+  installLabelDrawSystem(world, renderPhase);
+  installHealthDrawSystem(world, renderPhase);
+  installShieldDrawSystem(world, renderPhase);
+  installLaserBeamDrawSystem(world, renderPhase);
 
-export function tickVecsClient(
-  input: PlayerInputIntent,
-  now: number,
-  delta: number,
-): void {
-  if (!client) return;
+  installRenderSystem(world, renderPhase, config.renderTarget);
+  installUISystem(world, renderPhase, config.ui);
 
-  client.setInput(input);
-  client.progress(now, delta);
-}
+  world.start();
+  const tStarted = performance.now();
 
-export function getVecsClientWorld(): ClientWorld | null {
-  return client;
-}
+  // Attach the socket only once the world is ready to ack. attachSocket only
+  // subscribes to "receive"; nothing fires until the data channel opens.
+  world.attachSocket(
+    socket as unknown as Parameters<ClientWorld['attachSocket']>[0],
+  );
+  await socket.connect();
+  const tConnected = performance.now();
 
-function scheduleReconnect(): void {
-  if (reconnectTimer !== null) return;
-
-  reconnectTimer = window.setTimeout(() => {
-    reconnectTimer = null;
-    void connectVecsClient();
-  }, RECONNECT_DELAY_MS);
+  console.info(
+    `[vecs] import=${(tImport - t0).toFixed(0)}ms ` +
+      `setup+start=${(tStarted - tImport).toFixed(0)}ms ` +
+      `socket.connect=${(tConnected - tStarted).toFixed(0)}ms ` +
+      `(total=${(tConnected - t0).toFixed(0)}ms)`,
+  );
+  return world;
 }

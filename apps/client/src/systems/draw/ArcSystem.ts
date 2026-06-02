@@ -1,16 +1,18 @@
-import { world, renderPhase } from '../../world';
-import { Drawable, Arc } from '../../components/index';
+import type { IPhase, World } from '@vworlds/vecs';
+import { Arc, Drawable } from '@spacerocks/common';
 
-world
-  .system('ArcSystem')
-  .requires(Drawable, Arc)
-  .phase(renderPhase)
-  .enter([Drawable, Arc], (_e, [drawable, arc]) => {
-    drawable.addStatement(Arc, 55, (ctx) => {
-      ctx.beginPath();
-      ctx.arc(0, 0, arc.radius, arc.startAngle, arc.endAngle);
+export function installArcDrawSystem(world: World, phase: IPhase): void {
+  world
+    .system('ArcDraw')
+    .phase(phase)
+    .requires(Drawable, Arc)
+    .enter([Drawable, Arc], (_entity, [drawable, arc]) => {
+      drawable.addStatement(Arc, 55, (ctx) => {
+        ctx.beginPath();
+        ctx.arc(0, 0, arc.radius, arc.startAngle, arc.endAngle);
+      });
+    })
+    .exit([Drawable], (_entity, [drawable]) => {
+      drawable.removeStatement(Arc);
     });
-  })
-  .exit([Drawable], (_e, [drawable]) => {
-    drawable.removeStatement(Arc);
-  });
+}

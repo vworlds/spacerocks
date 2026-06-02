@@ -1,23 +1,32 @@
-import { world, renderPhase } from '../../world';
-import { Drawable, LaserWeapon } from '../../components/index';
+import type { IPhase, World } from '@vworlds/vecs';
+import { Drawable, WORLD_WIDTH, WeaponView } from '@spacerocks/common';
 
-world
-  .system('LaserBeamDraw')
-  .requires(Drawable, LaserWeapon)
-  .phase(renderPhase)
-  .enter([Drawable, LaserWeapon], (_e, [drawable, lw]) => {
-    // Render is called after ctx.rotate(angle), so +x is forward
-    drawable.addStatement(LaserWeapon, 160, (ctx) => {
-      if (lw.firing) {
+const WEAPON_KIND_LASER = 1;
+
+export function installLaserBeamDrawSystem(world: World, phase: IPhase): void {
+  world
+    .system('LaserBeamDraw')
+    .phase(phase)
+    .requires(Drawable, WeaponView)
+    .enter([Drawable], (entity, [drawable]) => {
+      drawable.addStatement(WeaponView, 160, (ctx) => {
+        const weapon = entity.get(WeaponView);
+        if (
+          !weapon ||
+          weapon.activeWeapon !== WEAPON_KIND_LASER ||
+          weapon.firing === 0
+        ) {
+          return;
+        }
         ctx.beginPath();
         ctx.strokeStyle = '#ff0000';
         ctx.lineWidth = 4;
         ctx.moveTo(0, 0);
-        ctx.lineTo(1000, 0);
+        ctx.lineTo(WORLD_WIDTH, 0);
         ctx.stroke();
-      }
+      });
+    })
+    .exit([Drawable], (_entity, [drawable]) => {
+      drawable.removeStatement(WeaponView);
     });
-  })
-  .exit([Drawable], (_e, [drawable]) => {
-    drawable.removeStatement(LaserWeapon);
-  });
+}

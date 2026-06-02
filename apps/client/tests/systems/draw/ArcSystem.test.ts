@@ -1,30 +1,32 @@
-import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
-import { world, renderPhase } from '@src/world';
-import '@src/systems/draw/ArcSystem';
-import { Drawable, Arc } from '@src/components';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { Arc, Drawable } from '@spacerocks/common';
+import { installArcDrawSystem } from '@src/systems/draw/ArcSystem';
+import { createTestWorld, type TestWorld } from '../../helpers/world';
 
-beforeAll(() => world.start());
-afterEach(() => world.clearAllEntities());
+let testWorld: TestWorld;
+
+beforeEach(() => {
+  testWorld = createTestWorld([Drawable, Arc]);
+  installArcDrawSystem(testWorld.world, testWorld.renderPhase);
+  testWorld.world.start();
+});
 
 function tick() {
-  world.beginFrame(16);
-  world.runPhase(renderPhase, Date.now(), 16);
-  world.endFrame();
+  testWorld.tickPhase(testWorld.renderPhase);
 }
 
-describe('ArcSystem', () => {
-  it('adds an Arc draw statement when entity gains Drawable + Arc', () => {
-    const e = world
+describe('ArcDraw', () => {
+  it('adds an Arc draw statement when Drawable + Arc appear', () => {
+    const e = testWorld.world
       .entity()
       .add(Drawable)
       .set(Arc, { radius: 10, startAngle: 0, endAngle: Math.PI * 2 });
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).toContain(Arc);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).toContain(Arc);
   });
 
-  it('arc statement calls ctx.beginPath and ctx.arc with correct parameters', () => {
-    const e = world
+  it('arc statement calls beginPath and arc with the right values', () => {
+    const e = testWorld.world
       .entity()
       .add(Drawable)
       .set(Arc, { radius: 15, startAngle: 0.5, endAngle: 2.5 });
@@ -39,15 +41,14 @@ describe('ArcSystem', () => {
     expect(ctx.arc).toHaveBeenCalledWith(0, 0, 15, 0.5, 2.5);
   });
 
-  it('removes arc statement when Arc component is removed', () => {
-    const e = world
+  it('removes arc statement when Arc is removed', () => {
+    const e = testWorld.world
       .entity()
       .add(Drawable)
       .set(Arc, { radius: 10, startAngle: 0, endAngle: Math.PI * 2 });
     tick();
     e.remove(Arc);
     tick();
-    const keys = e.get(Drawable)!._statements.map((s) => s.key);
-    expect(keys).not.toContain(Arc);
+    expect(e.get(Drawable)!._statements.map((s) => s.key)).not.toContain(Arc);
   });
 });
