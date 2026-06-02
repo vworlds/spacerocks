@@ -3,6 +3,7 @@ import type { Server as HttpServer } from 'node:http';
 import { ServerWorld, VecsListener, View } from '@vworlds/vecs-server';
 import { NETWORK_COMPONENTS } from '@spacerocks/common';
 import { logger } from './logger';
+import { corsMiddleware } from './cors';
 import {
   installPlayerSessionSystems,
   registerPlayerSessionComponents,
@@ -24,6 +25,7 @@ const TICK_INTERVAL_MS = 1000 / TICK_RATE;
 export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const app = express();
   app.use(express.json());
+  app.use(corsMiddleware);
 
   const world = new ServerWorld({
     name: 'main',
