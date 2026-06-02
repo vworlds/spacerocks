@@ -1,14 +1,72 @@
-import { Server } from 'colyseus';
-import { UniverseRoom } from './rooms/UniverseRoom';
-import { UNIVERSE_ROOM_NAME } from '@spacerocks/common';
+import express from 'express';
+import type { Server as HttpServer } from 'node:http';
+import {
+  Networked,
+  ServerWorld,
+  VecsListener,
+  View,
+} from '@vworlds/vecs-server';
+import { Drawable, NETWORK_COMPONENTS, Position } from '@spacerocks/common';
 import { logger } from './logger';
 
-export async function startServer(port = Number(process.env.PORT ?? 2567)) {
-  const gameServer = new Server({ greet: false });
-  gameServer.define(UNIVERSE_ROOM_NAME, UniverseRoom);
+const TICK_RATE = 60;
+const TICK_INTERVAL_MS = 1000 / TICK_RATE;
 
-  await gameServer.listen(port);
-  return { gameServer, port };
+export async function startServer(port = Number(process.env.PORT ?? 2567)) {
+  const app = express();
+  app.use(express.json());
+
+  const world = new ServerWorld({
+    name: 'main',
+    networkComponents: NETWORK_COMPONENTS,
+  });
+  const simulationPhase = world.addPhase('simulation');
+  const collectPhase = world.addPhase('collect');
+  const sendPhase = world.addPhase('send');
+
+  world
+    .system('SetClientView')
+    .phase(collectPhase)
+    .requires(View)
+    .each([View], (_entity, [view]) => {
+      view.dsl = true;
+    });
+
+  world.installSystems({ collectPhase, sendPhase });
+  world.start();
+
+  world
+    .entity('debug-sync-entity')
+    .add(Networked)
+    .set(Position, { x: 400, y: 300 })
+    .set(Drawable, { zIndex: 0 });
+
+  const vecsListener = new VecsListener();
+  vecsListener.registerWorld(world);
+  await vecsListener.listen(app, { ordered: false, maxRetransmits: 2 });
+
+  const server = await new Promise<HttpServer>((resolve, reject) => {
+    const listeningServer = app.listen(port);
+    const onError = (error: Error) => {
+      reject(error);
+    };
+
+    listeningServer.once('error', onError);
+    listeningServer.once('listening', () => {
+      listeningServer.off('error', onError);
+      resolve(listeningServer);
+    });
+  });
+
+  let lastTick = performance.now();
+  const tick = setInterval(() => {
+    const now = performance.now();
+    const delta = now - lastTick;
+    lastTick = now;
+    world.progress(now, delta);
+  }, TICK_INTERVAL_MS);
+
+  return { app, server, world, vecsListener, tick, simulationPhase, port };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -16,7 +74,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     .then(({ port }) => {
       logger.info(
         { port },
-        `spacerocks server listening on ws://localhost:${port}`,
+        `spacerocks server listening on http://localhost:${port}`,
       );
     })
     .catch((error: unknown) => {
