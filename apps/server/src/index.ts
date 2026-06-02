@@ -1,13 +1,12 @@
 import express from 'express';
 import type { Server as HttpServer } from 'node:http';
-import {
-  Networked,
-  ServerWorld,
-  VecsListener,
-  View,
-} from '@vworlds/vecs-server';
-import { Drawable, NETWORK_COMPONENTS, Position } from '@spacerocks/common';
+import { ServerWorld, VecsListener, View } from '@vworlds/vecs-server';
+import { NETWORK_COMPONENTS } from '@spacerocks/common';
 import { logger } from './logger';
+import {
+  installPlayerSessionSystems,
+  registerPlayerSessionComponents,
+} from './game/playerSessions';
 
 const TICK_RATE = 60;
 const TICK_INTERVAL_MS = 1000 / TICK_RATE;
@@ -23,6 +22,8 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const simulationPhase = world.addPhase('simulation');
   const collectPhase = world.addPhase('collect');
   const sendPhase = world.addPhase('send');
+  registerPlayerSessionComponents(world);
+  installPlayerSessionSystems(world, simulationPhase);
 
   world
     .system('SetClientView')
@@ -34,12 +35,6 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
 
   world.installSystems({ collectPhase, sendPhase });
   world.start();
-
-  world
-    .entity('debug-sync-entity')
-    .add(Networked)
-    .set(Position, { x: 400, y: 300 })
-    .set(Drawable, { zIndex: 0 });
 
   const vecsListener = new VecsListener();
   vecsListener.registerWorld(world);
