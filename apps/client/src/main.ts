@@ -1,4 +1,5 @@
 import type { ClientWorld } from '@vworlds/vecs-client';
+import type { Entity } from '@vworlds/vecs';
 import { createClientWorld } from './network/vecsClient';
 import { initStars } from './utils';
 import type { Star } from './types';
@@ -86,6 +87,14 @@ window.addEventListener('DOMContentLoaded', () => {
       console.info(
         `[main] world ready ${(tReady - tStart).toFixed(1)}ms after connect()`,
       );
+      world.events.on('reset', (event) => {
+        const cleared = clearRemoteEntities(world);
+        if (cleared > 0) {
+          console.info(
+            `[main] reset ${event.fromFrame}->${event.toFrame}; cleared ${cleared} remote entities`,
+          );
+        }
+      });
       world.events.on('disconnect', () => {
         if (active !== world) return;
         const lifetime = performance.now() - tReady;
@@ -131,3 +140,19 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   requestAnimationFrame(frame);
 });
+
+function clearRemoteEntities(world: ClientWorld): number {
+  const remotePool = world.pools.find((pool) => pool.name === 'network_entity');
+  if (!remotePool) return 0;
+
+  const remoteEntities: Entity[] = world.entities
+    .values()
+    .filter(
+      (entity: Entity) =>
+        entity.eid >= remotePool.min &&
+        (remotePool.max === undefined || entity.eid <= remotePool.max),
+    );
+  remoteEntities.forEach((entity) => entity.destroy());
+  world.flush();
+  return remoteEntities.length;
+}

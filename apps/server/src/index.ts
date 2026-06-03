@@ -64,17 +64,17 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   };
   const origOnNew = debug._onNewConnection.bind(debug);
   debug._onNewConnection = (socket: { id: string }) => {
+    origOnNew(socket);
     console.info(
       `[srv] _onNewConnection id=${socket.id} sessions=${debug._sessions.size}`,
     );
-    origOnNew(socket);
   };
   const origOnDisc = debug._onDisconnect.bind(debug);
   debug._onDisconnect = (socketId: string) => {
+    origOnDisc(socketId);
     console.info(
       `[srv] _onDisconnect id=${socketId} sessions=${debug._sessions.size}`,
     );
-    origOnDisc(socketId);
   };
 
   const vecsListener = new VecsListener();
