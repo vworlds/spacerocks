@@ -86,7 +86,7 @@ window.addEventListener('DOMContentLoaded', () => {
       console.info(
         `[main] world ready ${(tReady - tStart).toFixed(1)}ms after connect()`,
       );
-      world.onDisconnect(() => {
+      world.events.on('disconnect', () => {
         if (active !== world) return;
         const lifetime = performance.now() - tReady;
         console.warn(
