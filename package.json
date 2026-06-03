@@ -15,6 +15,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
+    "hot-update:vecs": "node scripts/hot-update-vecs.mjs",
     "test": "npm run test --workspaces --if-present",
     "test:watch": "npm run test:watch -w @spacerocks/client",
     "prepare": "husky"
@@ -35,7 +36,7 @@
     "vitest": "^1.6.0"
   },
   "overrides": {
-    "@vworlds/vecs": "^1.0.18"
+    "@vworlds/vecs": "^1.0.19"
   },
   "lint-staged": {
     "*.ts": [

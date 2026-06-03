@@ -16,6 +16,6 @@
   "dependencies": {
     "@spacerocks/common": "file:../../packages/common",
     "@vworlds/vecs": "*",
-    "@vworlds/vecs-client": "^1.0.18"
+    "@vworlds/vecs-client": "^1.0.19"
   }
 }
