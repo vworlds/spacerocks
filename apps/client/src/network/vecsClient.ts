@@ -77,9 +77,8 @@ export async function createClientWorld(
   const applyPhase = world.addPhase('apply');
   const updatePhase = world.addPhase('update');
   const renderPhase = world.addPhase('render');
-  const sendPhase = world.addPhase('send');
 
-  world.installSystems({ applyPhase, sendPhase });
+  world.installSystems({ applyPhase });
 
   installParticleSystem(world, updatePhase);
   installExplosionSystem(world, updatePhase);
