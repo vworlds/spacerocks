@@ -3,7 +3,7 @@ import { type as wireType } from '@vworlds/vecs-wire';
 
 export class Rotation implements ISerializable {
   @wireType('f64')
-  angle = 0;
+  angle = 0; // radians
 
   serialize(): Record<string, unknown> {
     return { angle: this.angle };

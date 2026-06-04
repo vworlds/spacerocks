@@ -38,18 +38,18 @@ import { PlayerInputIntent } from './playerSessions';
 
 type ServerPhase = ReturnType<ServerWorld['addPhase']>;
 
-const PROJECTILE_KIND_BULLET = 0;
-const PROJECTILE_KIND_ROCKET = 3;
-const PROJECTILE_KIND_BOOMERANG = 4;
+const PROJECTILE_KIND_BULLET = 0; // enum id
+const PROJECTILE_KIND_ROCKET = 3; // enum id
+const PROJECTILE_KIND_BOOMERANG = 4; // enum id
 
-const WEAPON_KIND_DEFAULT = 0;
-const WEAPON_KIND_LASER = 1;
-const WEAPON_KIND_AURA = 2;
-const WEAPON_KIND_ROCKET = 3;
-const WEAPON_KIND_BOOMERANG = 4;
+const WEAPON_KIND_DEFAULT = 0; // enum id
+const WEAPON_KIND_LASER = 1; // enum id
+const WEAPON_KIND_AURA = 2; // enum id
+const WEAPON_KIND_ROCKET = 3; // enum id
+const WEAPON_KIND_BOOMERANG = 4; // enum id
 
 export class ShootingCooldown {
-  frames = 0;
+  frames = 0; // frames
 }
 
 export function registerShootingComponents(world: ServerWorld): void {

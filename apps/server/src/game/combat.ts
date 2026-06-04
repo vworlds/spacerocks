@@ -45,21 +45,21 @@ import { createPlayerShip, PlayerSession } from './playerSessions';
 type ServerPhase = ReturnType<ServerWorld['addPhase']>;
 type CollisionHandler = (a: Entity, b: Entity) => void;
 
-const GAME_STATE_PLAYING = 0;
-const LASER_LENGTH = 1000;
-const RESPAWN_DELAY_FRAMES = 180;
-const WEAPON_KIND_DEFAULT = 0;
-const WEAPON_KIND_LASER = 1;
-const WEAPON_KIND_AURA = 2;
-const WEAPON_KIND_ROCKET = 3;
-const WEAPON_KIND_BOOMERANG = 4;
+const GAME_STATE_PLAYING = 0; // enum id
+const LASER_LENGTH = 1000; // world units
+const RESPAWN_DELAY_FRAMES = 180; // frames
+const WEAPON_KIND_DEFAULT = 0; // enum id
+const WEAPON_KIND_LASER = 1; // enum id
+const WEAPON_KIND_AURA = 2; // enum id
+const WEAPON_KIND_ROCKET = 3; // enum id
+const WEAPON_KIND_BOOMERANG = 4; // enum id
 
 const registry = new Map<number, CollisionHandler[]>();
 
 class RespawnTimer {
-  sessionId = 0;
-  playerIndex = 0;
-  frames = RESPAWN_DELAY_FRAMES;
+  sessionId = 0; // entity id
+  playerIndex = 0; // player index
+  frames = RESPAWN_DELAY_FRAMES; // frames
 }
 
 export function registerCombatComponents(world: ServerWorld): void {
@@ -637,7 +637,7 @@ function createExplosion(
   x: number,
   y: number,
   color: string,
-  size = 20,
+  size = 20, // world units
 ): void {
   world
     .entity()

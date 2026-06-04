@@ -11,8 +11,8 @@ import {
 import { Alpha } from '../components/Alpha';
 import { Particle } from '../components/Particle';
 
-const MIN_PARTICLES = 8;
-const MAX_PARTICLES = 36;
+const MIN_PARTICLES = 8; // particles
+const MAX_PARTICLES = 36; // particles
 
 export function installExplosionSystem(world: World, phase: IPhase): void {
   world

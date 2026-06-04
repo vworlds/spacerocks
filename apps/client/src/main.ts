@@ -4,7 +4,7 @@ import { WORLD_WIDTH, WORLD_HEIGHT } from '@spacerocks/common';
 import { initStars } from './utils';
 import type { Star } from './types';
 
-const RECONNECT_DELAY_MS = 1_000;
+const RECONNECT_DELAY_MS = 1_000; // ms
 
 const GAME_KEYS = new Set([
   'KeyW',

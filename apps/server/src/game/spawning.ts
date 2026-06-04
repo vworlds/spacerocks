@@ -39,10 +39,14 @@ import { createPrng, type Prng } from './rng';
 
 type ServerPhase = ReturnType<ServerWorld['addPhase']>;
 
-const GAME_STATE_PLAYING = 0;
-const INITIAL_WAVE = 1;
+const GAME_STATE_PLAYING = 0; // enum id
+const INITIAL_WAVE = 1; // wave number
 const ASTEROID_COLORS = ['#aaa', '#888', '#bbb', '#999', '#777'] as const;
-const ASTEROID_RADII: Record<1 | 2 | 3, number> = { 1: 10, 2: 20, 3: 40 };
+const ASTEROID_RADII: Record<1 | 2 | 3, number> = {
+  1: 10, // world units
+  2: 20, // world units
+  3: 40, // world units
+};
 
 const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
   [PickupKind.Shield]: GAME_CONFIG.SHIELD_PICKUP_TTL_FRAMES,
@@ -54,19 +58,37 @@ const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
 };
 
 const PICKUP_CONFIG: Record<PickupKind, { color: string; viewKind: number }> = {
-  [PickupKind.Shield]: { color: '#0f0', viewKind: 0 },
-  [PickupKind.Laser]: { color: '#f00', viewKind: 1 },
-  [PickupKind.Aura]: { color: '#3af', viewKind: 2 },
-  [PickupKind.Rocket]: { color: '#ff6600', viewKind: 3 },
-  [PickupKind.Boomerang]: { color: '#006400', viewKind: 4 },
-  [PickupKind.Health]: { color: '#fff', viewKind: 5 },
+  [PickupKind.Shield]: {
+    color: '#0f0',
+    viewKind: 0, // enum id
+  },
+  [PickupKind.Laser]: {
+    color: '#f00',
+    viewKind: 1, // enum id
+  },
+  [PickupKind.Aura]: {
+    color: '#3af',
+    viewKind: 2, // enum id
+  },
+  [PickupKind.Rocket]: {
+    color: '#ff6600',
+    viewKind: 3, // enum id
+  },
+  [PickupKind.Boomerang]: {
+    color: '#006400',
+    viewKind: 4, // enum id
+  },
+  [PickupKind.Health]: {
+    color: '#fff',
+    viewKind: 5, // enum id
+  },
 };
 
 class SpawnTimer {
   kind: RandomClockKind = RandomClockKind.Alien;
-  minWait = 0;
-  maxWait = 0;
-  nextTick = 0;
+  minWait = 0; // ms
+  maxWait = 0; // ms
+  nextTick = 0; // unix ms
 }
 
 export function registerSpawningComponents(world: ServerWorld): void {

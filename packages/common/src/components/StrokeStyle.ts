@@ -6,7 +6,7 @@ export class StrokeStyle implements ISerializable {
   style = '#fff';
 
   @wireType('f64')
-  lineWidth = 2;
+  lineWidth = 2; // pixels
 
   serialize(): Record<string, unknown> {
     return { style: this.style, lineWidth: this.lineWidth };

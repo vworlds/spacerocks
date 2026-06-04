@@ -35,7 +35,7 @@ export interface Statement {
 
 export class Drawable implements ISerializable {
   @wireType('i32')
-  zIndex = 0;
+  zIndex = 0; // draw order
   _statements: Statement[] = [];
   _sortedFns: ((ctx: DrawContext) => void)[] | undefined = undefined;
 

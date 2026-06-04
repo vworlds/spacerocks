@@ -1,7 +1,7 @@
 import type { IPhase, World } from '@vworlds/vecs';
 import { Drawable, WORLD_WIDTH, WeaponView } from '@spacerocks/common';
 
-const WEAPON_KIND_LASER = 1;
+const WEAPON_KIND_LASER = 1; // enum id
 
 export function installLaserBeamDrawSystem(world: World, phase: IPhase): void {
   world

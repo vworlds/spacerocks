@@ -3,13 +3,13 @@ import { type as wireType } from '@vworlds/vecs-wire';
 
 export class Arc implements ISerializable {
   @wireType('f64')
-  radius = 10;
+  radius = 10; // world units
 
   @wireType('f64')
-  startAngle = 0;
+  startAngle = 0; // radians
 
   @wireType('f64')
-  endAngle = Math.PI * 2;
+  endAngle = Math.PI * 2; // radians
 
   serialize(): Record<string, unknown> {
     return {

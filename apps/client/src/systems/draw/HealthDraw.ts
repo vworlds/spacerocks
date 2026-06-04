@@ -1,8 +1,8 @@
 import type { IPhase, World } from '@vworlds/vecs';
 import { Drawable, ENTITY_CONFIG, HealthView } from '@spacerocks/common';
 
-const BAR_WIDTH = 30;
-const BAR_HEIGHT = 5;
+const BAR_WIDTH = 30; // pixels
+const BAR_HEIGHT = 5; // pixels
 
 export function installHealthDrawSystem(world: World, phase: IPhase): void {
   world

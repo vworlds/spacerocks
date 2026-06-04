@@ -21,56 +21,56 @@ export enum RandomClockKind {
 }
 
 export class Velocity {
-  vx = 0;
-  vy = 0;
+  vx = 0; // world units/frame
+  vy = 0; // world units/frame
 }
 
 export class AngularVelocity {
-  omega = 0;
+  omega = 0; // radians/frame
 }
 
 export class Friction {
-  value = 0.98;
+  value = 0.98; // multiplier/frame
 }
 
 export class Thrust {
-  force = 0;
+  force = 0; // world units/frame^2
   active = false;
 }
 
 export class Collider {
-  radius = 10;
-  category = 0;
-  mask = 0;
+  radius = 10; // world units
+  category = 0; // bitmask
+  mask = 0; // bitmask
 }
 
 export class Health {
-  hp = 100;
-  maxHp = 100;
-  healthBarTimer = 0;
+  hp = 100; // hp
+  maxHp = 100; // hp
+  healthBarTimer = 0; // frames
 }
 
 export class Shield {
-  shieldTime = 0;
+  shieldTime = 0; // frames
 }
 
 export class LaserWeapon {
-  shots = 0;
+  shots = 0; // shots
   firing = false;
-  timer = 0;
+  timer = 0; // frames
 }
 
 export class AuraWeapon {
-  shots = 0;
+  shots = 0; // shots
 }
 
 export class RocketWeapon {
-  shots = 0;
+  shots = 0; // shots
 }
 
 export class BoomerangWeapon {
-  shots = 0;
-  inFlight = 0;
+  shots = 0; // shots
+  inFlight = 0; // entities
 }
 
 export class DefaultWeapon {}
@@ -85,11 +85,11 @@ export class Pickup {
 }
 
 export class HealthPickup {
-  amount = 0;
+  amount = 0; // ratio
 }
 
 export class Player {
-  playerId: PlayerId = 0;
+  playerId: PlayerId = 0; // player id
 }
 
 export class ShipInput {
@@ -97,7 +97,7 @@ export class ShipInput {
   rotateLeftKey = '';
   rotateRightKey = '';
   shootKey = '';
-  shootCooldown = 0;
+  shootCooldown = 0; // frames
 }
 
 export class Bullet {
@@ -105,30 +105,30 @@ export class Bullet {
 }
 
 export class Rocket {
-  straightTimer = 0;
+  straightTimer = 0; // frames
 }
 
 export class Asteroid {
-  level: 1 | 2 | 3 = 3;
+  level: 1 | 2 | 3 = 3; // tier
   color = '#aaa';
 }
 
 export class Alien {
-  shootCooldown = 60;
+  shootCooldown = 60; // frames
 }
 
 export class Decay {
-  life = 1;
-  decay = 0.02;
+  life = 1; // normalized ratio
+  decay = 0.02; // normalized ratio/frame
 }
 
 export class Wraps {}
 
 export class RandomClock {
-  private _minWait = 0;
-  private _maxWait = 0;
+  private _minWait = 0; // ms
+  private _maxWait = 0; // ms
   kind: RandomClockKind = RandomClockKind.Alien;
-  nextTick = 0;
+  nextTick = 0; // unix ms
 
   get minWait(): number {
     return this._minWait;

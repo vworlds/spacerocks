@@ -23,7 +23,7 @@ import { installShapeDrawSystem } from '../systems/draw/ShapeSystem';
 import { installShieldDrawSystem } from '../systems/draw/ShieldDraw';
 import { installStrokeStyleDrawSystem } from '../systems/draw/StrokeStyleSystem';
 
-const SERVER_PORT = 2567;
+const SERVER_PORT = 2567; // port
 const WORLD_NAME = 'main';
 const API_BASE_PATH = '/rtc/v1';
 

@@ -37,7 +37,7 @@ import {
 
 export class PlayerSession {
   clientId = '';
-  playerIndex = 0;
+  playerIndex = 0; // player index
 }
 
 export class PlayerInputIntent {

@@ -3,7 +3,7 @@ import { Drawable, WORLD_WIDTH, WeaponView } from '@spacerocks/common';
 import { installLaserBeamDrawSystem } from '@src/systems/draw/LaserBeamDraw';
 import { createTestWorld, type TestWorld } from '../../helpers/world';
 
-const LASER = 1;
+const LASER = 1; // enum id
 
 let testWorld: TestWorld;
 
