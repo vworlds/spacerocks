@@ -36,6 +36,7 @@ import {
   SHIELD_DAMAGE,
   Shield,
   ShieldView,
+  toFrames,
   WeaponView,
 } from '@spacerocks/common';
 import { createAsteroid } from './spawning';
@@ -47,7 +48,7 @@ type CollisionHandler = (a: Entity, b: Entity) => void;
 
 const GAME_STATE_PLAYING = 0; // enum id
 const LASER_LENGTH = 1000; // world units
-const RESPAWN_DELAY_FRAMES = 180; // frames
+const RESPAWN_DELAY_FRAMES = toFrames(3_000); // frames
 const WEAPON_KIND_DEFAULT = 0; // enum id
 const WEAPON_KIND_LASER = 1; // enum id
 const WEAPON_KIND_AURA = 2; // enum id

@@ -1,3 +1,5 @@
+import { perFrame, perFrameMultiplier, toFrames } from '../constants';
+
 export type OwnerType = 'player' | 'alien';
 export type PlayerId = 0 | 1;
 
@@ -30,7 +32,7 @@ export class AngularVelocity {
 }
 
 export class Friction {
-  value = 0.98; // multiplier/frame
+  value = perFrameMultiplier(0.98); // multiplier/frame
 }
 
 export class Thrust {
@@ -114,12 +116,12 @@ export class Asteroid {
 }
 
 export class Alien {
-  shootCooldown = 60; // frames
+  shootCooldown = toFrames(1_000); // frames
 }
 
 export class Decay {
   life = 1; // normalized ratio
-  decay = 0.02; // normalized ratio/frame
+  decay = perFrame(0.02); // normalized ratio/frame
 }
 
 export class Wraps {}

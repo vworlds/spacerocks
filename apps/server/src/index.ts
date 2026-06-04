@@ -1,7 +1,7 @@
 import express from 'express';
 import type { Server as HttpServer } from 'node:http';
 import { ServerWorld, VecsListener, View } from '@vworlds/vecs-server';
-import { NETWORK_COMPONENTS } from '@spacerocks/common';
+import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
 import { logger } from './logger';
 import { corsMiddleware } from './cors';
 import {
@@ -19,7 +19,6 @@ import {
 } from './game/shooting';
 import { installCombatSystems, registerCombatComponents } from './game/combat';
 
-const TICK_RATE = 30; // frames/second
 const TICK_INTERVAL_MS = 1000 / TICK_RATE; // ms/frame
 
 export async function startServer(port = Number(process.env.PORT ?? 2567)) {

@@ -196,7 +196,10 @@ describe('server combat systems', () => {
     runFrame(world, simulationPhase);
 
     expect(ship.get(Health)).toMatchObject({ hp: 100 });
-    expect(ship.get(HealthView)).toMatchObject({ hp: 100, barTimer: 60 });
+    expect(ship.get(HealthView)).toMatchObject({
+      hp: 100,
+      barTimer: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
+    });
     expect(count(world, Pickup)).toBe(0);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
       SCORING.HEALTH_LARGE,
