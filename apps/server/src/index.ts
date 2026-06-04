@@ -27,6 +27,11 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   app.use(express.json());
   app.use(corsMiddleware);
 
+  // IdPool layout (18 network components → localComponentMin = 32):
+  //   network:    1 – 31
+  //   component:  32 – 899
+  //   module:     900 – 999
+  //   entity:     1000 – ∞ (Note: client will only consider entities up to 999,999 as "network entities")
   const world = new ServerWorld({
     name: 'main',
     networkComponents: NETWORK_COMPONENTS,

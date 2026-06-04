@@ -63,6 +63,13 @@ export async function createClientWorld(
   const url = `${protocol}://${host}:${SERVER_PORT}${API_BASE_PATH}/world/${WORLD_NAME}`;
   const socket = new ClientSocketCtor(url, {});
 
+  // IdPool layout (18 network components → localComponentMin = 32,
+  // localEntityIdStart = 1_000_000):
+  //   network:         1 – 31
+  //   component:       32 – 899
+  //   module:          900 – 999
+  //   network_entity:  1000 – 999,999 (server-owned entities replicated to the client)
+  //   entity:          1,000,000 – ∞ (local entities in the client)
   const world = new ClientWorld({
     networkComponents: NETWORK_COMPONENTS,
     localEntityIdStart: CLIENT_ENTITY_ID_START,
