@@ -1,5 +1,6 @@
 import type { ClientWorld } from '@vworlds/vecs-client';
 import { createClientWorld } from './network/vecsClient';
+import { WORLD_WIDTH, WORLD_HEIGHT } from '@spacerocks/common';
 import { initStars } from './utils';
 import type { Star } from './types';
 
@@ -23,6 +24,22 @@ type Intent = {
   shoot: boolean;
 };
 
+function computeViewport(
+  windowW: number,
+  windowH: number,
+  aspectW: number,
+  aspectH: number,
+): { width: number; height: number } {
+  const aspect = aspectW / aspectH;
+  let width = windowW;
+  let height = Math.round(windowW / aspect);
+  if (height > windowH) {
+    height = windowH;
+    width = Math.round(windowH * aspect);
+  }
+  return { width, height };
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   const canvas = document.getElementById('gameCanvas');
   const scoreEl = document.getElementById('score');
@@ -32,12 +49,28 @@ window.addEventListener('DOMContentLoaded', () => {
     throw new Error('Required DOM elements not found');
   }
 
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get 2D canvas context');
 
-  let stars: Star[] = initStars(canvas.width, canvas.height);
+  let stars: Star[] = [];
+
+  function resizeCanvas(): void {
+    const c = canvas as HTMLCanvasElement;
+    const vp = computeViewport(
+      window.innerWidth,
+      window.innerHeight,
+      WORLD_WIDTH,
+      WORLD_HEIGHT,
+    );
+    c.width = vp.width;
+    c.height = vp.height;
+    c.style.marginLeft = `${Math.round((window.innerWidth - vp.width) / 2)}px`;
+    c.style.marginTop = `${Math.round((window.innerHeight - vp.height) / 2)}px`;
+    stars = initStars(c.width, c.height);
+  }
+
+  resizeCanvas();
+
   const renderTarget = {
     ctx,
     canvas,
@@ -45,11 +78,7 @@ window.addEventListener('DOMContentLoaded', () => {
       return stars;
     },
   };
-  window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    stars = initStars(canvas.width, canvas.height);
-  });
+  window.addEventListener('resize', resizeCanvas);
 
   const keys = new Set<string>();
   window.addEventListener('keydown', (event) => {
