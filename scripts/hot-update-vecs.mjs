@@ -25,6 +25,13 @@ const copies = [
   ["lib/vecs-server/dist/vecs-protocol/src", "node_modules/@vworlds/vecs-server/vecs-protocol/src"],
 ];
 
+const viteCaches = [
+  "node_modules/.vite",
+  "apps/client/node_modules/.vite",
+  "packages/common/node_modules/.vite",
+  "apps/server/node_modules/.vite",
+];
+
 if (!existsSync(resolve(vecsRoot, "package.json"))) {
   throw new Error(`Could not find vecs repo at ${vecsRoot}. Set VECS_ROOT=/path/to/vecs.`);
 }
@@ -37,7 +44,21 @@ for (const [from, to] of copies) {
   copyDir(resolve(vecsRoot, from), resolve(spacerocksRoot, to));
 }
 
+// Vite pre-bundles dependencies into an optimized cache keyed by package
+// version, not file content, so copying fresh files into node_modules above does
+// NOT invalidate it -- a running (or restarted) dev server keeps serving the old
+// bundle. Drop every .vite cache so the next `vite` start re-optimizes the
+// freshly copied @vworlds/* packages.
+for (const cache of viteCaches) {
+  const dir = resolve(spacerocksRoot, cache);
+  if (existsSync(dir)) {
+    console.log(`clear vite cache ${dir}`);
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 console.log("Hot-updated spacerocks node_modules from", vecsRoot);
+console.log("Restart the dev server (vite) and game server, then hard-reload the browser.");
 
 function run(command, args, cwd) {
   console.log(`> ${command} ${args.join(" ")}`);
