@@ -15,15 +15,15 @@ import {
 type SharedComponentTypeEntry = readonly [ComponentClass, number];
 
 export const SHARED_COMPONENT_TYPES = [
-  [Position, 7],
-  [Rotation, 8],
-  [Drawable, 9],
-  [Arc, 10],
-  [Shape, 11],
-  [StrokeStyle, 12],
-  [FillStyle, 13],
-  [FilledRect, 14],
-  [Networked, 15],
+  [Position, 8],
+  [Rotation, 9],
+  [Drawable, 10],
+  [Arc, 11],
+  [Shape, 12],
+  [StrokeStyle, 13],
+  [FillStyle, 14],
+  [FilledRect, 15],
+  [Networked, 16],
 ] satisfies readonly SharedComponentTypeEntry[];
 
 export type ComponentType = number;

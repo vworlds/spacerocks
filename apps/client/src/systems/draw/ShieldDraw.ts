@@ -5,7 +5,7 @@ export function installShieldDrawSystem(world: World, phase: IPhase): void {
   world
     .system('ShieldDraw')
     .phase(phase)
-    .requires(Drawable, ShieldView)
+    .with(Drawable, ShieldView)
     .enter([Drawable], (entity, [drawable]) => {
       drawable.addStatement(ShieldView, 150, (ctx) => {
         const shield = entity.get(ShieldView);

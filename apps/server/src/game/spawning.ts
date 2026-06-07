@@ -114,7 +114,7 @@ export function installSpawningSystems(
   world
     .system('ServerRandomClockSystem')
     .interval(0.5)
-    .requires(SpawnTimer)
+    .with(SpawnTimer)
     .phase(simulationPhase)
     .each([SpawnTimer], (_entity, [timer]) => {
       if (!isPlaying(world)) return;
@@ -128,7 +128,7 @@ export function installSpawningSystems(
   world
     .system('ServerWave')
     .interval(0.25)
-    .requires(GameStateView)
+    .with(GameStateView)
     .phase(simulationPhase)
     .each([GameStateView], (entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;

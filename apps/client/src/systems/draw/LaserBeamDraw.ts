@@ -7,7 +7,7 @@ export function installLaserBeamDrawSystem(world: World, phase: IPhase): void {
   world
     .system('LaserBeamDraw')
     .phase(phase)
-    .requires(Drawable, WeaponView)
+    .with(Drawable, WeaponView)
     .enter([Drawable], (entity, [drawable]) => {
       drawable.addStatement(WeaponView, 160, (ctx) => {
         const weapon = entity.get(WeaponView);

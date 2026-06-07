@@ -7,7 +7,7 @@ export function installParticleSystem(world: World, phase: IPhase): void {
   world
     .system('Particles')
     .phase(phase)
-    .requires(Particle, Position, Velocity, Decay)
+    .with(Particle, Position, Velocity, Decay)
     .each([Position, Velocity, Decay], (entity, [pos, vel, dec]) => {
       pos.x += vel.vx;
       pos.y += vel.vy;

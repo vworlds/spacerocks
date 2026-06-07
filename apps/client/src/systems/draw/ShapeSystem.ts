@@ -5,7 +5,7 @@ export function installShapeDrawSystem(world: World, phase: IPhase): void {
   world
     .system('ShapeDraw')
     .phase(phase)
-    .requires(Drawable, Shape)
+    .with(Drawable, Shape)
     .enter([Drawable, Shape], (_entity, [drawable, shape]) => {
       drawable.addStatement(Shape, 55, (ctx) => {
         ctx.beginPath();

@@ -6,7 +6,7 @@ export function installLabelDrawSystem(world: World, phase: IPhase): void {
   world
     .system('LabelDraw')
     .phase(phase)
-    .requires(Drawable, Label)
+    .with(Drawable, Label)
     .enter([Drawable, Label], (_entity, [drawable, label]) => {
       drawable.addStatement(Label, 60, (ctx) => {
         ctx.fillStyle = label.color;

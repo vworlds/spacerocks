@@ -18,7 +18,7 @@ export function installExplosionSystem(world: World, phase: IPhase): void {
   world
     .system('Explosion')
     .phase(phase)
-    .requires(Position, ExplosionView)
+    .with(Position, ExplosionView)
     .enter([Position, ExplosionView], (_entity, [position, explosion]) => {
       spawnExplosionParticles(world, position, explosion);
     });

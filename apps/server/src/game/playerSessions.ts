@@ -61,7 +61,7 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(NetworkInput);
   world.component(PlayerSession);
   world.component(PlayerInputIntent);
-  world.component(ChildOf).ownMeta.onDeleteTarget = CleanupPolicy.Delete;
+  world.component(ChildOf).meta.onDeleteTarget = CleanupPolicy.Delete;
   world.component(Networked);
   world.component(Position);
   world.component(Velocity);
@@ -91,7 +91,7 @@ export function installPlayerSessionSystems(
   world
     .system('CreatePlayerSession')
     .phase(simulationPhase)
-    .requires(NetworkClient)
+    .with(NetworkClient)
     .enter([NetworkClient], (clientEntity, [client]) => {
       const playerIndex = nextPlayerIndex++;
       console.info(
@@ -111,7 +111,7 @@ export function installPlayerSessionSystems(
   world
     .system('ApplyNetworkInputToOwnedShip')
     .phase(simulationPhase)
-    .requires(NetworkClient, NetworkInput)
+    .with(NetworkClient, NetworkInput)
     .each([NetworkInput], (clientEntity, [networkInput]) => {
       const ship = getOwnedShip(clientEntity);
       if (!ship) return;

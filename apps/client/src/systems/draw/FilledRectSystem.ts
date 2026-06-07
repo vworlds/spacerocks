@@ -5,7 +5,7 @@ export function installFilledRectDrawSystem(world: World, phase: IPhase): void {
   world
     .system('FilledRectDraw')
     .phase(phase)
-    .requires(Drawable, FilledRect)
+    .with(Drawable, FilledRect)
     .enter([Drawable, FilledRect], (_entity, [drawable, rect]) => {
       drawable.addStatement(FilledRect, 50, (ctx) => {
         ctx.fillRect(

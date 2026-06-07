@@ -10,7 +10,7 @@ export function installStrokeStyleDrawSystem(
   world
     .system('StrokeStyleDraw')
     .phase(phase)
-    .requires(Drawable, StrokeStyle)
+    .with(Drawable, StrokeStyle)
     .enter([Drawable, StrokeStyle], (_entity, [drawable, strokeStyle]) => {
       drawable.addStatement(StrokeStyle, 100, (ctx) => {
         ctx.strokeStyle = strokeStyle.style;

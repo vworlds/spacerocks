@@ -16,7 +16,7 @@ export function installUISystem(
     .system('UI')
     .phase(phase)
     .interval(0.1)
-    .requires(GameStateView)
+    .with(GameStateView)
     .each([GameStateView], (_entity, [view]) => {
       targets.scoreEl.innerText = `Score: ${view.score}`;
       targets.waveEl.innerText = `Wave: ${view.wave}`;

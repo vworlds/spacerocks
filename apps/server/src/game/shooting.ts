@@ -73,7 +73,7 @@ export function installShootingSystems(
 ): void {
   world
     .system('InitializeWeaponState')
-    .requires(PlayerShip)
+    .with(PlayerShip)
     .phase(simulationPhase)
     .enter([PlayerShip], (ship) => {
       if (!ship.get(ShootingCooldown))
@@ -85,7 +85,7 @@ export function installShootingSystems(
 
   world
     .system('ShootingCooldown')
-    .requires(PlayerShip, ShootingCooldown)
+    .with(PlayerShip, ShootingCooldown)
     .phase(simulationPhase)
     .each([ShootingCooldown], (_entity, [cooldown]) => {
       if (cooldown.frames > 0) cooldown.frames -= 1;
@@ -93,13 +93,7 @@ export function installShootingSystems(
 
   world
     .system('Shooting')
-    .requires(
-      PlayerShip,
-      PlayerInputIntent,
-      Position,
-      Rotation,
-      ShootingCooldown,
-    )
+    .with(PlayerShip, PlayerInputIntent, Position, Rotation, ShootingCooldown)
     .phase(simulationPhase)
     .each(
       [PlayerInputIntent, Position, Rotation, ShootingCooldown],
@@ -160,7 +154,7 @@ export function installShootingSystems(
 
   world
     .system('LaserSystem')
-    .requires(PlayerShip, LaserWeapon)
+    .with(PlayerShip, LaserWeapon)
     .phase(simulationPhase)
     .each([LaserWeapon], (ship, [laser]) => {
       if (!laser.firing) return;
@@ -175,7 +169,7 @@ export function installShootingSystems(
 
   world
     .system('RocketSystem')
-    .requires(Position, Velocity, Rotation, Rocket)
+    .with(Position, Velocity, Rotation, Rocket)
     .phase(simulationPhase)
     .each(
       [Position, Velocity, Rotation, Rocket],
@@ -209,7 +203,7 @@ export function installShootingSystems(
 
   world
     .system('BoomerangSystem')
-    .requires(Position, Velocity, Boomerang)
+    .with(Position, Velocity, Boomerang)
     .phase(simulationPhase)
     .each(
       [Position, Velocity, Boomerang],
@@ -262,7 +256,7 @@ export function installShootingSystems(
 
   world
     .system('Decay')
-    .requires(Decay)
+    .with(Decay)
     .phase(simulationPhase)
     .each([Decay], (entity, [decay]) => {
       decay.life -= decay.decay;

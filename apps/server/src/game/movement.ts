@@ -22,7 +22,7 @@ export function installMovementSystems(
 ): void {
   world
     .system('ShipControl')
-    .requires(PlayerShip, PlayerInputIntent, Rotation, Thrust)
+    .with(PlayerShip, PlayerInputIntent, Rotation, Thrust)
     .phase(simulationPhase)
     .each(
       [PlayerInputIntent, Rotation, Thrust],
@@ -41,7 +41,7 @@ export function installMovementSystems(
 
   world
     .system('Thrust')
-    .requires(Velocity, Thrust, Rotation)
+    .with(Velocity, Thrust, Rotation)
     .phase(simulationPhase)
     .each(
       [Velocity, Thrust, Rotation],
@@ -56,7 +56,7 @@ export function installMovementSystems(
 
   world
     .system('Movement')
-    .requires(Position, Velocity)
+    .with(Position, Velocity)
     .phase(simulationPhase)
     .each([Position, Velocity], (entity, [position, velocity]) => {
       position.x += velocity.vx;
@@ -66,7 +66,7 @@ export function installMovementSystems(
 
   world
     .system('AngularMovement')
-    .requires(Rotation, AngularVelocity)
+    .with(Rotation, AngularVelocity)
     .phase(simulationPhase)
     .each(
       [Rotation, AngularVelocity],
@@ -78,7 +78,7 @@ export function installMovementSystems(
 
   world
     .system('FrictionSystem')
-    .requires(Velocity, Friction)
+    .with(Velocity, Friction)
     .phase(simulationPhase)
     .each([Velocity, Friction], (_entity, [velocity, friction]) => {
       velocity.vx *= friction.value;
@@ -87,7 +87,7 @@ export function installMovementSystems(
 
   world
     .system('Wrap')
-    .requires(Position, Wraps)
+    .with(Position, Wraps)
     .phase(simulationPhase)
     .each([Position], (entity, [position]) => {
       let wrapped = false;

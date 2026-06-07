@@ -7,7 +7,7 @@ export function installFillStyleDrawSystem(world: World, phase: IPhase): void {
   world
     .system('FillStyleDraw')
     .phase(phase)
-    .requires(Drawable, FillStyle)
+    .with(Drawable, FillStyle)
     .enter([Drawable, FillStyle], (_entity, [drawable, fillStyle]) => {
       drawable.addStatement(FillStyle, 100, (ctx) => {
         ctx.fillStyle = fillStyle.style;

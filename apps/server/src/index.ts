@@ -51,7 +51,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   world
     .system('SetClientView')
     .phase(collectPhase)
-    .requires(View)
+    .with(View)
     .each([View], (_entity, [view]) => {
       view.dsl = true;
     });

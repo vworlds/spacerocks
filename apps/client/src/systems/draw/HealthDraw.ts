@@ -8,7 +8,7 @@ export function installHealthDrawSystem(world: World, phase: IPhase): void {
   world
     .system('HealthDraw')
     .phase(phase)
-    .requires(Drawable, HealthView)
+    .with(Drawable, HealthView)
     .enter([Drawable], (entity, [drawable]) => {
       drawable.addStatement(HealthView, 70, (ctx) => {
         const health = entity.get(HealthView);

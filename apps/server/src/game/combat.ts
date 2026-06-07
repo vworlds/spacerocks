@@ -87,7 +87,7 @@ export function installCombatSystems(
 
   world
     .system('ServerShieldSystem')
-    .requires(Shield)
+    .with(Shield)
     .phase(simulationPhase)
     .each([Shield], (entity, [shield]) => {
       shield.shieldTime -= 1;
@@ -98,7 +98,7 @@ export function installCombatSystems(
 
   world
     .system('ServerHealthSystem')
-    .requires(Health)
+    .with(Health)
     .phase(simulationPhase)
     .each([Health], (entity, [health]) => {
       if (health.healthBarTimer > 0) {
@@ -110,7 +110,7 @@ export function installCombatSystems(
 
   world
     .system('ServerLaserCollisionSystem')
-    .requires(PlayerShip, Position, Rotation, LaserWeapon)
+    .with(PlayerShip, Position, Rotation, LaserWeapon)
     .phase(simulationPhase)
     .each(
       [Position, Rotation, LaserWeapon],
@@ -122,7 +122,7 @@ export function installCombatSystems(
 
   world
     .system('ServerRespawnSystem')
-    .requires(RespawnTimer)
+    .with(RespawnTimer)
     .phase(simulationPhase)
     .each([RespawnTimer], (entity, [timer]) => {
       timer.frames -= 1;
@@ -137,7 +137,7 @@ export function installCombatSystems(
 
   world
     .system('ServerCollision')
-    .requires(Collider, Position)
+    .with(Collider, Position)
     .phase(simulationPhase)
     .run(() => {
       if (!isPlaying(world)) return;

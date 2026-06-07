@@ -22,8 +22,8 @@ export function installRenderSystem(
   world
     .system('Render')
     .phase(phase)
-    .requires(Position, Drawable)
-    .sort([Drawable], (entityA, [a], entityB, [b]) =>
+    .with(Position, Drawable)
+    .orderBy([Drawable], (entityA, [a], entityB, [b]) =>
       a.zIndex !== b.zIndex ? a.zIndex - b.zIndex : entityA.eid - entityB.eid,
     )
     .run(() => {

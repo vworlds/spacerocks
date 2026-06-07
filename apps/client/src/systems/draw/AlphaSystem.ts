@@ -8,7 +8,7 @@ export function installAlphaDrawSystem(world: World, phase: IPhase): void {
   world
     .system('AlphaDraw')
     .phase(phase)
-    .requires(Drawable, Alpha)
+    .with(Drawable, Alpha)
     .enter([Drawable, Alpha], (_entity, [drawable, alpha]) => {
       let oldAlpha = 1;
       drawable.addStatement(Alpha, 200, (ctx) => {

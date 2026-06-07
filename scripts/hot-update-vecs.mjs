@@ -21,8 +21,16 @@ const copies = [
   ["lib/vecs-wire/dist/vecs-wire/src", "node_modules/@vworlds/vecs-wire/vecs-wire/src"],
   ["lib/vecs-client/dist/vecs-client/src", "node_modules/@vworlds/vecs-client/vecs-client/src"],
   ["lib/vecs-client/dist/vecs-protocol/src", "node_modules/@vworlds/vecs-client/vecs-protocol/src"],
+  [
+    "lib/vecs-client/dist/vecs-protocol/src",
+    "node_modules/@vworlds/vecs-client/node_modules/@vworlds/vecs-protocol/src",
+  ],
   ["lib/vecs-server/dist/vecs-server/src", "node_modules/@vworlds/vecs-server/vecs-server/src"],
   ["lib/vecs-server/dist/vecs-protocol/src", "node_modules/@vworlds/vecs-server/vecs-protocol/src"],
+  [
+    "lib/vecs-server/dist/vecs-protocol/src",
+    "node_modules/@vworlds/vecs-server/node_modules/@vworlds/vecs-protocol/src",
+  ],
 ];
 
 const viteCaches = [
