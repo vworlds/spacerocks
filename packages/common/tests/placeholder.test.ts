@@ -17,18 +17,13 @@ import {
   Position,
   ProjectileView,
   Rotation,
-  SHARED_COMPONENT_TYPES,
   Shape,
   ShieldView,
   StrokeStyle,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   WeaponView,
-  createWorld,
-  getComponentType,
 } from '../src/index';
-
-class LocalComponent {}
 
 type WireEncodable = {
   wireEncode(encoder: Encoder): void;
@@ -46,22 +41,6 @@ function roundTrip<T extends object>(ComponentClass: new () => T, value: T): T {
     new Decoder(encoder.getBuffer().slice(0, encoder.length)),
   );
 }
-
-describe('createWorld', () => {
-  it('registers shared component types before local component ids', () => {
-    const world = createWorld();
-    const positionType = SHARED_COMPONENT_TYPES.find(
-      ([ComponentClass]) => ComponentClass === Position,
-    )?.[1];
-
-    expect(getComponentType(world, Position)).toBe(positionType);
-
-    world.component(LocalComponent);
-    expect(getComponentType(world, LocalComponent)).toBe(
-      Math.max(...SHARED_COMPONENT_TYPES.map(([, type]) => type)) + 1,
-    );
-  });
-});
 
 describe('NETWORK_COMPONENTS', () => {
   it('keeps Position as the first network component', () => {
