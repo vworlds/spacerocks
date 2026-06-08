@@ -19,8 +19,13 @@ import {
   registerShootingComponents,
 } from './game/shooting';
 import { installCombatSystems, registerCombatComponents } from './game/combat';
+import { stopServer } from './serverLifecycle';
+
+export { stopServer };
 
 const TICK_INTERVAL_MS = 1000 / TICK_RATE; // ms/frame
+
+type ServerHandle = Awaited<ReturnType<typeof startServer>>;
 
 export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const app = express();
@@ -105,11 +110,38 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  let handle: ServerHandle | undefined;
+  let shuttingDown = false;
+
+  const shutdown = (signal: NodeJS.Signals) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
+    logger.info({ signal }, 'shutting down spacerocks server');
+
+    if (!handle) {
+      process.exit(0);
+    }
+
+    stopServer(handle)
+      .then(() => {
+        process.exit(0);
+      })
+      .catch((error: unknown) => {
+        logger.error({ error }, 'failed to shut down spacerocks server');
+        process.exit(1);
+      });
+  };
+
+  process.once('SIGINT', shutdown);
+  process.once('SIGTERM', shutdown);
+
   startServer()
-    .then(({ port }) => {
+    .then((serverHandle) => {
+      handle = serverHandle;
       logger.info(
-        { port },
-        `spacerocks server listening on http://localhost:${port}`,
+        { port: serverHandle.port },
+        `spacerocks server listening on http://localhost:${serverHandle.port}`,
       );
     })
     .catch((error: unknown) => {
