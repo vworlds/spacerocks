@@ -43,7 +43,6 @@ import { createAsteroid } from './spawning';
 import { createPrng, type Prng } from './rng';
 import { createPlayerShip, PlayerSession } from './playerSessions';
 
-type ServerPhase = ReturnType<ServerWorld['addPhase']>;
 type CollisionHandler = (a: Entity, b: Entity) => void;
 
 const GAME_STATE_PLAYING = 0; // enum id
@@ -79,7 +78,6 @@ export function registerCombatComponents(world: ServerWorld): void {
 
 export function installCombatSystems(
   world: ServerWorld,
-  simulationPhase: ServerPhase,
   rng: Prng = createPrng(readServerSeed()),
 ): void {
   registry.clear();
@@ -88,7 +86,6 @@ export function installCombatSystems(
   world
     .system('ServerShieldSystem')
     .with(Shield)
-    .phase(simulationPhase)
     .each([Shield], (entity, [shield]) => {
       shield.shieldTime -= 1;
       entity.modified(Shield);
@@ -99,7 +96,6 @@ export function installCombatSystems(
   world
     .system('ServerHealthSystem')
     .with(Health)
-    .phase(simulationPhase)
     .each([Health], (entity, [health]) => {
       if (health.healthBarTimer > 0) {
         health.healthBarTimer -= 1;
@@ -111,7 +107,6 @@ export function installCombatSystems(
   world
     .system('ServerLaserCollisionSystem')
     .with(PlayerShip, Position, Rotation, LaserWeapon)
-    .phase(simulationPhase)
     .each(
       [Position, Rotation, LaserWeapon],
       (_ship, [position, rotation, laser]) => {
@@ -123,7 +118,6 @@ export function installCombatSystems(
   world
     .system('ServerRespawnSystem')
     .with(RespawnTimer)
-    .phase(simulationPhase)
     .each([RespawnTimer], (entity, [timer]) => {
       timer.frames -= 1;
       if (timer.frames > 0) return;
@@ -138,7 +132,6 @@ export function installCombatSystems(
   world
     .system('ServerCollision')
     .with(Collider, Position)
-    .phase(simulationPhase)
     .run(() => {
       if (!isPlaying(world)) return;
       const entities = collectColliders(world);

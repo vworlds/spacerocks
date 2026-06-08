@@ -1,10 +1,10 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable, Shape } from '@spacerocks/common';
 
-export function installShapeDrawSystem(world: World, phase: IPhase): void {
+export function installShapeDrawSystem(world: World): void {
   world
     .system('ShapeDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, Shape)
     .enter([Drawable, Shape], (_entity, [drawable, shape]) => {
       drawable.addStatement(Shape, 55, (ctx) => {

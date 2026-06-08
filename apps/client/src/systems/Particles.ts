@@ -1,12 +1,11 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import type { World } from '@vworlds/vecs';
 import { Decay, Position, Velocity } from '@spacerocks/common';
 import { Alpha } from '../components/Alpha';
 import { Particle } from '../components/Particle';
 
-export function installParticleSystem(world: World, phase: IPhase): void {
+export function installParticleSystem(world: World): void {
   world
     .system('Particles')
-    .phase(phase)
     .with(Particle, Position, Velocity, Decay)
     .each([Position, Velocity, Decay], (entity, [pos, vel, dec]) => {
       pos.x += vel.vx;

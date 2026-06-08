@@ -8,8 +8,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, Label]);
-  installLabelDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installLabelDrawSystem(testWorld.world);
 });
 
 function tick() {

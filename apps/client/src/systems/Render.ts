@@ -1,4 +1,4 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import {
   Drawable,
   Position,
@@ -14,14 +14,10 @@ export type RenderTarget = {
   stars: Star[];
 };
 
-export function installRenderSystem(
-  world: World,
-  phase: IPhase,
-  target: RenderTarget,
-): void {
+export function installRenderSystem(world: World, target: RenderTarget): void {
   world
     .system('Render')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Position, Drawable)
     .orderBy([Drawable], (entityA, [a], entityB, [b]) =>
       a.zIndex !== b.zIndex ? a.zIndex - b.zIndex : entityA.eid - entityB.eid,

@@ -1,11 +1,11 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable } from '@spacerocks/common';
 import { Label } from '../../components/Label';
 
-export function installLabelDrawSystem(world: World, phase: IPhase): void {
+export function installLabelDrawSystem(world: World): void {
   world
     .system('LabelDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, Label)
     .enter([Drawable, Label], (_entity, [drawable, label]) => {
       drawable.addStatement(Label, 60, (ctx) => {

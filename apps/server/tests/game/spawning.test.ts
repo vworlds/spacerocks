@@ -35,35 +35,24 @@ vi.mock('@vworlds/vecs-server', () => ({
 }));
 
 type ServerWorldLike = Parameters<typeof registerSpawningComponents>[0];
-type Phase = ReturnType<World['addPhase']>;
 
 function createTestWorld(seed = 1234): {
   world: World;
-  simulationPhase: Phase;
 } {
   const world = new World();
-  const simulationPhase = world.addPhase('simulation');
   registerPlayerSessionComponents(
     world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
   );
   registerSpawningComponents(world as unknown as ServerWorldLike);
   installSpawningSystems(
     world as unknown as Parameters<typeof installSpawningSystems>[0],
-    simulationPhase,
     createPrng(seed),
   );
-  world.start();
-  return { world, simulationPhase };
+  return { world };
 }
 
-function runSimulation(
-  world: World,
-  simulationPhase: Phase,
-  now: number,
-): void {
-  world.beginFrame(500);
-  world.runPhase(simulationPhase, now, 500);
-  world.endFrame();
+function runSimulation(world: World, now: number): void {
+  world.progress(now, 500);
 }
 
 function count(world: World, component: ComponentClass): number {
@@ -134,7 +123,7 @@ describe('server spawning systems', () => {
   it('progresses waves when asteroids and aliens are cleared', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    const { world, simulationPhase } = createTestWorld();
+    const { world } = createTestWorld();
     const asteroids: Entity[] = [];
     const aliens: Entity[] = [];
     world.filter([Asteroid]).forEach([], (entity) => asteroids.push(entity));
@@ -142,8 +131,8 @@ describe('server spawning systems', () => {
     for (const entity of asteroids) entity.destroy();
     for (const entity of aliens) entity.destroy();
 
-    runSimulation(world, simulationPhase, 1000);
-    runSimulation(world, simulationPhase, 2000);
+    runSimulation(world, 1000);
+    runSimulation(world, 2000);
 
     expect(firstEntity(world, GameStateView)?.get(GameStateView)).toMatchObject(
       {
@@ -156,7 +145,7 @@ describe('server spawning systems', () => {
   it('does not progress the GameStateView lifecycle while paused', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    const { world, simulationPhase } = createTestWorld();
+    const { world } = createTestWorld();
     const asteroids: Entity[] = [];
     world.filter([Asteroid]).forEach([], (entity) => asteroids.push(entity));
     for (const entity of asteroids) entity.destroy();
@@ -169,8 +158,8 @@ describe('server spawning systems', () => {
       status: 'Paused',
     });
 
-    runSimulation(world, simulationPhase, 1000);
-    runSimulation(world, simulationPhase, 2000);
+    runSimulation(world, 1000);
+    runSimulation(world, 2000);
 
     expect(gameStateEntity.get(GameStateView)).toMatchObject({
       state: 1,
@@ -183,10 +172,10 @@ describe('server spawning systems', () => {
   it('spawns aliens and pickups from server timers while playing', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    const { world, simulationPhase } = createTestWorld();
+    const { world } = createTestWorld();
 
     vi.setSystemTime(120_000);
-    runSimulation(world, simulationPhase, 120_000);
+    runSimulation(world, 120_000);
 
     expect(count(world, Alien)).toBeGreaterThan(0);
     expect(count(world, Pickup)).toBeGreaterThan(0);
@@ -195,7 +184,7 @@ describe('server spawning systems', () => {
   it('pauses timed spawns when GameStateView is not playing', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
-    const { world, simulationPhase } = createTestWorld();
+    const { world } = createTestWorld();
     const gameStateEntity = firstEntity(world, GameStateView);
     if (!gameStateEntity) throw new Error('Expected GameStateView entity');
     gameStateEntity.set(GameStateView, {
@@ -206,7 +195,7 @@ describe('server spawning systems', () => {
     });
 
     vi.setSystemTime(120_000);
-    runSimulation(world, simulationPhase, 120_000);
+    runSimulation(world, 120_000);
 
     expect(count(world, Alien)).toBe(0);
     expect(count(world, Pickup)).toBe(0);

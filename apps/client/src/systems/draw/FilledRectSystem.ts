@@ -1,10 +1,10 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable, FilledRect } from '@spacerocks/common';
 
-export function installFilledRectDrawSystem(world: World, phase: IPhase): void {
+export function installFilledRectDrawSystem(world: World): void {
   world
     .system('FilledRectDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, FilledRect)
     .enter([Drawable, FilledRect], (_entity, [drawable, rect]) => {
       drawable.addStatement(FilledRect, 50, (ctx) => {

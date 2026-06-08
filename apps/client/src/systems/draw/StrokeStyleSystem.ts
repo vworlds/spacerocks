@@ -1,15 +1,12 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable, StrokeStyle } from '@spacerocks/common';
 
 const STROKE_EXEC_KEY = {};
 
-export function installStrokeStyleDrawSystem(
-  world: World,
-  phase: IPhase,
-): void {
+export function installStrokeStyleDrawSystem(world: World): void {
   world
     .system('StrokeStyleDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, StrokeStyle)
     .enter([Drawable, StrokeStyle], (_entity, [drawable, strokeStyle]) => {
       drawable.addStatement(StrokeStyle, 100, (ctx) => {

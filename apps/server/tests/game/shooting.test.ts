@@ -46,11 +46,8 @@ vi.mock('@vworlds/vecs-server', () => ({
   Networked: class Networked {},
 }));
 
-type Phase = ReturnType<World['addPhase']>;
-
-function createTestWorld(): { world: World; simulationPhase: Phase } {
+function createTestWorld(): { world: World } {
   const world = new World();
-  const simulationPhase = world.addPhase('simulation');
   registerPlayerSessionComponents(
     world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
   );
@@ -62,18 +59,15 @@ function createTestWorld(): { world: World; simulationPhase: Phase } {
   world.component(Asteroid);
   installShootingSystems(
     world as unknown as Parameters<typeof installShootingSystems>[0],
-    simulationPhase,
   );
   installMovementSystems(
     world as unknown as Parameters<typeof installMovementSystems>[0],
-    simulationPhase,
   );
-  return { world, simulationPhase };
+  return { world };
 }
 
 function createStartedWorldWithShip(): { world: World; ship: Entity } {
   const { world } = createTestWorld();
-  world.start();
   const session = world.entity();
   const ship = createPlayerShip(
     world as unknown as Parameters<typeof createPlayerShip>[0],

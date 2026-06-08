@@ -14,16 +14,10 @@ import {
 } from '@spacerocks/common';
 import { PlayerInputIntent } from './playerSessions';
 
-type ServerPhase = ReturnType<ServerWorld['addPhase']>;
-
-export function installMovementSystems(
-  world: ServerWorld,
-  simulationPhase: ServerPhase,
-): void {
+export function installMovementSystems(world: ServerWorld): void {
   world
     .system('ShipControl')
     .with(PlayerShip, PlayerInputIntent, Rotation, Thrust)
-    .phase(simulationPhase)
     .each(
       [PlayerInputIntent, Rotation, Thrust],
       (entity, [input, rotation, thrust]) => {
@@ -42,7 +36,6 @@ export function installMovementSystems(
   world
     .system('Thrust')
     .with(Velocity, Thrust, Rotation)
-    .phase(simulationPhase)
     .each(
       [Velocity, Thrust, Rotation],
       (_entity, [velocity, thrust, rotation]) => {
@@ -57,7 +50,6 @@ export function installMovementSystems(
   world
     .system('Movement')
     .with(Position, Velocity)
-    .phase(simulationPhase)
     .each([Position, Velocity], (entity, [position, velocity]) => {
       position.x += velocity.vx;
       position.y += velocity.vy;
@@ -67,7 +59,6 @@ export function installMovementSystems(
   world
     .system('AngularMovement')
     .with(Rotation, AngularVelocity)
-    .phase(simulationPhase)
     .each(
       [Rotation, AngularVelocity],
       (entity, [rotation, angularVelocity]) => {
@@ -79,7 +70,6 @@ export function installMovementSystems(
   world
     .system('FrictionSystem')
     .with(Velocity, Friction)
-    .phase(simulationPhase)
     .each([Velocity, Friction], (_entity, [velocity, friction]) => {
       velocity.vx *= friction.value;
       velocity.vy *= friction.value;
@@ -88,7 +78,6 @@ export function installMovementSystems(
   world
     .system('Wrap')
     .with(Position, Wraps)
-    .phase(simulationPhase)
     .each([Position], (entity, [position]) => {
       let wrapped = false;
 

@@ -7,8 +7,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, ShieldView]);
-  installShieldDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installShieldDrawSystem(testWorld.world);
 });
 
 function tick() {

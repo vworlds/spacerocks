@@ -1,12 +1,12 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable, FillStyle } from '@spacerocks/common';
 
 const FILL_EXEC_KEY = {};
 
-export function installFillStyleDrawSystem(world: World, phase: IPhase): void {
+export function installFillStyleDrawSystem(world: World): void {
   world
     .system('FillStyleDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, FillStyle)
     .enter([Drawable, FillStyle], (_entity, [drawable, fillStyle]) => {
       drawable.addStatement(FillStyle, 100, (ctx) => {

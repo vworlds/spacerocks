@@ -7,8 +7,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, FilledRect]);
-  installFilledRectDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installFilledRectDrawSystem(testWorld.world);
 });
 
 function tick() {

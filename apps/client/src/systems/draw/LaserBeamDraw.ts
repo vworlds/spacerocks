@@ -1,12 +1,12 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable, WORLD_WIDTH, WeaponView } from '@spacerocks/common';
 
 const WEAPON_KIND_LASER = 1; // enum id
 
-export function installLaserBeamDrawSystem(world: World, phase: IPhase): void {
+export function installLaserBeamDrawSystem(world: World): void {
   world
     .system('LaserBeamDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, WeaponView)
     .enter([Drawable], (entity, [drawable]) => {
       drawable.addStatement(WeaponView, 160, (ctx) => {

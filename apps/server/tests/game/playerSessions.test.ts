@@ -30,13 +30,10 @@ type PlayerSessionWorld = Parameters<typeof registerPlayerSessionComponents>[0];
 
 function createTestWorld(): World {
   const world = new World();
-  const simulationPhase = world.addPhase('simulation');
   registerPlayerSessionComponents(world as unknown as PlayerSessionWorld);
   installPlayerSessionSystems(
     world as unknown as Parameters<typeof installPlayerSessionSystems>[0],
-    simulationPhase,
   );
-  world.start();
   return world;
 }
 

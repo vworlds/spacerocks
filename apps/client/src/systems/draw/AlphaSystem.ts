@@ -1,13 +1,13 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable } from '@spacerocks/common';
 import { Alpha } from '../../components/Alpha';
 
 const RESTORE_KEY = {};
 
-export function installAlphaDrawSystem(world: World, phase: IPhase): void {
+export function installAlphaDrawSystem(world: World): void {
   world
     .system('AlphaDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, Alpha)
     .enter([Drawable, Alpha], (_entity, [drawable, alpha]) => {
       let oldAlpha = 1;

@@ -1,5 +1,6 @@
 import express from 'express';
 import type { Server as HttpServer } from 'node:http';
+import { PRE_STORE } from '@vworlds/vecs';
 import { ServerWorld, VecsListener, View } from '@vworlds/vecs-server';
 import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
 import { logger } from './logger';
@@ -35,29 +36,23 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
     name: 'main',
     networkComponents: NETWORK_COMPONENTS,
   });
-  const simulationPhase = world.addPhase('simulation');
-  const collectPhase = world.addPhase('collect');
-  const sendPhase = world.addPhase('send');
   registerPlayerSessionComponents(world);
   registerSpawningComponents(world);
   registerShootingComponents(world);
   registerCombatComponents(world);
-  installPlayerSessionSystems(world, simulationPhase);
-  installSpawningSystems(world, simulationPhase);
-  installShootingSystems(world, simulationPhase);
-  installMovementSystems(world, simulationPhase);
-  installCombatSystems(world, simulationPhase);
+  installPlayerSessionSystems(world);
+  installSpawningSystems(world);
+  installShootingSystems(world);
+  installMovementSystems(world);
+  installCombatSystems(world);
 
   world
     .system('SetClientView')
-    .phase(collectPhase)
+    .phase(PRE_STORE)
     .with(View)
     .each([View], (_entity, [view]) => {
       view.dsl = true;
     });
-
-  world.installSystems({ collectPhase, sendPhase });
-  world.start();
 
   // Instrument the world's connect/disconnect plumbing so we can see who
   // joins, who leaves, and which side initiates the close.
@@ -106,7 +101,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
     world.progress(now, delta);
   }, TICK_INTERVAL_MS);
 
-  return { app, server, world, vecsListener, tick, simulationPhase, port };
+  return { app, server, world, vecsListener, tick, port };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

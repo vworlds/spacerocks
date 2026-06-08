@@ -7,8 +7,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, StrokeStyle]);
-  installStrokeStyleDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installStrokeStyleDrawSystem(testWorld.world);
 });
 
 function tick() {

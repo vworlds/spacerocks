@@ -37,8 +37,6 @@ import {
 } from '@spacerocks/common';
 import { createPrng, type Prng } from './rng';
 
-type ServerPhase = ReturnType<ServerWorld['addPhase']>;
-
 const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // wave number
 const ASTEROID_COLORS = ['#aaa', '#888', '#bbb', '#999', '#777'] as const;
@@ -106,7 +104,6 @@ export function registerSpawningComponents(world: ServerWorld): void {
 
 export function installSpawningSystems(
   world: ServerWorld,
-  simulationPhase: ServerPhase,
   rng: Prng = createPrng(readServerSeed()),
 ): void {
   initializeGameWorld(world, rng, Date.now());
@@ -115,7 +112,6 @@ export function installSpawningSystems(
     .system('ServerRandomClockSystem')
     .interval(0.5)
     .with(SpawnTimer)
-    .phase(simulationPhase)
     .each([SpawnTimer], (_entity, [timer]) => {
       if (!isPlaying(world)) return;
       const now = Date.now();
@@ -129,7 +125,6 @@ export function installSpawningSystems(
     .system('ServerWave')
     .interval(0.25)
     .with(GameStateView)
-    .phase(simulationPhase)
     .each([GameStateView], (entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;
       if (

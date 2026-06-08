@@ -7,8 +7,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, HealthView]);
-  installHealthDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installHealthDrawSystem(testWorld.world);
 });
 
 function tick() {

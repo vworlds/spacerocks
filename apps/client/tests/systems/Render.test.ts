@@ -43,12 +43,11 @@ beforeEach(() => {
   testWorld = createTestWorld([Position, Rotation, Drawable]);
   ctx = makeCtx();
   canvas = makeCanvas();
-  installRenderSystem(testWorld.world, testWorld.renderPhase, {
+  installRenderSystem(testWorld.world, {
     ctx: ctx as unknown as CanvasRenderingContext2D,
     canvas,
     stars: [],
   });
-  testWorld.world.start();
 });
 
 function tick() {
@@ -75,12 +74,11 @@ describe('Render', () => {
     ];
     testWorld = createTestWorld([Position, Rotation, Drawable]);
     ctx = makeCtx();
-    installRenderSystem(testWorld.world, testWorld.renderPhase, {
+    installRenderSystem(testWorld.world, {
       ctx: ctx as unknown as CanvasRenderingContext2D,
       canvas,
       stars,
     });
-    testWorld.world.start();
     tick();
     expect(ctx.arc).toHaveBeenCalledTimes(stars.length);
   });

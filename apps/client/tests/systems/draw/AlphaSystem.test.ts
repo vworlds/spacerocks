@@ -8,8 +8,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, Alpha]);
-  installAlphaDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installAlphaDrawSystem(testWorld.world);
 });
 
 function tick() {

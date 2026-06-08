@@ -9,8 +9,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, WeaponView]);
-  installLaserBeamDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installLaserBeamDrawSystem(testWorld.world);
 });
 
 function tick() {

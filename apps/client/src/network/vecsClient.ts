@@ -39,10 +39,10 @@ type DgramClientSocket = {
   close(): void;
 };
 
-// Build the entire world (component registration + phases + systems + start)
+// Build the entire world (component registration + systems)
 // BEFORE opening the WebRTC data channel. The server starts a 5-frame (~166ms
 // at 30Hz) ack budget the moment its data channel emits open, and the
-// build-and-start work can take several hundred milliseconds on first load.
+// initial world setup can take several hundred milliseconds on first load.
 // Doing it before the socket connects keeps the first ack well within budget.
 export async function createClientWorld(
   config: ClientWorldConfig,
@@ -81,30 +81,23 @@ export async function createClientWorld(
   world.component(Label);
   world.component(Particle);
 
-  const applyPhase = world.addPhase('apply');
-  const updatePhase = world.addPhase('update');
-  const renderPhase = world.addPhase('render');
+  installParticleSystem(world);
+  installExplosionSystem(world);
 
-  world.installSystems({ applyPhase });
+  installAlphaDrawSystem(world);
+  installArcDrawSystem(world);
+  installFilledRectDrawSystem(world);
+  installFillStyleDrawSystem(world);
+  installStrokeStyleDrawSystem(world);
+  installShapeDrawSystem(world);
+  installLabelDrawSystem(world);
+  installHealthDrawSystem(world);
+  installShieldDrawSystem(world);
+  installLaserBeamDrawSystem(world);
 
-  installParticleSystem(world, updatePhase);
-  installExplosionSystem(world, updatePhase);
+  installRenderSystem(world, config.renderTarget);
+  installUISystem(world, config.ui);
 
-  installAlphaDrawSystem(world, renderPhase);
-  installArcDrawSystem(world, renderPhase);
-  installFilledRectDrawSystem(world, renderPhase);
-  installFillStyleDrawSystem(world, renderPhase);
-  installStrokeStyleDrawSystem(world, renderPhase);
-  installShapeDrawSystem(world, renderPhase);
-  installLabelDrawSystem(world, renderPhase);
-  installHealthDrawSystem(world, renderPhase);
-  installShieldDrawSystem(world, renderPhase);
-  installLaserBeamDrawSystem(world, renderPhase);
-
-  installRenderSystem(world, renderPhase, config.renderTarget);
-  installUISystem(world, renderPhase, config.ui);
-
-  world.start();
   const tStarted = performance.now();
 
   // Attach the socket only once the world is ready to ack. attachSocket only
@@ -117,7 +110,7 @@ export async function createClientWorld(
 
   console.info(
     `[vecs] import=${(tImport - t0).toFixed(0)}ms ` +
-      `setup+start=${(tStarted - tImport).toFixed(0)}ms ` +
+      `setup=${(tStarted - tImport).toFixed(0)}ms ` +
       `socket.connect=${(tConnected - tStarted).toFixed(0)}ms ` +
       `(total=${(tConnected - t0).toFixed(0)}ms)`,
   );

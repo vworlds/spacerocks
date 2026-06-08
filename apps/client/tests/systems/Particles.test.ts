@@ -8,8 +8,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Particle, Position, Velocity, Decay, Alpha]);
-  installParticleSystem(testWorld.world, testWorld.updatePhase);
-  testWorld.world.start();
+  installParticleSystem(testWorld.world);
 });
 
 function makeParticle(life = 1, decay = 0.1) {

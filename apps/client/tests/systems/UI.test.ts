@@ -13,12 +13,11 @@ beforeEach(() => {
   scoreEl = document.createElement('div');
   waveEl = document.createElement('div');
   msgEl = document.createElement('div');
-  installUISystem(testWorld.world, testWorld.renderPhase, {
+  installUISystem(testWorld.world, {
     scoreEl,
     waveEl,
     msgEl,
   });
-  testWorld.world.start();
 });
 
 function tick() {

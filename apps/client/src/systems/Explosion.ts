@@ -1,4 +1,4 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import type { World } from '@vworlds/vecs';
 import {
   Decay,
   Drawable,
@@ -14,10 +14,9 @@ import { Particle } from '../components/Particle';
 const MIN_PARTICLES = 8; // particles
 const MAX_PARTICLES = 36; // particles
 
-export function installExplosionSystem(world: World, phase: IPhase): void {
+export function installExplosionSystem(world: World): void {
   world
     .system('Explosion')
-    .phase(phase)
     .with(Position, ExplosionView)
     .enter([Position, ExplosionView], (_entity, [position, explosion]) => {
       spawnExplosionParticles(world, position, explosion);

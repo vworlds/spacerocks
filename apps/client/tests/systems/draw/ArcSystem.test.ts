@@ -7,8 +7,7 @@ let testWorld: TestWorld;
 
 beforeEach(() => {
   testWorld = createTestWorld([Drawable, Arc]);
-  installArcDrawSystem(testWorld.world, testWorld.renderPhase);
-  testWorld.world.start();
+  installArcDrawSystem(testWorld.world);
 });
 
 function tick() {

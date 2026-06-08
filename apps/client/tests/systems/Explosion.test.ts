@@ -26,8 +26,7 @@ beforeEach(() => {
     Alpha,
     Particle,
   ]);
-  installExplosionSystem(testWorld.world, testWorld.updatePhase);
-  testWorld.world.start();
+  installExplosionSystem(testWorld.world);
 });
 
 function tick() {
@@ -72,8 +71,7 @@ describe('Explosion', () => {
       Alpha,
       Particle,
     ]);
-    installExplosionSystem(fresh.world, fresh.updatePhase);
-    fresh.world.start();
+    installExplosionSystem(fresh.world);
     fresh.world
       .entity()
       .set(Position, { x: 0, y: 0 })

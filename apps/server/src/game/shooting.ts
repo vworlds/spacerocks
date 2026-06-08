@@ -36,8 +36,6 @@ import {
 } from '@spacerocks/common';
 import { PlayerInputIntent } from './playerSessions';
 
-type ServerPhase = ReturnType<ServerWorld['addPhase']>;
-
 const PROJECTILE_KIND_BULLET = 0; // enum id
 const PROJECTILE_KIND_ROCKET = 3; // enum id
 const PROJECTILE_KIND_BOOMERANG = 4; // enum id
@@ -67,14 +65,10 @@ export function registerShootingComponents(world: ServerWorld): void {
   world.component(FillStyle);
 }
 
-export function installShootingSystems(
-  world: ServerWorld,
-  simulationPhase: ServerPhase,
-): void {
+export function installShootingSystems(world: ServerWorld): void {
   world
     .system('InitializeWeaponState')
     .with(PlayerShip)
-    .phase(simulationPhase)
     .enter([PlayerShip], (ship) => {
       if (!ship.get(ShootingCooldown))
         ship.set(ShootingCooldown, { frames: 0 });
@@ -86,7 +80,6 @@ export function installShootingSystems(
   world
     .system('ShootingCooldown')
     .with(PlayerShip, ShootingCooldown)
-    .phase(simulationPhase)
     .each([ShootingCooldown], (_entity, [cooldown]) => {
       if (cooldown.frames > 0) cooldown.frames -= 1;
     });
@@ -94,7 +87,6 @@ export function installShootingSystems(
   world
     .system('Shooting')
     .with(PlayerShip, PlayerInputIntent, Position, Rotation, ShootingCooldown)
-    .phase(simulationPhase)
     .each(
       [PlayerInputIntent, Position, Rotation, ShootingCooldown],
       (ship, [input, position, rotation, cooldown]) => {
@@ -155,7 +147,6 @@ export function installShootingSystems(
   world
     .system('LaserSystem')
     .with(PlayerShip, LaserWeapon)
-    .phase(simulationPhase)
     .each([LaserWeapon], (ship, [laser]) => {
       if (!laser.firing) return;
 
@@ -170,7 +161,6 @@ export function installShootingSystems(
   world
     .system('RocketSystem')
     .with(Position, Velocity, Rotation, Rocket)
-    .phase(simulationPhase)
     .each(
       [Position, Velocity, Rotation, Rocket],
       (entity, [position, velocity, rotation, rocket]) => {
@@ -204,7 +194,6 @@ export function installShootingSystems(
   world
     .system('BoomerangSystem')
     .with(Position, Velocity, Boomerang)
-    .phase(simulationPhase)
     .each(
       [Position, Velocity, Boomerang],
       (_entity, [position, velocity, boomerang]) => {
@@ -257,7 +246,6 @@ export function installShootingSystems(
   world
     .system('Decay')
     .with(Decay)
-    .phase(simulationPhase)
     .each([Decay], (entity, [decay]) => {
       decay.life -= decay.decay;
       if (decay.life <= 0) entity.destroy();

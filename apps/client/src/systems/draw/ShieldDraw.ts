@@ -1,10 +1,10 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable, ENTITY_CONFIG, ShieldView } from '@spacerocks/common';
 
-export function installShieldDrawSystem(world: World, phase: IPhase): void {
+export function installShieldDrawSystem(world: World): void {
   world
     .system('ShieldDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, ShieldView)
     .enter([Drawable], (entity, [drawable]) => {
       drawable.addStatement(ShieldView, 150, (ctx) => {

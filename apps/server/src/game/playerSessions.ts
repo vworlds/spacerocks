@@ -82,15 +82,11 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(PlayerShip);
 }
 
-export function installPlayerSessionSystems(
-  world: ServerWorld,
-  simulationPhase: ReturnType<ServerWorld['addPhase']>,
-): void {
+export function installPlayerSessionSystems(world: ServerWorld): void {
   let nextPlayerIndex = 0;
 
   world
     .system('CreatePlayerSession')
-    .phase(simulationPhase)
     .with(NetworkClient)
     .enter([NetworkClient], (clientEntity, [client]) => {
       const playerIndex = nextPlayerIndex++;
@@ -110,7 +106,6 @@ export function installPlayerSessionSystems(
 
   world
     .system('ApplyNetworkInputToOwnedShip')
-    .phase(simulationPhase)
     .with(NetworkClient, NetworkInput)
     .each([NetworkInput], (clientEntity, [networkInput]) => {
       const ship = getOwnedShip(clientEntity);

@@ -1,13 +1,13 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Drawable, ENTITY_CONFIG, HealthView } from '@spacerocks/common';
 
 const BAR_WIDTH = 30; // pixels
 const BAR_HEIGHT = 5; // pixels
 
-export function installHealthDrawSystem(world: World, phase: IPhase): void {
+export function installHealthDrawSystem(world: World): void {
   world
     .system('HealthDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, HealthView)
     .enter([Drawable], (entity, [drawable]) => {
       drawable.addStatement(HealthView, 70, (ctx) => {

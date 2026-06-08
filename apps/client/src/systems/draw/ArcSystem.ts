@@ -1,10 +1,10 @@
-import type { IPhase, World } from '@vworlds/vecs';
+import { ON_STORE, type World } from '@vworlds/vecs';
 import { Arc, Drawable } from '@spacerocks/common';
 
-export function installArcDrawSystem(world: World, phase: IPhase): void {
+export function installArcDrawSystem(world: World): void {
   world
     .system('ArcDraw')
-    .phase(phase)
+    .phase(ON_STORE)
     .with(Drawable, Arc)
     .enter([Drawable, Arc], (_entity, [drawable, arc]) => {
       drawable.addStatement(Arc, 55, (ctx) => {
