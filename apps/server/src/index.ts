@@ -1,5 +1,4 @@
 import express from 'express';
-import { PRE_STORE } from '@vworlds/vecs';
 import { ServerWorld, VecsListener, View } from '@vworlds/vecs-server';
 import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
 import { logger } from './logger';
@@ -19,6 +18,7 @@ import {
 } from './game/shooting';
 import { installCombatSystems, registerCombatComponents } from './game/combat';
 import { listenWithRetry } from './serverLifecycle';
+import { installClientViewSystem } from './network/clientViews';
 
 export { stopServer } from './serverLifecycle';
 
@@ -47,14 +47,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   installShootingSystems(world);
   installMovementSystems(world);
   installCombatSystems(world);
-
-  world
-    .system('SetClientView')
-    .phase(PRE_STORE)
-    .with(View)
-    .each([View], (_entity, [view]) => {
-      view.dsl = true;
-    });
+  installClientViewSystem(world, View);
 
   // Instrument the world's connect/disconnect plumbing so we can see who
   // joins, who leaves, and which side initiates the close.
