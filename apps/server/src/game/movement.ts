@@ -1,3 +1,4 @@
+import { POST_UPDATE } from '@vworlds/vecs';
 import type { ServerWorld } from '@vworlds/vecs-server';
 import {
   LinearVelocity,
@@ -54,6 +55,7 @@ export function installMovementSystems(world: ServerWorld): void {
 
   world
     .system('Wrap')
+    .phase(POST_UPDATE)
     .with(PhysicsPosition, Wraps)
     .each([PhysicsPosition], (entity, [position]) => {
       let wrapped = false;
