@@ -56,8 +56,10 @@ class GameScene extends Phaser.Scene {
   create(): void {
     this.drawStarfield();
 
+    // Client chrome lives along the BOTTOM edge so it never overlaps the
+    // server-owned Score/Wave HUD Text entities, which render at the top-left.
     this.add
-      .text(16, 16, 'P1: WASD+Space  P2: Arrows+Enter', {
+      .text(16, CANVAS_HEIGHT - 28, 'P1: WASD+Space  P2: Arrows+Enter', {
         color: '#e2e8f0',
         fontFamily: 'Courier New, monospace',
         fontSize: '14px',
@@ -65,7 +67,7 @@ class GameScene extends Phaser.Scene {
       .setDepth(10_000);
 
     this._statusText = this.add
-      .text(16, 36, '', {
+      .text(16, CANVAS_HEIGHT - 50, '', {
         color: '#fecaca',
         fontFamily: 'Courier New, monospace',
         fontSize: '14px',
