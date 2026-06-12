@@ -44,28 +44,25 @@ describe('Particles', () => {
   });
 
   it('clamps Alpha to a 0 floor', () => {
+    let removedAlphaValue: number | undefined;
+    testWorld.world.component(Alpha).onRemove((_entity, alpha) => {
+      removedAlphaValue = alpha.value;
+    });
     const e = makeParticle(0.05, 0.1).set(Alpha, { value: 0.05 });
     tick();
-    expect(e.get(Alpha)!.value).toBe(0);
+    expect(testWorld.world.entities.has(e.eid)).toBe(false);
+    expect(removedAlphaValue).toBe(0);
   });
 
   it('destroys particles when life reaches zero', () => {
-    let destroyed = false;
     const e = makeParticle(0.05, 0.1);
-    e.events.on('destroy', () => {
-      destroyed = true;
-    });
     tick();
-    expect(destroyed).toBe(true);
+    expect(testWorld.world.entities.has(e.eid)).toBe(false);
   });
 
   it('leaves particles alive while life is positive', () => {
-    let destroyed = false;
     const e = makeParticle(1, 0.1);
-    e.events.on('destroy', () => {
-      destroyed = true;
-    });
     tick();
-    expect(destroyed).toBe(false);
+    expect(testWorld.world.entities.has(e.eid)).toBe(true);
   });
 });
