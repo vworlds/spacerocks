@@ -1,15 +1,21 @@
 import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
 import {
+  Arc,
+  phaserNetworkComponents,
+  Polygon,
+  Position,
+  StrokeStyle,
+} from '@vworlds/vecs-phaser';
+import {
   Alien,
   Asteroid,
   AsteroidView,
+  COLORS,
   GameStateView,
   Pickup,
+  PICKUP_COLORS,
   PickupKind,
   PickupView,
-  Point,
-  Position,
-  Shape,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -42,6 +48,7 @@ function createTestWorld(seed = 1234): {
   world: World;
 } {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
   registerPlayerSessionComponents(
     world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
   );
@@ -93,9 +100,9 @@ describe('server spawning systems', () => {
     );
     expect(count(world, GameStateView)).toBe(1);
     expect(count(world, Asteroid)).toBe(5);
-    expect(firstEntity(world, Asteroid)?.get(Shape)?.points[0]).toBeInstanceOf(
-      Point,
-    );
+    expect(
+      firstEntity(world, Asteroid)?.get(Polygon)?.points.length,
+    ).toBeGreaterThan(0);
 
     world
       .filter([Asteroid, Position])
@@ -107,19 +114,37 @@ describe('server spawning systems', () => {
       });
   });
 
-  it('creates wire-encodable alien shape points', () => {
+  it('creates phaser alien render components', () => {
     const { world } = createTestWorld();
     const alien = createAlien(
       world as unknown as Parameters<typeof createAlien>[0],
       createPrng(1234),
     );
 
-    expect(alien.get(Shape)?.points).toEqual([
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
+    expect(alien.get(Polygon)?.points).toEqual([
+      0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1,
     ]);
+    expect(alien.get(StrokeStyle)).toMatchObject({
+      color: COLORS.orange,
+      alpha: 1,
+      width: 2,
+    });
+  });
+
+  it('creates pickup arc and u32 stroke color render components', () => {
+    const { world } = createTestWorld();
+    const pickup = createPickup(
+      world as unknown as Parameters<typeof createPickup>[0],
+      createPrng(1234),
+      PickupKind.Health,
+    );
+
+    expect(pickup.get(Arc)).toMatchObject({ radius: 0.15 });
+    expect(pickup.get(StrokeStyle)).toMatchObject({
+      color: PICKUP_COLORS[PickupKind.Health],
+      alpha: 1,
+      width: 2,
+    });
   });
 
   it('progresses waves when asteroids and aliens are cleared', () => {

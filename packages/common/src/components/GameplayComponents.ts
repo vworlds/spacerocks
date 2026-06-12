@@ -112,7 +112,7 @@ export class Rocket {
 
 export class Asteroid {
   level: 1 | 2 | 3 = 3; // tier
-  color = '#aaa';
+  color = 0xaaaaaa; // u32 RGB
 }
 
 export class Alien {

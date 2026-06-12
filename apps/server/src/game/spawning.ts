@@ -1,10 +1,17 @@
 import type { ComponentClass, Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
-  Alien,
   Arc,
+  Polygon,
+  Position,
+  Rotation,
+  StrokeStyle,
+} from '@vworlds/vecs-phaser';
+import {
+  Alien,
   Asteroid,
   AsteroidView,
+  ASTEROID_COLORS,
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
@@ -13,8 +20,8 @@ import {
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
   Collider,
+  COLORS,
   Decay,
-  Drawable,
   ENTITY_CONFIG,
   GAME_CONFIG,
   GameStateView,
@@ -22,15 +29,11 @@ import {
   HealthView,
   HealthPickup,
   Pickup,
+  PICKUP_COLORS,
   PickupKind,
   PickupView,
   PIXELS_PER_METER,
-  Point,
-  Position,
   RandomClockKind,
-  Rotation,
-  Shape,
-  StrokeStyle,
   Velocity,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -42,7 +45,6 @@ import { createPrng, type Prng } from './rng';
 
 const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // wave number
-const ASTEROID_COLORS = ['#aaa', '#888', '#bbb', '#999', '#777'] as const;
 const ASTEROID_RADII: Record<1 | 2 | 3, number> = {
   1: 0.1, // meters
   2: 0.2, // meters
@@ -58,29 +60,29 @@ const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
   [PickupKind.Health]: GAME_CONFIG.HEALTH_PICKUP_TTL_FRAMES,
 };
 
-const PICKUP_CONFIG: Record<PickupKind, { color: string; viewKind: number }> = {
+const PICKUP_CONFIG: Record<PickupKind, { color: number; viewKind: number }> = {
   [PickupKind.Shield]: {
-    color: '#0f0',
+    color: PICKUP_COLORS[PickupKind.Shield],
     viewKind: 0, // enum id
   },
   [PickupKind.Laser]: {
-    color: '#f00',
+    color: PICKUP_COLORS[PickupKind.Laser],
     viewKind: 1, // enum id
   },
   [PickupKind.Aura]: {
-    color: '#3af',
+    color: PICKUP_COLORS[PickupKind.Aura],
     viewKind: 2, // enum id
   },
   [PickupKind.Rocket]: {
-    color: '#ff6600',
+    color: PICKUP_COLORS[PickupKind.Rocket],
     viewKind: 3, // enum id
   },
   [PickupKind.Boomerang]: {
-    color: '#006400',
+    color: PICKUP_COLORS[PickupKind.Boomerang],
     viewKind: 4, // enum id
   },
   [PickupKind.Health]: {
-    color: '#fff',
+    color: PICKUP_COLORS[PickupKind.Health],
     viewKind: 5, // enum id
   },
 };
@@ -101,7 +103,6 @@ export function registerSpawningComponents(world: ServerWorld): void {
   world.component(PickupView);
   world.component(HealthPickup);
   world.component(Decay);
-  world.component(Arc);
   world.component(GameStateView);
 }
 
@@ -153,13 +154,14 @@ export function createAsteroid(
   const radius = ASTEROID_RADII[level];
   const speedFactor =
     ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level / PIXELS_PER_METER;
-  const color = ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ?? '#aaa';
+  const color =
+    ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ?? COLORS.asteroidGrey;
   const vert = 5 + rng.int(5);
-  const points: Point[] = [];
+  const points: number[] = [];
   for (let i = 0; i < vert; i += 1) {
     const r = radius * rng.range(0.8, 1.2);
     const a = (i / vert) * Math.PI * 2;
-    points.push(new Point(Math.cos(a) * r, Math.sin(a) * r));
+    points.push(Math.cos(a) * r, Math.sin(a) * r);
   }
 
   return world
@@ -182,10 +184,9 @@ export function createAsteroid(
         CAT_ENEMY |
         CAT_BOOMERANG,
     })
-    .set(Drawable, { zIndex: 30 })
     .add(Wraps)
-    .set(StrokeStyle, { style: color, lineWidth: 2 })
-    .set(Shape, { points });
+    .set(StrokeStyle, { color, alpha: 1, width: 2 })
+    .set(Polygon, { points });
 }
 
 export function createAlien(world: ServerWorld, rng: Prng): Entity {
@@ -217,17 +218,9 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
       category: CAT_ENEMY,
       mask: CAT_PLAYER | CAT_ASTEROID | CAT_PLAYER_BULLET | CAT_BOOMERANG,
     })
-    .set(Drawable, { zIndex: 40 })
     .add(Wraps)
-    .set(StrokeStyle, { style: '#ffaa00', lineWidth: 2 })
-    .set(Shape, {
-      points: [
-        new Point(0.15, 0),
-        new Point(-0.1, 0.1),
-        new Point(-0.05, 0),
-        new Point(-0.1, -0.1),
-      ],
-    });
+    .set(StrokeStyle, { color: COLORS.orange, alpha: 1, width: 2 })
+    .set(Polygon, { points: [0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1] });
 }
 
 export function createPickup(
@@ -259,9 +252,8 @@ export function createPickup(
       category: CAT_PICKUP,
       mask: CAT_PLAYER,
     })
-    .set(Drawable, { zIndex: 50 })
     .add(Wraps)
-    .set(StrokeStyle, { style: config.color, lineWidth: 2 })
+    .set(StrokeStyle, { color: config.color, alpha: 1, width: 2 })
     .set(Arc, { radius: ENTITY_CONFIG.POWERUP.RADIUS });
 
   if (kind === PickupKind.Health) entity.set(HealthPickup, { amount });

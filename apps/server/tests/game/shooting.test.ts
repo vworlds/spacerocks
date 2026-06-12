@@ -5,20 +5,26 @@ import {
   type Entity,
 } from '@vworlds/vecs';
 import {
-  Alien,
   Arc,
+  FillStyle,
+  phaserNetworkComponents,
+  Polygon,
+  Position,
+  Rotation,
+  Triangle,
+} from '@vworlds/vecs-phaser';
+import {
+  Alien,
   Asteroid,
   Boomerang,
   BoomerangWeapon,
   Bullet,
+  COLORS,
   ENTITY_CONFIG,
-  Point,
-  Position,
+  PLAYER_COLORS,
   ProjectileView,
   Rocket,
   RocketWeapon,
-  Rotation,
-  Shape,
   Velocity,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -48,13 +54,13 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): { world: World } {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
   registerPlayerSessionComponents(
     world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
   );
   registerShootingComponents(
     world as unknown as Parameters<typeof registerShootingComponents>[0],
   );
-  world.component(Arc);
   world.component(Alien);
   world.component(Asteroid);
   installShootingSystems(
@@ -107,6 +113,11 @@ describe('server shooting systems', () => {
     expect(count(world, Bullet)).toBe(1);
     const bullet = firstEntity(world, Bullet);
     expect(bullet.get(ProjectileView)).toMatchObject({ kind: 0, team: 0 });
+    expect(bullet.get(Arc)).toMatchObject({ radius: 0.02 });
+    expect(bullet.get(FillStyle)).toMatchObject({
+      color: PLAYER_COLORS[0],
+      alpha: 1,
+    });
     expect(bullet.get(ChildOf)?.target).toBe(ship);
     expect(bullet.get(Position)!.x).toBeGreaterThan(startX);
     expect(ship.get(ShootingCooldown)?.frames).toBeGreaterThan(0);
@@ -168,7 +179,7 @@ describe('server shooting systems', () => {
     expect(world.getEntity(boomerang.eid)).toBeUndefined();
   });
 
-  it('creates wire-encodable projectile shape points', () => {
+  it('creates phaser projectile render components', () => {
     const { world, ship } = createStartedWorldWithShip();
     const rocket = createRocket(
       world as unknown as Parameters<typeof createRocket>[0],
@@ -185,18 +196,24 @@ describe('server shooting systems', () => {
       0,
     );
 
-    expect(rocket.get(Shape)?.points).toEqual([
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
+    expect(rocket.get(Triangle)).toMatchObject({
+      x1: 0.06,
+      y1: 0,
+      x2: -0.03,
+      y2: 0.03,
+      x3: -0.03,
+      y3: -0.03,
+    });
+    expect(rocket.get(FillStyle)).toMatchObject({
+      color: COLORS.rocket,
+      alpha: 1,
+    });
+    expect(boomerang.get(Polygon)?.points).toEqual([
+      0, 0, 0.02, 0.05, 0.05, 0.05, 0.03, 0, 0.05, -0.05, 0.02, -0.05,
     ]);
-    expect(boomerang.get(Shape)?.points).toEqual([
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
-    ]);
+    expect(boomerang.get(FillStyle)).toMatchObject({
+      color: COLORS.boomerang,
+      alpha: 1,
+    });
   });
 });

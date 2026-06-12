@@ -4,16 +4,16 @@ export class PlayerShip {
   @wireType('u32')
   playerIndex = 0; // player index
 
-  @wireType('string')
-  color = '#fff';
+  @wireType('u32')
+  color = 0xffffff; // u32 RGB
 }
 
 export class AsteroidView {
   @wireType('u32')
   level = 1; // tier
 
-  @wireType('string')
-  color = '#888';
+  @wireType('u32')
+  color = 0x888888; // u32 RGB
 
   @wireType('f64')
   radius = 0.2; // meters

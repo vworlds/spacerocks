@@ -1,11 +1,10 @@
 import type { ServerWorld } from '@vworlds/vecs-server';
+import { Position, Rotation } from '@vworlds/vecs-phaser';
 import {
   AngularVelocity,
   ENTITY_CONFIG,
   Friction,
   PlayerShip,
-  Position,
-  Rotation,
   Thrust,
   Velocity,
   WORLD_MAX_X,

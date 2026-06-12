@@ -4,6 +4,7 @@ import {
   type ComponentClass,
   type Entity,
 } from '@vworlds/vecs';
+import { phaserNetworkComponents, Position } from '@vworlds/vecs-phaser';
 import {
   Asteroid,
   Bullet,
@@ -12,8 +13,8 @@ import {
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
   Collider,
+  Explosion,
   ENTITY_CONFIG,
-  ExplosionView,
   GameStateView,
   Health,
   HealthPickup,
@@ -22,7 +23,6 @@ import {
   Pickup,
   PickupKind,
   PlayerShip,
-  Position,
   RocketWeapon,
   SCORING,
   Shield,
@@ -61,6 +61,8 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): { world: World } {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
+  world.component(Explosion);
   registerPlayerSessionComponents(
     world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
   );
@@ -130,13 +132,13 @@ describe('server combat systems', () => {
 
     expect(count(world, Asteroid)).toBe(2);
     expect(count(world, Bullet)).toBe(0);
-    expect(count(world, ExplosionView)).toBe(1);
+    expect(count(world, Explosion)).toBe(1);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
       SCORING.ASTEROID_BASE * 3,
     );
   });
 
-  it('expires explosion markers through server-side decay', () => {
+  it('expires explosion effect entities through server-side decay', () => {
     const { world } = createTestWorld();
     createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
@@ -152,13 +154,17 @@ describe('server combat systems', () => {
     });
 
     runFrame(world);
-    expect(count(world, ExplosionView)).toBe(1);
+    expect(count(world, Explosion)).toBe(1);
+    expect(firstEntity(world, Explosion).get(Explosion)).toMatchObject({
+      size: 0.4,
+      duration: ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES / 30,
+    });
 
     for (let i = 0; i <= ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES; i += 1) {
       runFrame(world);
     }
 
-    expect(count(world, ExplosionView)).toBe(0);
+    expect(count(world, Explosion)).toBe(0);
   });
 
   it('applies health pickups with server-side handlers and syncs health view', () => {

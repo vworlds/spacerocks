@@ -1,12 +1,15 @@
 import { World } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
 import {
+  phaserNetworkComponents,
+  Position,
+  Rotation,
+} from '@vworlds/vecs-phaser';
+import {
   AngularVelocity,
   ENTITY_CONFIG,
   Friction,
   PlayerShip,
-  Position,
-  Rotation,
   Thrust,
   Velocity,
   WORLD_MAX_X,
@@ -38,6 +41,7 @@ type ServerWorldLike = Parameters<typeof registerPlayerSessionComponents>[0];
 
 function createTestWorld(): World {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
   registerPlayerSessionComponents(world as unknown as ServerWorldLike);
   installPlayerSessionSystems(
     world as unknown as Parameters<typeof installPlayerSessionSystems>[0],

@@ -1,9 +1,16 @@
 import { ChildOf, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
+  Arc,
+  FillStyle,
+  Polygon,
+  Position,
+  Rotation,
+  Triangle,
+} from '@vworlds/vecs-phaser';
+import {
   Alien,
   AngularVelocity,
-  Arc,
   Asteroid,
   AuraWeapon,
   Boomerang,
@@ -15,21 +22,15 @@ import {
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
   Collider,
+  COLORS,
   Decay,
   DefaultWeapon,
-  Drawable,
   ENTITY_CONFIG,
-  FillStyle,
   LaserWeapon,
   PlayerShip,
-  Point,
-  Position,
   ProjectileView,
   Rocket,
   RocketWeapon,
-  Rotation,
-  Shape,
-  StrokeStyle,
   Velocity,
   WeaponView,
   Wraps,
@@ -62,7 +63,6 @@ export function registerShootingComponents(world: ServerWorld): void {
   world.component(Decay);
   world.component(ProjectileView);
   world.component(WeaponView);
-  world.component(FillStyle);
 }
 
 export function installShootingSystems(world: ServerWorld): void {
@@ -92,7 +92,7 @@ export function installShootingSystems(world: ServerWorld): void {
       (ship, [input, position, rotation, cooldown]) => {
         if (!input.shoot || cooldown.frames > 0) return;
 
-        const color = ship.get(StrokeStyle)?.style ?? '#fff';
+        const color = ship.get(PlayerShip)?.color ?? COLORS.white;
         const aura = ship.getMut(AuraWeapon);
         const laser = ship.getMut(LaserWeapon);
         const rocketWeapon = ship.getMut(RocketWeapon);
@@ -258,7 +258,7 @@ export function createBullet(
   x: number,
   y: number,
   angle: number,
-  color: string,
+  color: number,
 ): Entity {
   const speed = ENTITY_CONFIG.BULLET.SPEED;
   return world
@@ -276,9 +276,8 @@ export function createBullet(
       mask: CAT_ASTEROID | CAT_ENEMY,
     })
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
-    .set(Drawable, { zIndex: 20 })
     .add(Wraps)
-    .set(FillStyle, { style: color })
+    .set(FillStyle, { color, alpha: 1 })
     .set(Arc, { radius: 0.02 });
 }
 
@@ -305,15 +304,15 @@ export function createRocket(
       mask: CAT_ASTEROID | CAT_ENEMY,
     })
     .set(Decay, { life: ENTITY_CONFIG.ROCKET.LIFE, decay: 1 })
-    .set(Drawable, { zIndex: 20 })
     .add(Wraps)
-    .set(FillStyle, { style: '#ff6600' })
-    .set(Shape, {
-      points: [
-        new Point(0.06, 0),
-        new Point(-0.03, 0.03),
-        new Point(-0.03, -0.03),
-      ],
+    .set(FillStyle, { color: COLORS.rocket, alpha: 1 })
+    .set(Triangle, {
+      x1: 0.06,
+      y1: 0,
+      x2: -0.03,
+      y2: 0.03,
+      x3: -0.03,
+      y3: -0.03,
     });
 }
 
@@ -348,17 +347,9 @@ export function createBoomerang(
       mask: CAT_ASTEROID | CAT_ENEMY | CAT_PLAYER,
     })
     .set(Decay, { life: 1, decay: 1 / config.LIFE })
-    .set(Drawable, { zIndex: 20 })
-    .set(FillStyle, { style: '#006400' })
-    .set(Shape, {
-      points: [
-        new Point(0, 0),
-        new Point(0.02, 0.05),
-        new Point(0.05, 0.05),
-        new Point(0.03, 0),
-        new Point(0.05, -0.05),
-        new Point(0.02, -0.05),
-      ],
+    .set(FillStyle, { color: COLORS.boomerang, alpha: 1 })
+    .set(Polygon, {
+      points: [0, 0, 0.02, 0.05, 0.05, 0.05, 0.03, 0, 0.05, -0.05, 0.02, -0.05],
     });
 
   owner.getMut(BoomerangWeapon, (weapon) => {

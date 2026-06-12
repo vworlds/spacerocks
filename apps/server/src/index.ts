@@ -1,5 +1,6 @@
 import express from 'express';
 import { ServerWorld, VecsListener, View } from '@vworlds/vecs-server';
+import { phaserRenderableComponents } from '@vworlds/vecs-phaser';
 import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
 import { logger } from './logger';
 import { corsMiddleware } from './cors';
@@ -38,6 +39,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
     name: 'main',
     networkComponents: NETWORK_COMPONENTS,
   });
+  world.setExclusiveComponents(...phaserRenderableComponents);
   registerPlayerSessionComponents(world);
   registerSpawningComponents(world);
   registerShootingComponents(world);

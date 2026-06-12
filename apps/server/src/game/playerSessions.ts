@@ -6,6 +6,12 @@ import {
   type ServerWorld,
 } from '@vworlds/vecs-server';
 import {
+  Position,
+  Rotation,
+  StrokeStyle,
+  Triangle,
+} from '@vworlds/vecs-phaser';
+import {
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
@@ -14,25 +20,20 @@ import {
   CAT_PLAYER,
   AngularVelocity,
   DefaultWeapon,
-  Drawable,
   ENTITY_CONFIG,
   Friction,
   Health,
   HealthView,
   PlayerShip,
-  Point,
-  Position,
-  Rotation,
-  Shape,
   Shield,
   ShieldView,
-  StrokeStyle,
   Thrust,
   Velocity,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   Wraps,
   Collider,
+  PLAYER_COLORS,
 } from '@spacerocks/common';
 
 export class PlayerSession {
@@ -46,8 +47,6 @@ export class PlayerInputIntent {
   rotateRight = false;
   shoot = false;
 }
-
-const PLAYER_COLORS = ['#00ffcc', '#ff00ff', '#ffff66', '#66aaff'] as const;
 
 const SPAWN_POSITIONS = [
   { x: -WORLD_WIDTH * 0.2, y: 0 },
@@ -63,10 +62,8 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(PlayerInputIntent);
   world.component(ChildOf).meta.onDeleteTarget = CleanupPolicy.Delete;
   world.component(Networked);
-  world.component(Position);
   world.component(Velocity);
   world.component(AngularVelocity);
-  world.component(Rotation);
   world.component(Thrust);
   world.component(Friction);
   world.component(Health);
@@ -75,10 +72,7 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(ShieldView);
   world.component(DefaultWeapon);
   world.component(Collider);
-  world.component(Drawable);
   world.component(Wraps);
-  world.component(StrokeStyle);
-  world.component(Shape);
   world.component(PlayerShip);
 }
 
@@ -162,11 +156,15 @@ export function createPlayerShip(
     })
     .set(PlayerInputIntent, {})
     .set(PlayerShip, { playerIndex, color })
-    .set(Drawable, { zIndex: 60 })
     .add(Wraps)
-    .set(StrokeStyle, { style: color, lineWidth: 2 })
-    .set(Shape, {
-      points: [new Point(0.15, 0), new Point(-0.1, 0.1), new Point(-0.1, -0.1)],
+    .set(StrokeStyle, { color, alpha: 1, width: 2 })
+    .set(Triangle, {
+      x1: 0.15,
+      y1: 0,
+      x2: -0.1,
+      y2: 0.1,
+      x3: -0.1,
+      y3: -0.1,
     });
 }
 

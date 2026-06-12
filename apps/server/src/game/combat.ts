@@ -1,5 +1,6 @@
 import { ChildOf, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
+import { Position, Rotation } from '@vworlds/vecs-phaser';
 import {
   Alien,
   Asteroid,
@@ -15,11 +16,11 @@ import {
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
   Collider,
+  COLORS,
   Decay,
   DefaultWeapon,
-  Drawable,
   ENTITY_CONFIG,
-  ExplosionView,
+  Explosion,
   GameStateView,
   Health,
   HealthPickup,
@@ -28,14 +29,13 @@ import {
   Pickup,
   PickupKind,
   PlayerShip,
-  Position,
   Rocket,
   RocketWeapon,
-  Rotation,
   SCORING,
   SHIELD_DAMAGE,
   Shield,
   ShieldView,
+  TICK_RATE,
   toFrames,
   WeaponView,
 } from '@spacerocks/common';
@@ -71,7 +71,6 @@ export function registerCombatComponents(world: ServerWorld): void {
   world.component(Shield);
   world.component(ShieldView);
   world.component(HealthView);
-  world.component(ExplosionView);
   world.component(WeaponView);
   world.component(RespawnTimer);
 }
@@ -170,7 +169,8 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
   registerCollisionEffect(CAT_PLAYER, CAT_PICKUP, (player, pickup) => {
     applyPickupEffect(world, player, pickup);
     const position = player.get(Position);
-    if (position) createExplosion(world, position.x, position.y, '#fff', 0.2);
+    if (position)
+      createExplosion(world, position.x, position.y, COLORS.white, 0.2);
     pickup.destroy();
   });
 
@@ -204,7 +204,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
           world,
           position.x,
           position.y,
-          asteroidView?.color ?? '#aaa',
+          asteroidView?.color ?? COLORS.asteroidGrey,
         );
       asteroid.destroy();
       bullet.destroy();
@@ -219,7 +219,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         world,
         position.x,
         position.y,
-        asteroidView?.color ?? '#ffaa00',
+        asteroidView?.color ?? COLORS.orange,
         0.2,
       );
     alien.destroy();
@@ -235,7 +235,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         world,
         playerPosition.x,
         playerPosition.y,
-        '#ffaa00',
+        COLORS.orange,
         player.get(Shield) ? 0.2 : 0.05,
       );
     alien.destroy();
@@ -288,7 +288,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         world,
         explosionPosition.x,
         explosionPosition.y,
-        asteroidView?.color ?? '#aaa',
+        asteroidView?.color ?? COLORS.asteroidGrey,
         0.05,
       );
     destroyAsteroid(world, rng, asteroid, true, false);
@@ -376,7 +376,7 @@ function resolveLaserHits(
     .filter([Position, Collider, Alien])
     .forEach([Position, Collider], (alien, [position, collider]) => {
       if (distToSegment(position, start, end) < collider.radius) {
-        createExplosion(world, position.x, position.y, '#ffaa00', 0.15);
+        createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
         alien.destroy();
         addScore(world, SCORING.ALIEN);
       }
@@ -424,7 +424,8 @@ function damageEnemy(world: ServerWorld, enemy: Entity, damage: number): void {
   }
 
   const position = enemy.get(Position);
-  if (position) createExplosion(world, position.x, position.y, '#ffaa00', 0.15);
+  if (position)
+    createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
   enemy.destroy();
   addScore(world, SCORING.ALIEN);
 }
@@ -454,7 +455,8 @@ function damagePlayer(
 
 function killPlayer(world: ServerWorld, player: Entity): void {
   const position = player.get(Position);
-  if (position) createExplosion(world, position.x, position.y, '#fff', 0.2);
+  if (position)
+    createExplosion(world, position.x, position.y, COLORS.white, 0.2);
   const playerShip = player.get(PlayerShip);
   const session = player.get(ChildOf)?.target;
   if (session?.get(PlayerSession) && playerShip) {
@@ -630,24 +632,23 @@ function createExplosion(
   world: ServerWorld,
   x: number,
   y: number,
-  color: string,
+  color: number,
   size = 0.2, // meters
 ): void {
   world
     .entity()
     .add(Networked)
     .set(Position, { x, y })
-    .set(ExplosionView, {
+    .set(Explosion, {
       color,
       size,
       seed: Math.floor(Math.random() * 0xffffffff),
-      duration: ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES,
+      duration: ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES / TICK_RATE,
     })
     .set(Decay, {
       life: 1,
       decay: 1 / ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES,
-    })
-    .set(Drawable, { zIndex: 70 });
+    });
 }
 
 function distToSegment(
