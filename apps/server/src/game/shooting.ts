@@ -149,6 +149,12 @@ export function installShootingSystems(world: ServerWorld): void {
       if (laser.timer > 0) return;
 
       laser.firing = false;
+      // Mark the change so reactive consumers run — notably the laser-beam
+      // embellishment (.update(LaserWeapon)) that must DESTROY the beam when
+      // firing ends. .each injection does not auto-flag modified the way
+      // getMut (used when firing is turned on) does, so without this the beam
+      // would stay on screen after the timer expires even though damage stops.
+      ship.modified(LaserWeapon);
       if (laser.shots <= 0) switchToDefaultWeapon(ship);
     });
 
