@@ -1,10 +1,10 @@
 import { World } from '@vworlds/vecs';
+import { phaserNetworkComponents, Triangle } from '@vworlds/vecs-phaser';
 import {
-  phaserNetworkComponents,
-  Rotation,
-  Triangle,
-} from '@vworlds/vecs-phaser';
-import { Bullet, COLORS, Velocity } from '@spacerocks/common';
+  LinearVelocity,
+  Rotation as PhysicsRotation,
+} from '@vworlds/vecs-physics';
+import { Bullet, COLORS } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { installMovementSystems } from '../../src/game/movement';
 import {
@@ -62,22 +62,22 @@ describe('server handedness guards', () => {
   it('maps rotate-left to increasing angle and rotate-right to decreasing angle', () => {
     const leftWorld = createTestWorld();
     const leftShip = createShip(leftWorld);
-    leftShip.set(Rotation, { angle: 0 });
+    leftShip.set(PhysicsRotation, { angle: 0 });
     leftShip.set(PlayerInputIntent, { rotateLeft: true });
 
     leftWorld.progress(0, 1000 / 60);
 
     // CoordSpace.rot negates angles, so increasing server angle is visual CCW/left.
-    expect(leftShip.get(Rotation)!.angle).toBeGreaterThan(0);
+    expect(leftShip.get(PhysicsRotation)!.angle).toBeGreaterThan(0);
 
     const rightWorld = createTestWorld();
     const rightShip = createShip(rightWorld);
-    rightShip.set(Rotation, { angle: 0 });
+    rightShip.set(PhysicsRotation, { angle: 0 });
     rightShip.set(PlayerInputIntent, { rotateRight: true });
 
     rightWorld.progress(0, 1000 / 60);
 
-    expect(rightShip.get(Rotation)!.angle).toBeLessThan(0);
+    expect(rightShip.get(PhysicsRotation)!.angle).toBeLessThan(0);
   });
 
   it('keeps forward-fire aim self-consistent in +x and +y directions', () => {
@@ -92,9 +92,9 @@ describe('server handedness guards', () => {
       0,
       COLORS.white,
     );
-    const velocityX = forwardX.get(Velocity)!;
-    expect(velocityX.vx).toBeGreaterThan(0);
-    expect(Math.abs(velocityX.vy)).toBeLessThan(1e-9);
+    const velocityX = forwardX.get(LinearVelocity)!;
+    expect(velocityX.x).toBeGreaterThan(0);
+    expect(Math.abs(velocityX.y)).toBeLessThan(1e-9);
 
     const forwardY = createBullet(
       world as unknown as Parameters<typeof createBullet>[0],
@@ -104,9 +104,9 @@ describe('server handedness guards', () => {
       Math.PI / 2,
       COLORS.white,
     );
-    const velocityY = forwardY.get(Velocity)!;
-    expect(velocityY.vy).toBeGreaterThan(0);
-    expect(Math.abs(velocityY.vx)).toBeLessThan(1e-9);
+    const velocityY = forwardY.get(LinearVelocity)!;
+    expect(velocityY.y).toBeGreaterThan(0);
+    expect(Math.abs(velocityY.x)).toBeLessThan(1e-9);
 
     expect(countBullets(world)).toBe(2);
   });

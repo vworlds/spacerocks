@@ -22,7 +22,6 @@ import {
 } from '@vworlds/vecs-physics';
 import {
   Alien,
-  AngularVelocity as GameAngularVelocity,
   Asteroid,
   AuraWeapon,
   Boomerang,
@@ -43,7 +42,6 @@ import {
   ProjectileView,
   Rocket,
   RocketWeapon,
-  Velocity,
   WeaponView,
   Wraps,
 } from '@spacerocks/common';
@@ -178,9 +176,9 @@ export function installShootingSystems(world: ServerWorld): void {
 
   world
     .system('RocketSystem')
-    .with(RenderPosition, Velocity, RenderRotation, Rocket)
+    .with(PhysicsPosition, LinearVelocity, PhysicsRotation, Rocket)
     .each(
-      [RenderPosition, Velocity, RenderRotation, Rocket],
+      [PhysicsPosition, LinearVelocity, PhysicsRotation, Rocket],
       (entity, [position, velocity, rotation, rocket]) => {
         if (rocket.straightTimer > 0) {
           rocket.straightTimer -= 1;
@@ -190,7 +188,7 @@ export function installShootingSystems(world: ServerWorld): void {
         const target = findRocketTarget(world, position);
         if (!target) return;
 
-        const currentAngle = Math.atan2(velocity.vy, velocity.vx);
+        const currentAngle = Math.atan2(velocity.y, velocity.x);
         const targetAngle = Math.atan2(
           target.y - position.y,
           target.x - position.x,
@@ -202,41 +200,42 @@ export function installShootingSystems(world: ServerWorld): void {
         );
         const newAngle = currentAngle + turn;
 
-        velocity.vx = Math.cos(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
-        velocity.vy = Math.sin(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
+        velocity.x = Math.cos(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
+        velocity.y = Math.sin(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
         rotation.angle = newAngle;
-        entity.modified(RenderRotation);
+        entity.modified(LinearVelocity);
+        entity.modified(PhysicsRotation);
       },
     );
 
   world
     .system('BoomerangSystem')
-    .with(RenderPosition, Velocity, Boomerang)
+    .with(PhysicsPosition, LinearVelocity, Boomerang)
     .each(
-      [RenderPosition, Velocity, Boomerang],
+      [PhysicsPosition, LinearVelocity, Boomerang],
       (_entity, [position, velocity, boomerang]) => {
         const owner =
           boomerang.ownerId === null
             ? undefined
             : world.getEntity(boomerang.ownerId);
-        const ownerPosition = owner?.get(RenderPosition);
+        const ownerPosition = owner?.get(PhysicsPosition);
         if (!ownerPosition) return;
 
         const dx = ownerPosition.x - position.x;
         const dy = ownerPosition.y - position.y;
         const distance = Math.hypot(dx, dy);
         if (distance > 0.001) {
-          velocity.vx += (dx / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
-          velocity.vy += (dy / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
+          velocity.x += (dx / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
+          velocity.y += (dy / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
         }
 
-        const speed = Math.hypot(velocity.vx, velocity.vy);
+        const speed = Math.hypot(velocity.x, velocity.y);
         if (speed > ENTITY_CONFIG.BOOMERANG.MAX_SPEED) {
-          velocity.vx =
-            (velocity.vx / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
-          velocity.vy =
-            (velocity.vy / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
+          velocity.x = (velocity.x / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
+          velocity.y = (velocity.y / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
         }
+
+        _entity.modified(LinearVelocity);
 
         if (
           !boomerang.armed &&
@@ -295,7 +294,6 @@ export function createBullet(
     .set(PhysicsRotation, { angle })
     .set(LinearVelocity, { x: vx, y: vy })
     .set(RenderPosition, { x, y })
-    .set(Velocity, { vx, vy })
     .set(RenderRotation, { angle })
     .set(Bullet, { ownerType: 'player' })
     .set(ProjectileView, { kind: PROJECTILE_KIND_BULLET, team: 0 })
@@ -333,7 +331,6 @@ export function createRocket(
     .set(PhysicsRotation, { angle })
     .set(LinearVelocity, { x: vx, y: vy })
     .set(RenderPosition, { x, y })
-    .set(Velocity, { vx, vy })
     .set(RenderRotation, { angle })
     .set(Rocket, { straightTimer: ENTITY_CONFIG.ROCKET.STRAIGHT_FRAMES })
     .set(ProjectileView, { kind: PROJECTILE_KIND_ROCKET, team: 0 })
@@ -382,9 +379,7 @@ export function createBoomerang(
     .set(LinearVelocity, { x: vx, y: vy })
     .set(PhysicsAngularVelocity, { value: config.SPIN })
     .set(RenderPosition, { x: spawnX, y: spawnY })
-    .set(Velocity, { vx, vy })
     .set(RenderRotation, { angle })
-    .set(GameAngularVelocity, { omega: config.SPIN })
     .set(Boomerang, { ownerId: owner.eid, armed: false })
     .set(ProjectileView, { kind: PROJECTILE_KIND_BOOMERANG, team: 0 })
     .set(Collider, collider)
@@ -435,7 +430,7 @@ function currentWeapon(ship: Entity): { kind: number; ammo: number } {
 
 function findRocketTarget(
   world: ServerWorld,
-  position: RenderPosition,
+  position: PhysicsPosition,
 ): { x: number; y: number } | undefined {
   const alienTarget = findNearest(world, position, Alien);
   return alienTarget ?? findNearest(world, position, Asteroid);
@@ -443,14 +438,14 @@ function findRocketTarget(
 
 function findNearest(
   world: ServerWorld,
-  source: RenderPosition,
+  source: PhysicsPosition,
   component: typeof Alien | typeof Asteroid,
 ): { x: number; y: number } | undefined {
   let target: { x: number; y: number } | undefined;
   let minDistance = Infinity;
   world
-    .filter([RenderPosition, component])
-    .forEach([RenderPosition], (_entity, [position]) => {
+    .filter([PhysicsPosition, component])
+    .forEach([PhysicsPosition], (_entity, [position]) => {
       const distance = Math.hypot(source.x - position.x, source.y - position.y);
       if (
         distance >= ENTITY_CONFIG.ROCKET.HOME_RANGE ||

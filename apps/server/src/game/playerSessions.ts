@@ -30,17 +30,13 @@ import {
   CAT_ENEMY_BULLET,
   CAT_PICKUP,
   CAT_PLAYER,
-  AngularVelocity,
   DefaultWeapon,
   ENTITY_CONFIG,
-  Friction,
   Health,
   HealthView,
   PlayerShip,
   Shield,
   ShieldView,
-  Thrust,
-  Velocity,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   Wraps,
@@ -74,10 +70,6 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(PlayerInputIntent);
   world.component(ChildOf).meta.onDeleteTarget = CleanupPolicy.Delete;
   world.component(Networked);
-  world.component(Velocity);
-  world.component(AngularVelocity);
-  world.component(Thrust);
-  world.component(Friction);
   world.component(Health);
   world.component(HealthView);
   world.component(Shield);
@@ -158,11 +150,9 @@ export function createPlayerShip(
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x: spawn.x, y: spawn.y })
     .set(PhysicsRotation, { angle: 0 })
+    .set(LinearVelocity, { x: 0, y: 0 })
     .set(RenderPosition, { x: spawn.x, y: spawn.y })
-    .add(Velocity)
     .set(RenderRotation, { angle: 0 })
-    .set(Thrust, { force: ENTITY_CONFIG.SHIP.THRUST_POWER, active: false })
-    .set(Friction, { value: ENTITY_CONFIG.SHIP.FRICTION })
     .set(Health, {
       hp: ENTITY_CONFIG.SHIP.MAX_HP,
       maxHp: ENTITY_CONFIG.SHIP.MAX_HP,

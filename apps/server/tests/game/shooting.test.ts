@@ -9,10 +9,15 @@ import {
   FillStyle,
   phaserNetworkComponents,
   Polygon,
-  Position,
-  Rotation,
+  Rotation as RenderRotation,
   Triangle,
 } from '@vworlds/vecs-phaser';
+import {
+  LinearVelocity,
+  PhysicsModule,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+} from '@vworlds/vecs-physics';
 import {
   Alien,
   Asteroid,
@@ -25,7 +30,7 @@ import {
   ProjectileView,
   Rocket,
   RocketWeapon,
-  Velocity,
+  TICK_RATE,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { installMovementSystems } from '../../src/game/movement';
@@ -69,6 +74,11 @@ function createTestWorld(): { world: World } {
   installMovementSystems(
     world as unknown as Parameters<typeof installMovementSystems>[0],
   );
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
   return { world };
 }
 
@@ -104,8 +114,8 @@ describe('server shooting systems', () => {
   it('creates owned networked bullets from player shoot input and enforces cooldown', () => {
     const { world, ship } = createStartedWorldWithShip();
     ship.set(PlayerInputIntent, { shoot: true });
-    ship.set(Rotation, { angle: 0 });
-    const startX = ship.get(Position)!.x;
+    ship.set(RenderRotation, { angle: 0 });
+    const startX = ship.get(PhysicsPosition)!.x;
 
     world.progress(0, 1000 / 60);
     world.progress(1000 / 60, 1000 / 60);
@@ -119,7 +129,7 @@ describe('server shooting systems', () => {
       alpha: 1,
     });
     expect(bullet.get(ChildOf)?.target).toBe(ship);
-    expect(bullet.get(Position)!.x).toBeGreaterThan(startX);
+    expect(bullet.get(PhysicsPosition)!.x).toBeGreaterThan(startX);
     expect(ship.get(ShootingCooldown)?.frames).toBeGreaterThan(0);
 
     world.progress((1000 / 60) * 2, 1000 / 60);
@@ -139,14 +149,15 @@ describe('server shooting systems', () => {
     expect(ship.get(RocketWeapon)?.shots).toBe(1);
     const rocket = firstEntity(world, Rocket);
     rocket.set(Rocket, { straightTimer: 0 });
-    rocket.set(Position, { x: 0, y: 0 });
-    rocket.set(Velocity, { vx: ENTITY_CONFIG.ROCKET.SPEED, vy: 0 });
-    rocket.set(Rotation, { angle: 0 });
-    world.entity().set(Position, { x: 1, y: 1 }).add(Asteroid);
+    rocket.set(PhysicsPosition, { x: 0, y: 0 });
+    rocket.set(LinearVelocity, { x: ENTITY_CONFIG.ROCKET.SPEED, y: 0 });
+    rocket.set(PhysicsRotation, { angle: 0 });
+    world.entity().set(PhysicsPosition, { x: 1, y: 1 }).add(Asteroid);
 
     world.progress(1000 / 60, 1000 / 60);
 
-    expect(rocket.get(Rotation)!.angle).toBeGreaterThan(0);
+    expect(rocket.get(PhysicsRotation)!.angle).toBeGreaterThan(0);
+    expect(rocket.get(LinearVelocity)!.y).toBeGreaterThan(0);
   });
 
   it('tracks boomerang ammo, in-flight state, arming, and owner cleanup', () => {
@@ -163,12 +174,12 @@ describe('server shooting systems', () => {
     expect(ship.get(BoomerangWeapon)).toMatchObject({ shots: 1, inFlight: 1 });
     expect(boomerang.get(ChildOf)?.target).toBe(ship);
 
-    boomerang.set(Position, {
+    boomerang.set(PhysicsPosition, {
       x: ENTITY_CONFIG.BOOMERANG.ARM_DISTANCE + 0.1,
       y: 0,
     });
-    boomerang.set(Velocity, { vx: 0, vy: 0 });
-    ship.set(Position, { x: 0, y: 0 });
+    boomerang.set(LinearVelocity, { x: 0, y: 0 });
+    ship.set(PhysicsPosition, { x: 0, y: 0 });
     world.progress(0, 1000 / 60);
 
     expect(boomerang.get(Boomerang)?.armed).toBe(true);

@@ -13,7 +13,6 @@ export {
 } from './ViewComponents';
 export {
   Alien,
-  AngularVelocity,
   Asteroid,
   AuraWeapon,
   Boomerang,
@@ -22,7 +21,6 @@ export {
   Collider,
   Decay,
   DefaultWeapon,
-  Friction,
   Health,
   HealthPickup,
   LaserWeapon,
@@ -35,8 +33,6 @@ export {
   RocketWeapon,
   Shield,
   ShipInput,
-  Thrust,
-  Velocity,
   Wraps,
 } from './GameplayComponents';
 export type { OwnerType, PlayerId } from './GameplayComponents';

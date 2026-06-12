@@ -45,7 +45,6 @@ import {
   PickupView,
   PIXELS_PER_METER,
   RandomClockKind,
-  Velocity,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -194,7 +193,6 @@ export function createAsteroid(
     .set(PhysicsPosition, { x, y })
     .set(LinearVelocity, { x: vx, y: vy })
     .set(RenderPosition, { x, y })
-    .set(Velocity, { vx, vy })
     .set(Asteroid, { level, color })
     .set(AsteroidView, { level, color, radius })
     .set(Collider, collider)
@@ -225,7 +223,6 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
     .set(PhysicsRotation, { angle })
     .set(LinearVelocity, { x: vx, y: vy })
     .set(RenderPosition, { x, y })
-    .set(Velocity, { vx, vy })
     .set(RenderRotation, { angle })
     .set(Alien, { shootCooldown: ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE })
     .set(Health, {
@@ -270,7 +267,6 @@ export function createPickup(
     .set(PhysicsPosition, { x, y })
     .set(LinearVelocity, { x: vx, y: vy })
     .set(RenderPosition, { x, y })
-    .set(Velocity, { vx, vy })
     .set(Pickup, { kind })
     .set(PickupView, { kind: config.viewKind, amount })
     .set(Decay, {
