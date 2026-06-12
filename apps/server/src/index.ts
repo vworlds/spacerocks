@@ -1,32 +1,13 @@
 import express from 'express';
-import { ServerWorld, VecsListener, View } from '@vworlds/vecs-server';
-import { phaserRenderableComponents } from '@vworlds/vecs-phaser';
-import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
+import { VecsListener } from '@vworlds/vecs-server';
+import { TICK_RATE } from '@spacerocks/common';
 import { logger } from './logger';
 import { corsMiddleware } from './cors';
-import {
-  installPlayerSessionSystems,
-  registerPlayerSessionComponents,
-} from './game/playerSessions';
-import { installMovementSystems } from './game/movement';
-import {
-  installSpawningSystems,
-  registerSpawningComponents,
-} from './game/spawning';
-import {
-  installShootingSystems,
-  registerShootingComponents,
-} from './game/shooting';
-import { installCombatSystems, registerCombatComponents } from './game/combat';
-import {
-  installEmbellishmentSystems,
-  registerEmbellishmentComponents,
-} from './game/embellishments';
-import { installHudSystems, registerHudComponents } from './game/hud';
 import { listenWithRetry } from './serverLifecycle';
-import { installClientViewSystem } from './network/clientViews';
+import { createGameWorld } from './game/world';
 
 export { stopServer } from './serverLifecycle';
+export { createGameWorld } from './game/world';
 
 const TICK_INTERVAL_MS = 1000 / TICK_RATE; // ms/frame
 
@@ -40,25 +21,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   //   component:  32 – 899
   //   module:     900 – 999
   //   entity:     1000 – ∞ (Note: client will only consider entities up to 999,999 as "network entities")
-  const world = new ServerWorld({
-    name: 'main',
-    networkComponents: NETWORK_COMPONENTS,
-  });
-  world.setExclusiveComponents(...phaserRenderableComponents);
-  registerPlayerSessionComponents(world);
-  registerSpawningComponents(world);
-  registerShootingComponents(world);
-  registerCombatComponents(world);
-  registerEmbellishmentComponents(world);
-  registerHudComponents(world);
-  installPlayerSessionSystems(world);
-  installSpawningSystems(world);
-  installShootingSystems(world);
-  installMovementSystems(world);
-  installCombatSystems(world);
-  installEmbellishmentSystems(world);
-  installHudSystems(world);
-  installClientViewSystem(world, View);
+  const world = createGameWorld();
 
   // Instrument the world's connect/disconnect plumbing so we can see who
   // joins, who leaves, and which side initiates the close.

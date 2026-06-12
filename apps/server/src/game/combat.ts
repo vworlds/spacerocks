@@ -628,7 +628,7 @@ function currentWeapon(entity: Entity): {
   return { kind: WEAPON_KIND_DEFAULT, ammo: 0, firing: 0 };
 }
 
-function createExplosion(
+export function createExplosion(
   world: ServerWorld,
   x: number,
   y: number,
