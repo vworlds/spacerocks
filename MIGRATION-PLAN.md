@@ -111,7 +111,7 @@ client (NetworkClient)
    └─ ship  ── BODY: Body(Dynamic), PhysicsPosition/Rotation, LinearVelocity,
    │           Damping, RenderPosition/Rotation, Triangle, StrokeStyle, Networked,
    │           + server-local: Player, Health, Shield, weapon comps, Wraps
-   │     ├─ ship physics shape   (ChildOf ship; Circle(SHIP.RADIUS), CollisionFilter, ContactEvents)
+   │     ├─ ship physics shape   (ChildOf ship; Circle(SHIP.RADIUS), Sensor, SensorEvents, CollisionFilter)
    │     ├─ health-bar render    (ChildOf ship; Rectangle + Size + FillStyle + RenderPosition + Offset)
    │     ├─ shield render        (ChildOf ship; Arc full-circle + StrokeStyle + RenderPosition + Offset) [while shielded]
    │     ├─ laser render         (ChildOf ship; Line + StrokeStyle + RenderPosition/Rotation) [while firing]
@@ -122,30 +122,36 @@ client (NetworkClient)
 
 ### 5.2 Per-object mapping
 
+All entities use the **uniform sensor model** confirmed by the P1 probe (see §5.3): a **Dynamic body** + a single **`Circle` `Sensor` + `SensorEvents` + `CollisionFilter`** shape. Collisions are overlap events with **zero physical response**.
+
 | Game object | Physics body | Physics shape (child) | Render components | Notes |
 | --- | --- | --- | --- | --- |
-| **Ship** | Dynamic, `Damping.linear` (=friction), thrust via `Force`/`Impulse`, turn via `Rotation` teleport | `Circle(SHIP.RADIUS)` solid, `ContactEvents`, filter `CAT_PLAYER` | `Triangle` + `StrokeStyle(color)` | + health-bar/shield/laser child entities |
-| **Asteroid** | Dynamic, initial `LinearVelocity` + `AngularVelocity`, zero damping | `Circle(radius)` solid, `ContactEvents`, filter `CAT_ASTEROID` | `Polygon(points)` + `StrokeStyle` | irregular render polygon; circle physics |
-| **Alien** | Dynamic, AI sets `LinearVelocity` | `Circle(ALIEN.RADIUS)` solid, `ContactEvents`, filter `CAT_ENEMY` | `Polygon` + `StrokeStyle` | + health-bar child |
-| **Bullet (player/enemy)** | **Kinematic**, velocity set at spawn | `Circle(2)` **Sensor + SensorEvents**, filter `CAT_PLAYER_BULLET`/`CAT_ENEMY_BULLET` | `Arc(2)` + `FillStyle` | sensor → no bounce |
-| **Rocket** | **Kinematic**, homing sets velocity | `Circle(4)` **Sensor + SensorEvents**, `CAT_PLAYER_BULLET` | `Triangle` + `FillStyle(#ff6600)` | homing in gameplay system |
-| **Boomerang** | **Kinematic**, pull sets velocity, spin via `AngularVelocity` | `Circle(RADIUS)` **Sensor + SensorEvents**, `CAT_BOOMERANG` | `Polygon` + `FillStyle(#006400)` | catch logic on sensor begin |
-| **Pickup** | **Kinematic**, drift velocity | `Circle(POWERUP.RADIUS)` **Sensor + SensorEvents**, `CAT_PICKUP` | `Arc(radius)` + `StrokeStyle(kind color)` | |
+| **Ship** | Dynamic, `Damping.linear` (=friction), thrust via `Force`/`Impulse`, turn via `Rotation` teleport | `Circle(SHIP.RADIUS)` **Sensor + SensorEvents**, filter `CAT_PLAYER` | `Triangle` + `StrokeStyle(color)` | + health-bar/shield/laser child entities |
+| **Asteroid** | Dynamic, initial `LinearVelocity` + `AngularVelocity`, zero damping | `Circle(radius)` **Sensor + SensorEvents**, filter `CAT_ASTEROID` | `Polygon(points)` + `StrokeStyle` | irregular render polygon; circle physics |
+| **Alien** | Dynamic, AI sets `LinearVelocity` | `Circle(ALIEN.RADIUS)` **Sensor + SensorEvents**, filter `CAT_ENEMY` | `Polygon` + `StrokeStyle` | + health-bar child |
+| **Bullet (player/enemy)** | Dynamic, velocity set at spawn | `Circle(0.02)` **Sensor + SensorEvents**, filter `CAT_PLAYER_BULLET`/`CAT_ENEMY_BULLET` | `Arc(0.02)` + `FillStyle` | |
+| **Rocket** | Dynamic, homing sets velocity | `Circle(0.04)` **Sensor + SensorEvents**, `CAT_PLAYER_BULLET` | `Triangle` + `FillStyle(orange)` | homing in gameplay system |
+| **Boomerang** | Dynamic, pull sets velocity, spin via `AngularVelocity` | `Circle(RADIUS)` **Sensor + SensorEvents**, `CAT_BOOMERANG` | `Polygon` + `FillStyle(green)` | catch logic on sensor begin |
+| **Pickup** | Dynamic, drift velocity | `Circle(POWERUP.RADIUS)` **Sensor + SensorEvents**, `CAT_PICKUP` | `Arc(radius)` + `StrokeStyle(kind color)` | |
 | **Explosion** | — | — | networked `Explosion` effect + `Position` | client-local Phaser particle emitter |
 | **HUD (score/wave/msg)** | — | — | `Text` entities at fixed world corners + high `Depth` | replaces the HTML overlay |
 
-### 5.3 Collision model (sensors + contacts)
+### 5.3 Collision model (uniform sensors — REVISED per P1 probe findings)
 
 The current `CAT_*` category bits and per-entity `mask` map **directly** onto `CollisionFilter.categoryBits`/`maskBits` (Box2D filtering predicate is the same: shapes interact iff `(catA & maskB) && (catB & maskA)`).
 
-The interaction graph is **not bipartite** (e.g. asteroid↔alien and boomerang↔alien conflict), so a single sensor/solid 2-coloring is impossible. Use a **hybrid** that guarantees overlap detection with **zero physical response** for every interacting pair:
+**P1 probe outcome (empirical, this box2d3-wasm build):** sensors do **NOT** detect non-sensor (solid) shapes; sensor↔sensor overlaps **DO** fire `SensorEvents` on both shapes; `CollisionFilter` correctly **gates** sensor↔sensor events; and a **Dynamic** body whose only shape is a `Sensor` still integrates motion and writes back `Position`. (Solid↔solid with `ContactEvents` also works, but is unused.)
 
-- **Projectiles & pickups are `Sensor` + `SensorEvents`** (player/enemy bullets, rockets, boomerangs, pickups). A sensor detects solid shapes per filter and imparts no force. **All projectile/pickup gameplay is driven from the projectile's own `SensorEvents.begin`** (read `event.other.parent(ChildOf)` to get the target body). This also fixes a latent bug-class: an unarmed boomerang overlapping its owner never bounces.
-- **Bodies are solid + `ContactEvents`** (ship, asteroid, alien). The only solid-vs-solid pairs that actually touch are ship↔asteroid, ship↔alien, asteroid↔alien — and in every one of those at least one party is destroyed on the same tick. With `Material.restitution = 0` and the ship's linear damping, the residual one-frame impulse is negligible. Asteroid↔asteroid never interacts (filter mask excludes `CAT_ASTEROID`), so asteroids pass through each other exactly as today.
-- **Laser** is a **ray cast**, which **vecs-physics v1 does not provide**. Keep the existing `resolveLaserHits` (`distToSegment` against asteroid/alien `Position`) as a custom gameplay system reading replicated positions. (Source: `lib/vecs-physics/README.md` V1 Limitations.)
-- **Screen wrap, rocket homing, boomerang pull-back** have no physics primitive. Keep them as gameplay systems that write `LinearVelocity` (homing/pull) or teleport `Position` (wrap). Physics treats user `Position`/`Velocity` writes as authoritative. (Source: physics `docs/components.md`.)
+This yields a **uniform model — simpler and a closer match to the original pure-trigger game than the pre-probe hybrid**:
 
-> **De-risk first (ticket P1).** The above relies on three Box2D v3 behaviors that must be confirmed empirically before building on them: (a) a `Sensor` on a **kinematic** body detects a **dynamic** solid; (b) two solid bodies that **both** carry `ContactEvents` each receive begin events; (c) sensor-vs-sensor overlaps (which we deliberately avoid) — confirm they are *not* required. Write a probe test in `apps/server/tests` that builds these exact combos and asserts event delivery. If (a) fails, make projectiles dynamic with `density>0`; if (b) fails, drive body-body pairs from one designated side.
+- **Every gameplay shape is a `Dynamic` body + `Circle` + `Sensor` + `SensorEvents` + `CollisionFilter`.** All interactions are sensor overlaps with **zero physical response** (nothing bounces — exactly like the old radius-overlap collision). The non-bipartite interaction graph is irrelevant because there is only one shape kind.
+- **All collision gameplay is driven from `SensorEvents.begin`.** Both shapes in an interacting pair receive the event; the handler resolves it once (dedupe by entity-pair, or designate the handler by category — e.g. handle on the projectile/pickup side, and for body↔body pairs pick the lower category). Get the other body via `event.other.parent(ChildOf)`.
+- **`CollisionFilter` gates friendly-fire** (probe F): a player bullet's mask excludes `CAT_PLAYER`, etc. — same bits as today.
+- **No `ContactEvents`, no `Material.restitution`/bounce tuning needed** (no solids), and asteroid↔asteroid simply never matches filters, so asteroids pass through each other as before.
+- **Laser** is a **ray cast**, which **vecs-physics v1 does not provide** → keep the existing `resolveLaserHits` (`distToSegment` over `Position`) as a gameplay system.
+- **Screen wrap, rocket homing, boomerang pull-back** have no physics primitive → gameplay systems that write `LinearVelocity` (homing/pull) or teleport `Position` (wrap).
+
+> **De-risked (ticket P1, DONE).** `apps/server/tests/physics/probe.test.ts` empirically established the above (scenarios A–G). The original hybrid (kinematic-sensor detecting dynamic-solid) **failed** and was replaced by this uniform dynamic-sensor model, which the probe confirms.
 
 ---
 
@@ -162,7 +168,7 @@ ON_UPDATE    gameplay: shooting, alien AI, weapon timers, spawn entities,
 physics-pre  ── vecs-physics: read ECS changes
 physics-step ── vecs-physics: integrate
 physics-post ── vecs-physics: write PhysicsPosition/Rotation, publish events
-             + collision handlers (read SensorEvents/ContactEvents → destroy/damage/score)
+             + collision handlers (read SensorEvents → destroy/damage/score)
              + laser raycast, screen wrap (teleport PhysicsPosition), decay/lifetime
 PRE_STORE    PhaserServerModule pose-sync (PhysicsPosition → RenderPosition),  ← registered first
              then: health-bar/shield/laser child follow (Offset → RenderPosition),
@@ -231,9 +237,9 @@ world.module(ExplosionEffectModule, { scene });  // app: .with(Explosion).enter 
 | --- | --- | --- |
 | **P1** | Sensor/contact probe (spike) | Add `@vworlds/vecs-physics` + `@vworlds/vecs-phaser-server` to server. Stand up `preloadPhysics()` + `PhysicsModule({ gravity:{x:0,y:0}, fixedTimeStep: DT, subSteps:4 })`. Write the probe test from §5.3 confirming kinematic-sensor↔dynamic-solid and solid↔solid (both `ContactEvents`) event delivery. Lock the body-type/sensor choices. |
 | **P2** | Test & loop infra | Add a vitest setup that calls `preloadPhysics()` before physics tests (ref `lib/vecs-physics/tests/setup.ts`). Convert the server tick loop to a fixed-step accumulator passing constant `DT_MS`. |
-| **P3** | Bodies & shapes | Convert each spawn to body + `Circle` shape child per §5.2: ship/asteroid/alien = Dynamic solid + `ContactEvents`; bullets/rockets/boomerangs/pickups = Kinematic + `Sensor`+`SensorEvents`. Set `CollisionFilter` from existing `CAT_*`/mask. Set `Material.restitution=0` on bodies. Spawn with both `PhysicsPosition` and `RenderPosition`. Install `PhaserServerModule` (takes over exclusivity + pose-sync). |
+| **P3** | Bodies & shapes | Convert each spawn to a **Dynamic** body + one `Circle` shape child (radius = old `Collider.radius`) with **`Sensor` + `SensorEvents` + `CollisionFilter`** (from existing `CAT_*`/mask) — the uniform model per §5.2/§5.3. Spawn with both `PhysicsPosition` and `RenderPosition`. Install `PhaserServerModule` (takes over exclusivity + pose-sync). |
 | **P4** | Movement → physics | Replace `movement.ts`: thrust → `Force`/`Impulse` on ship; friction → `Damping.linear`; ship turn → teleport `PhysicsRotation`; asteroid drift/spin → initial `LinearVelocity`/`AngularVelocity`. Delete `Velocity`/`AngularVelocity`/`Friction`/`Thrust` homemade components and the `Movement`/`Thrust`/`Friction`/`AngularMovement` systems. |
-| **P5** | Collision → events | Replace the `ServerCollision` O(n²) loop + registry. Drive projectile/pickup outcomes from **`SensorEvents`** systems; ship/asteroid/alien outcomes from **`ContactEvents`** systems (both in `physics-post`). Port every `registerCollisionEffect` handler (asteroid split, damage, score, pickup apply, boomerang catch) to event handlers. Delete `Collider`; collision identity now comes from `CollisionFilter` + server-local markers (`Asteroid`/`Alien`/`Player`/`Bullet`/`Pickup`/`Boomerang`). |
+| **P5** | Collision → events | Replace the `ServerCollision` O(n²) loop + registry. Drive **all** outcomes from **`SensorEvents`** systems in `physics-post` (both shapes in a pair fire — resolve each interaction once, deduped by entity pair / designated side). Port every `registerCollisionEffect` handler (asteroid split, damage, score, pickup apply, boomerang catch) to event handlers. Delete `Collider`; collision identity now comes from `CollisionFilter` + server-local markers (`Asteroid`/`Alien`/`Player`/`Bullet`/`Pickup`/`Boomerang`). |
 | **P6** | Special motion | Rocket homing & boomerang pull → gameplay systems writing `LinearVelocity` (pre-physics, `ON_UPDATE`). Laser → keep `resolveLaserHits` raycast reading `Position`. Screen wrap → teleport `PhysicsPosition` in `physics-post`. Decay/lifetime → keep as server-local gameplay. |
 | **P7** | Cleanup & wiring | Resolve `ChildOf` overloading per §5.1 (physics shapes are dedicated leaf children; ownership cascade preserved with `CleanupPolicy.Delete`). Verify alien-bullet shooting, respawn timers, wave spawning under physics. |
 | **P8** | Phase-2 test pass | Rewrite `combat`/`movement`/`shooting`/`spawning` server tests against the physics model (step the world, assert events/positions). `npm run test|typecheck|lint|build` green. Ship to preview, manual QA: collisions, splitting, pickups, weapons, boss/wave flow, multiplayer. |
@@ -274,7 +280,7 @@ world.module(ExplosionEffectModule, { scene });  // app: .with(Explosion).enter 
 | Box2D v3 sensor/contact semantics differ from assumptions | **P1 probe spike runs first**; body-type fallbacks documented in §5.3. |
 | No raycast in v1 (laser) | Keep custom `distToSegment` raycast reading replicated `Position`. |
 | Units conversion is wide (every constant) + handedness flip | Isolate in Phase 1; pixel/flip only in `CoordSpace`; R8 calibration + forward-fire test. |
-| Residual physical response on solid body-body contacts | `restitution=0` + destroy-on-contact same tick + ship damping; asteroid-asteroid filtered off. |
+| Physical-response artifacts | None — the P1-confirmed uniform model uses **sensors only** (zero response), exactly like the old radius-overlap triggers. |
 | `ChildOf` overloaded (ownership + physics + render) | Physics only sees children with physics geometry; document leaf-shape rule; keep cascade-delete. |
 | `PhaserServerModule` never *creates* render pose | Spawn bodies with both `PhysicsPosition` **and** `RenderPosition`. |
 | Variable delta breaks Box2D | Fixed-step accumulator loop (P2). |
