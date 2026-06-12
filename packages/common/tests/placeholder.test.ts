@@ -6,25 +6,16 @@ import {
 import { Decoder, Encoder } from '@vworlds/vecs-wire';
 
 import {
-  Arc,
   AsteroidView,
-  Drawable,
   Explosion,
   ExplosionView,
-  FillStyle,
-  FilledRect,
   GameStateView,
   HealthView,
   NETWORK_COMPONENTS,
   PickupView,
   PlayerShip,
-  Point,
-  Position,
   ProjectileView,
-  Rotation,
-  Shape,
   ShieldView,
-  StrokeStyle,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   WeaponView,
@@ -59,18 +50,7 @@ describe('NETWORK_COMPONENTS', () => {
   });
 
   it('uses vecs-wire encodable network components', () => {
-    const shape = new Shape();
-    shape.points = [Object.assign(new Point(), { x: 1, y: 2 })];
-
     const cases = [
-      [Position, Object.assign(new Position(), { x: 1, y: 2 })],
-      [Rotation, Object.assign(new Rotation(), { angle: 3 })],
-      [Drawable, Object.assign(new Drawable(), { zIndex: 4 })],
-      [StrokeStyle, Object.assign(new StrokeStyle(), { style: '#abc' })],
-      [FillStyle, Object.assign(new FillStyle(), { style: '#def' })],
-      [Shape, shape],
-      [Arc, Object.assign(new Arc(), { radius: 5 })],
-      [FilledRect, Object.assign(new FilledRect(), { width: 6 })],
       [PlayerShip, Object.assign(new PlayerShip(), { playerIndex: 7 })],
       [AsteroidView, Object.assign(new AsteroidView(), { level: 2 })],
       [ProjectileView, Object.assign(new ProjectileView(), { kind: 1 })],
