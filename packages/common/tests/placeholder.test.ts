@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import {
+  Position as PhaserPosition,
+  phaserNetworkComponents,
+} from '@vworlds/vecs-phaser';
 import { Decoder, Encoder } from '@vworlds/vecs-wire';
 
 import {
   Arc,
   AsteroidView,
   Drawable,
+  Explosion,
   ExplosionView,
   FillStyle,
   FilledRect,
@@ -44,8 +49,8 @@ function roundTrip<T extends object>(ComponentClass: new () => T, value: T): T {
 
 describe('NETWORK_COMPONENTS', () => {
   it('keeps Position as the first network component', () => {
-    expect(NETWORK_COMPONENTS[0]).toBe(Position);
-    expect(NETWORK_COMPONENTS.indexOf(Position) + 1).toBe(1);
+    expect(NETWORK_COMPONENTS).toEqual([...phaserNetworkComponents, Explosion]);
+    expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });
 
   it('exports fixed world dimensions', () => {

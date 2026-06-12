@@ -10,6 +10,7 @@ export { Shape } from './Shape';
 export { StrokeStyle } from './StrokeStyle';
 export { FillStyle } from './FillStyle';
 export { FilledRect } from './FilledRect';
+export { Explosion } from './Explosion';
 export {
   AsteroidView,
   ExplosionView,
