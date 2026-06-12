@@ -73,9 +73,9 @@ describe('server movement systems', () => {
     const rotation = ship.get(Rotation)!;
     const velocity = ship.get(Velocity)!;
 
-    expect(rotation.angle).toBeCloseTo(ENTITY_CONFIG.SHIP.ROTATION_SPEED * 2);
+    expect(rotation.angle).toBeCloseTo(-ENTITY_CONFIG.SHIP.ROTATION_SPEED * 2);
     expect(velocity.vx).toBeGreaterThan(0);
-    expect(velocity.vy).toBeGreaterThan(0);
+    expect(velocity.vy).toBeLessThan(0);
   });
 
   it('integrates velocity and friction for moving entities', () => {
@@ -138,7 +138,7 @@ describe('server movement systems', () => {
     world.progress(0, 1000 / 60);
 
     expect(ship.get(Rotation)!.angle).toBeCloseTo(
-      -ENTITY_CONFIG.SHIP.ROTATION_SPEED,
+      ENTITY_CONFIG.SHIP.ROTATION_SPEED,
     );
     expect(ship.get(Thrust)!.active).toBe(false);
   });

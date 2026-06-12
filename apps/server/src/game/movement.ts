@@ -22,12 +22,14 @@ export function installMovementSystems(world: ServerWorld): void {
     .each(
       [PlayerInputIntent, Rotation, Thrust],
       (entity, [input, rotation, thrust]) => {
+        // Server coords are +y-up; CoordSpace.rot negates angles for Phaser,
+        // so increasing Rotation.angle renders visual CCW, i.e. Asteroids-left.
         if (input.rotateLeft) {
-          rotation.angle -= ENTITY_CONFIG.SHIP.ROTATION_SPEED;
+          rotation.angle += ENTITY_CONFIG.SHIP.ROTATION_SPEED;
           entity.modified(Rotation);
         }
         if (input.rotateRight) {
-          rotation.angle += ENTITY_CONFIG.SHIP.ROTATION_SPEED;
+          rotation.angle -= ENTITY_CONFIG.SHIP.ROTATION_SPEED;
           entity.modified(Rotation);
         }
         thrust.active = input.thrust;
