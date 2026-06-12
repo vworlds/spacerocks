@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Co-op Asteroids: Boss Rush</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+        color: #fff;
+        font-family: 'Courier New', Courier, monospace;
+      }
+      canvas {
+        display: block;
+      }
+      #ui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        pointer-events: none;
+        text-shadow: 2px 2px #000;
+      }
+      #msg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        font-size: 2em;
+        pointer-events: none;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-Dv05J-7R.js"></script>
+  </head>
+  <body id="body">
+    <div id="ui">
+      <div id="score">Score: 0</div>
+      <div id="wave">Wave: 1</div>
+      <div style="font-size: 0.8em; margin-top: 5px">
+        P1: WASD + Space | P2: Arrows + Enter
+      </div>
+    </div>
+    <div id="msg"></div>
+    <canvas id="gameCanvas"></canvas>
+
+  </body>
+</html>
