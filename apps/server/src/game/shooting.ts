@@ -38,6 +38,7 @@ import {
   ENTITY_CONFIG,
   LaserWeapon,
   PlayerShip,
+  perSecond,
   Rocket,
   RocketWeapon,
   Wraps,
@@ -177,8 +178,8 @@ export function installShootingSystems(world: ServerWorld): void {
         );
         const newAngle = currentAngle + turn;
 
-        velocity.x = Math.cos(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
-        velocity.y = Math.sin(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
+        velocity.x = Math.cos(newAngle) * perSecond(ENTITY_CONFIG.ROCKET.SPEED);
+        velocity.y = Math.sin(newAngle) * perSecond(ENTITY_CONFIG.ROCKET.SPEED);
         rotation.angle = newAngle;
         entity.modified(LinearVelocity);
         entity.modified(PhysicsRotation);
@@ -202,14 +203,16 @@ export function installShootingSystems(world: ServerWorld): void {
         const dy = ownerPosition.y - position.y;
         const distance = Math.hypot(dx, dy);
         if (distance > 0.001) {
-          velocity.x += (dx / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
-          velocity.y += (dy / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
+          const pull = perSecond(ENTITY_CONFIG.BOOMERANG.PULL);
+          velocity.x += (dx / distance) * pull;
+          velocity.y += (dy / distance) * pull;
         }
 
         const speed = Math.hypot(velocity.x, velocity.y);
-        if (speed > ENTITY_CONFIG.BOOMERANG.MAX_SPEED) {
-          velocity.x = (velocity.x / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
-          velocity.y = (velocity.y / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
+        const maxSpeed = perSecond(ENTITY_CONFIG.BOOMERANG.MAX_SPEED);
+        if (speed > maxSpeed) {
+          velocity.x = (velocity.x / speed) * maxSpeed;
+          velocity.y = (velocity.y / speed) * maxSpeed;
         }
 
         _entity.modified(LinearVelocity);
@@ -265,7 +268,7 @@ export function createBullet(
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x, y })
     .set(PhysicsRotation, { angle })
-    .set(LinearVelocity, { x: vx, y: vy })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
     .set(RenderPosition, { x, y })
     .set(RenderRotation, { angle })
     .set(Bullet, { ownerType: 'player' })
@@ -297,7 +300,7 @@ export function createRocket(
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x, y })
     .set(PhysicsRotation, { angle })
-    .set(LinearVelocity, { x: vx, y: vy })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
     .set(RenderPosition, { x, y })
     .set(RenderRotation, { angle })
     .set(Rocket, { straightTimer: ENTITY_CONFIG.ROCKET.STRAIGHT_FRAMES })
@@ -338,8 +341,8 @@ export function createBoomerang(
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x: spawnX, y: spawnY })
     .set(PhysicsRotation, { angle })
-    .set(LinearVelocity, { x: vx, y: vy })
-    .set(PhysicsAngularVelocity, { value: config.SPIN })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(PhysicsAngularVelocity, { value: perSecond(config.SPIN) })
     .set(RenderPosition, { x: spawnX, y: spawnY })
     .set(RenderRotation, { angle })
     .set(Boomerang, { ownerId: owner.eid, armed: false })

@@ -7,6 +7,11 @@ import {
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
 import {
+  LinearVelocity,
+  PhysicsModule,
+  Position as PhysicsPosition,
+} from '@vworlds/vecs-physics';
+import {
   Alien,
   Asteroid,
   AsteroidView,
@@ -15,6 +20,7 @@ import {
   Pickup,
   PICKUP_COLORS,
   PickupKind,
+  TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -30,6 +36,7 @@ import {
   registerSpawningComponents,
 } from '../../src/game/spawning';
 import { registerPlayerSessionComponents } from '../../src/game/playerSessions';
+import type { Prng } from '../../src/game/rng';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -61,6 +68,12 @@ function createTestWorld(seed = 1234): {
 
 function runSimulation(world: World, now: number): void {
   world.progress(now, 500);
+}
+
+function stepTicks(world: World, ticks: number): void {
+  for (let tick = 0; tick < ticks; tick += 1) {
+    world.progress(tick * (1000 / TICK_RATE), 1000 / TICK_RATE);
+  }
 }
 
 function count(world: World, component: ComponentClass): number {
@@ -111,6 +124,43 @@ describe('server spawning systems', () => {
         expect(position.y).toBeGreaterThanOrEqual(WORLD_MIN_Y);
         expect(position.y).toBeLessThanOrEqual(WORLD_MAX_Y);
       });
+  });
+
+  it('spawns asteroids with measurable per-second physics drift', () => {
+    const { world } = createTestWorld();
+    world.module(PhysicsModule, {
+      gravity: { x: 0, y: 0 },
+      fixedTimeStep: 1 / TICK_RATE,
+      subSteps: 4,
+    });
+    const rng = {
+      bool: () => false,
+      int: () => 0,
+      range: () => 0.5,
+    } as unknown as Prng;
+    const asteroid = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      rng,
+      0,
+      0,
+      1,
+    );
+
+    expect(
+      Math.hypot(
+        asteroid.get(LinearVelocity)!.x,
+        asteroid.get(LinearVelocity)!.y,
+      ),
+    ).toBeGreaterThan(0.5);
+
+    stepTicks(world, TICK_RATE);
+
+    expect(
+      Math.hypot(
+        asteroid.get(PhysicsPosition)!.x,
+        asteroid.get(PhysicsPosition)!.y,
+      ),
+    ).toBeGreaterThan(0.05);
   });
 
   it('creates phaser alien render components', () => {

@@ -17,6 +17,7 @@ import {
 import {
   ENTITY_CONFIG,
   PlayerShip,
+  perSecond,
   TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -76,6 +77,12 @@ function addPhysicsShape(
     .set(CollisionFilter, { categoryBits: 1, maskBits: 1 });
 }
 
+function stepTicks(world: World, ticks: number): void {
+  for (let tick = 0; tick < ticks; tick += 1) {
+    world.progress(tick * (1000 / TICK_RATE), 1000 / TICK_RATE);
+  }
+}
+
 describe('server movement systems', () => {
   it('applies owner input to ship rotation and thrust at the original frame step', () => {
     const world = createTestWorld();
@@ -100,6 +107,30 @@ describe('server movement systems', () => {
     expect(rotation.angle).toBeCloseTo(-ENTITY_CONFIG.SHIP.ROTATION_SPEED * 2);
     expect(velocity.x).toBeGreaterThan(0);
     expect(velocity.y).toBeLessThan(0);
+  });
+
+  it('accelerates and moves a continuously-thrusting ship at visible per-second speed', () => {
+    const world = createTestWorld();
+    const session = world.entity();
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    ship.set(PhysicsPosition, { x: 0, y: 0 });
+    ship.set(PlayerInputIntent, { thrust: true });
+
+    stepTicks(world, TICK_RATE);
+
+    const oneSecondVelocity = ship.get(LinearVelocity)!;
+    expect(oneSecondVelocity.x).toBeGreaterThan(1);
+    expect(oneSecondVelocity.x).toBeLessThan(3);
+    expect(Math.abs(oneSecondVelocity.y)).toBeLessThan(1e-9);
+
+    stepTicks(world, Math.round(TICK_RATE / 2));
+
+    expect(ship.get(PhysicsPosition)!.x).toBeGreaterThan(1);
+    expect(perSecond(ENTITY_CONFIG.SHIP.THRUST_POWER)).toBeCloseTo(0.12);
   });
 
   it('integrates physics velocity and applies ship friction', () => {

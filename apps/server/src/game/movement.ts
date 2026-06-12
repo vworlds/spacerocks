@@ -8,6 +8,7 @@ import {
 import {
   ENTITY_CONFIG,
   PlayerShip,
+  perSecond,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -35,10 +36,9 @@ export function installMovementSystems(world: ServerWorld): void {
         }
 
         if (input.thrust) {
-          linearVelocity.x +=
-            Math.cos(rotation.angle) * ENTITY_CONFIG.SHIP.THRUST_POWER;
-          linearVelocity.y +=
-            Math.sin(rotation.angle) * ENTITY_CONFIG.SHIP.THRUST_POWER;
+          const thrustPower = perSecond(ENTITY_CONFIG.SHIP.THRUST_POWER);
+          linearVelocity.x += Math.cos(rotation.angle) * thrustPower;
+          linearVelocity.y += Math.sin(rotation.angle) * thrustPower;
           entity.modified(LinearVelocity);
         }
       },

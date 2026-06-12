@@ -18,6 +18,11 @@ export function perFrame(valueAtBaseTickRate: number): number {
   return valueAtBaseTickRate * FRAME_RATE_SCALE;
 }
 
+/** Converts authored per-frame quantities to per-second values for vecs-physics velocities. */
+export function perSecond(metersPerFrame: number): number {
+  return metersPerFrame * TICK_RATE;
+}
+
 export function perFrameMultiplier(multiplierAtBaseTickRate: number): number {
   return multiplierAtBaseTickRate ** FRAME_RATE_SCALE;
 }

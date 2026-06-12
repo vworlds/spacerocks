@@ -30,6 +30,7 @@ import {
   GameStateView,
   LaserWeapon,
   PlayerShip,
+  perSecond,
   Rocket,
   SCORING,
   TICK_RATE,
@@ -249,7 +250,10 @@ describe('special motion under physics', () => {
     rocket.set(Rocket, { straightTimer: 0 });
     rocket.set(PhysicsPosition, { x: 0, y: 0 });
     rocket.set(RenderPosition, { x: 0, y: 0 });
-    rocket.set(LinearVelocity, { x: ENTITY_CONFIG.ROCKET.SPEED, y: 0 });
+    rocket.set(LinearVelocity, {
+      x: perSecond(ENTITY_CONFIG.ROCKET.SPEED),
+      y: 0,
+    });
     rocket.set(PhysicsRotation, { angle: 0 });
     createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
@@ -291,13 +295,13 @@ describe('special motion under physics', () => {
     boomerang.set(Boomerang, { ownerId: ship.eid, armed: true });
     boomerang.set(PhysicsPosition, { x: 1.5, y: 0 });
     boomerang.set(RenderPosition, { x: 1.5, y: 0 });
-    boomerang.set(LinearVelocity, { x: 0, y: 0 });
+    boomerang.set(LinearVelocity, { x: -10, y: 0 });
 
     const initialDistance = distance(
       boomerang.get(PhysicsPosition)!,
       ship.get(PhysicsPosition)!,
     );
-    step(world, 60);
+    step(world);
     const finalDistance = distance(
       boomerang.get(PhysicsPosition)!,
       ship.get(PhysicsPosition)!,
@@ -306,7 +310,7 @@ describe('special motion under physics', () => {
 
     expect(finalDistance).toBeLessThan(initialDistance);
     expect(Math.hypot(velocity.x, velocity.y)).toBeLessThanOrEqual(
-      ENTITY_CONFIG.BOOMERANG.MAX_SPEED + 1e-6,
+      perSecond(ENTITY_CONFIG.BOOMERANG.MAX_SPEED) + 1e-6,
     );
   });
 

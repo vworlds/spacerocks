@@ -27,6 +27,7 @@ import {
   COLORS,
   ENTITY_CONFIG,
   PLAYER_COLORS,
+  perSecond,
   Rocket,
   RocketWeapon,
   TICK_RATE,
@@ -40,6 +41,7 @@ import {
 } from '../../src/game/playerSessions';
 import {
   createBoomerang,
+  createBullet,
   createRocket,
   installShootingSystems,
   registerShootingComponents,
@@ -109,7 +111,33 @@ function firstEntity(world: World, component: ComponentClass): Entity {
   return found;
 }
 
+function stepTicks(world: World, ticks: number): void {
+  for (let tick = 0; tick < ticks; tick += 1) {
+    world.progress(tick * (1000 / TICK_RATE), 1000 / TICK_RATE);
+  }
+}
+
 describe('server shooting systems', () => {
+  it('creates bullets with per-second physics speed and integrates real distance', () => {
+    const { world, ship } = createStartedWorldWithShip();
+    const bullet = createBullet(
+      world as unknown as Parameters<typeof createBullet>[0],
+      ship,
+      0,
+      0,
+      0,
+      COLORS.white,
+    );
+    const expectedSpeed = perSecond(ENTITY_CONFIG.BULLET.SPEED);
+
+    const velocity = bullet.get(LinearVelocity)!;
+    expect(Math.hypot(velocity.x, velocity.y)).toBeCloseTo(expectedSpeed, 6);
+
+    stepTicks(world, TICK_RATE);
+
+    expect(bullet.get(PhysicsPosition)!.x).toBeCloseTo(expectedSpeed, 1);
+  });
+
   it('creates owned networked bullets from player shoot input and enforces cooldown', () => {
     const { world, ship } = createStartedWorldWithShip();
     ship.set(PlayerInputIntent, { shoot: true });
@@ -148,7 +176,10 @@ describe('server shooting systems', () => {
     const rocket = firstEntity(world, Rocket);
     rocket.set(Rocket, { straightTimer: 0 });
     rocket.set(PhysicsPosition, { x: 0, y: 0 });
-    rocket.set(LinearVelocity, { x: ENTITY_CONFIG.ROCKET.SPEED, y: 0 });
+    rocket.set(LinearVelocity, {
+      x: perSecond(ENTITY_CONFIG.ROCKET.SPEED),
+      y: 0,
+    });
     rocket.set(PhysicsRotation, { angle: 0 });
     world.entity().set(PhysicsPosition, { x: 1, y: 1 }).add(Asteroid);
 

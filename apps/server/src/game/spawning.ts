@@ -41,6 +41,7 @@ import {
   PICKUP_COLORS,
   PickupKind,
   PIXELS_PER_METER,
+  perSecond,
   RandomClockKind,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -156,7 +157,7 @@ export function createAsteroid(
     .add(Networked)
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x, y })
-    .set(LinearVelocity, { x: vx, y: vy })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
     .set(RenderPosition, { x, y })
     .set(Asteroid, { level, color })
     .set(AsteroidView, { level, color, radius })
@@ -182,7 +183,7 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x, y })
     .set(PhysicsRotation, { angle })
-    .set(LinearVelocity, { x: vx, y: vy })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
     .set(RenderPosition, { x, y })
     .set(RenderRotation, { angle })
     .set(Alien, { shootCooldown: ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE })
@@ -220,7 +221,7 @@ export function createPickup(
     .add(Networked)
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x, y })
-    .set(LinearVelocity, { x: vx, y: vy })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
     .set(RenderPosition, { x, y })
     .set(Pickup, { kind })
     .set(Decay, {
