@@ -9,8 +9,10 @@ import {
   Rotation,
   Thrust,
   Velocity,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
   Wraps,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -106,13 +108,16 @@ describe('server movement systems', () => {
     const world = createTestWorld();
     const entity = world
       .entity()
-      .set(Position, { x: WORLD_WIDTH + 1, y: -1 })
+      .set(Position, { x: WORLD_MAX_X + 1, y: WORLD_MIN_Y - 1 })
       .add(Wraps);
     const modified = vi.spyOn(entity, 'modified');
 
     world.progress(0, 1000 / 60);
 
-    expect(entity.get(Position)).toMatchObject({ x: 0, y: WORLD_HEIGHT });
+    expect(entity.get(Position)).toMatchObject({
+      x: WORLD_MIN_X,
+      y: WORLD_MAX_Y,
+    });
     expect(modified).toHaveBeenCalledWith(Position);
   });
 

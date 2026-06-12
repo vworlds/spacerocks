@@ -23,8 +23,8 @@ export enum RandomClockKind {
 }
 
 export class Velocity {
-  vx = 0; // world units/frame
-  vy = 0; // world units/frame
+  vx = 0; // meters/frame
+  vy = 0; // meters/frame
 }
 
 export class AngularVelocity {
@@ -36,12 +36,12 @@ export class Friction {
 }
 
 export class Thrust {
-  force = 0; // world units/frame^2
+  force = 0; // meters/frame^2
   active = false;
 }
 
 export class Collider {
-  radius = 10; // world units
+  radius = 0.1; // meters
   category = 0; // bitmask
   mask = 0; // bitmask
 }

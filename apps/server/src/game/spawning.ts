@@ -24,6 +24,7 @@ import {
   Pickup,
   PickupKind,
   PickupView,
+  PIXELS_PER_METER,
   Point,
   Position,
   RandomClockKind,
@@ -31,8 +32,10 @@ import {
   Shape,
   StrokeStyle,
   Velocity,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
   Wraps,
 } from '@spacerocks/common';
 import { createPrng, type Prng } from './rng';
@@ -41,9 +44,9 @@ const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // wave number
 const ASTEROID_COLORS = ['#aaa', '#888', '#bbb', '#999', '#777'] as const;
 const ASTEROID_RADII: Record<1 | 2 | 3, number> = {
-  1: 10, // world units
-  2: 20, // world units
-  3: 40, // world units
+  1: 0.1, // meters
+  2: 0.2, // meters
+  3: 0.4, // meters
 };
 
 const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
@@ -148,6 +151,8 @@ export function createAsteroid(
   level: 1 | 2 | 3,
 ): Entity {
   const radius = ASTEROID_RADII[level];
+  const speedFactor =
+    ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level / PIXELS_PER_METER;
   const color = ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ?? '#aaa';
   const vert = 5 + rng.int(5);
   const points: Point[] = [];
@@ -162,8 +167,8 @@ export function createAsteroid(
     .add(Networked)
     .set(Position, { x, y })
     .set(Velocity, {
-      vx: rng.range(-0.5, 0.5) * (ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level),
-      vy: rng.range(-0.5, 0.5) * (ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level),
+      vx: rng.range(-0.5, 0.5) * speedFactor,
+      vy: rng.range(-0.5, 0.5) * speedFactor,
     })
     .set(Asteroid, { level, color })
     .set(AsteroidView, { level, color, radius })
@@ -188,8 +193,8 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
     .entity()
     .add(Networked)
     .set(Position, {
-      x: rng.bool() ? -20 : WORLD_WIDTH + 20,
-      y: rng.range(0, WORLD_HEIGHT),
+      x: rng.bool() ? WORLD_MIN_X - 0.2 : WORLD_MAX_X + 0.2,
+      y: rng.range(WORLD_MIN_Y, WORLD_MAX_Y),
     })
     .set(Velocity, {
       vx: rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR,
@@ -217,10 +222,10 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
     .set(StrokeStyle, { style: '#ffaa00', lineWidth: 2 })
     .set(Shape, {
       points: [
-        new Point(15, 0),
-        new Point(-10, 10),
-        new Point(-5, 0),
-        new Point(-10, -10),
+        new Point(0.15, 0),
+        new Point(-0.1, 0.1),
+        new Point(-0.05, 0),
+        new Point(-0.1, -0.1),
       ],
     });
 }
@@ -236,8 +241,8 @@ export function createPickup(
     .entity()
     .add(Networked)
     .set(Position, {
-      x: rng.range(0, WORLD_WIDTH),
-      y: rng.range(0, WORLD_HEIGHT),
+      x: rng.range(WORLD_MIN_X, WORLD_MAX_X),
+      y: rng.range(WORLD_MIN_Y, WORLD_MAX_Y),
     })
     .set(Velocity, {
       vx: rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR,
@@ -337,9 +342,9 @@ function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
     let x: number;
     let y: number;
     do {
-      x = rng.range(0, WORLD_WIDTH);
-      y = rng.range(0, WORLD_HEIGHT);
-    } while (Math.hypot(x - WORLD_WIDTH / 2, y - WORLD_HEIGHT / 2) < 200);
+      x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
+      y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
+    } while (Math.hypot(x, y) < 2.0);
     createAsteroid(world, rng, x, y, 3);
   }
 }

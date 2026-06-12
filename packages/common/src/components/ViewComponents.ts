@@ -16,7 +16,7 @@ export class AsteroidView {
   color = '#888';
 
   @wireType('f64')
-  radius = 20; // world units
+  radius = 0.2; // meters
 }
 
 export class ProjectileView {
@@ -81,7 +81,7 @@ export class ExplosionView {
   color = '#fff';
 
   @wireType('f64')
-  size = 0; // world units
+  size = 0; // meters
 
   @wireType('u32')
   seed = 0; // rng seed

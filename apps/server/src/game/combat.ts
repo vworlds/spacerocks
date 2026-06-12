@@ -46,7 +46,7 @@ import { createPlayerShip, PlayerSession } from './playerSessions';
 type CollisionHandler = (a: Entity, b: Entity) => void;
 
 const GAME_STATE_PLAYING = 0; // enum id
-const LASER_LENGTH = 1000; // world units
+const LASER_LENGTH = 10; // meters
 const RESPAWN_DELAY_FRAMES = toFrames(3_000); // frames
 const WEAPON_KIND_DEFAULT = 0; // enum id
 const WEAPON_KIND_LASER = 1; // enum id
@@ -170,7 +170,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
   registerCollisionEffect(CAT_PLAYER, CAT_PICKUP, (player, pickup) => {
     applyPickupEffect(world, player, pickup);
     const position = player.get(Position);
-    if (position) createExplosion(world, position.x, position.y, '#fff', 20);
+    if (position) createExplosion(world, position.x, position.y, '#fff', 0.2);
     pickup.destroy();
   });
 
@@ -220,7 +220,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         position.x,
         position.y,
         asteroidView?.color ?? '#ffaa00',
-        20,
+        0.2,
       );
     alien.destroy();
     asteroid.destroy();
@@ -236,7 +236,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         playerPosition.x,
         playerPosition.y,
         '#ffaa00',
-        player.get(Shield) ? 20 : 5,
+        player.get(Shield) ? 0.2 : 0.05,
       );
     alien.destroy();
     addScore(world, SCORING.ALIEN);
@@ -289,7 +289,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         explosionPosition.x,
         explosionPosition.y,
         asteroidView?.color ?? '#aaa',
-        5,
+        0.05,
       );
     destroyAsteroid(world, rng, asteroid, true, false);
   });
@@ -376,7 +376,7 @@ function resolveLaserHits(
     .filter([Position, Collider, Alien])
     .forEach([Position, Collider], (alien, [position, collider]) => {
       if (distToSegment(position, start, end) < collider.radius) {
-        createExplosion(world, position.x, position.y, '#ffaa00', 15);
+        createExplosion(world, position.x, position.y, '#ffaa00', 0.15);
         alien.destroy();
         addScore(world, SCORING.ALIEN);
       }
@@ -401,7 +401,7 @@ function destroyAsteroid(
       position.x,
       position.y,
       asteroidData.color,
-      asteroidView?.radius ?? 20,
+      asteroidView?.radius ?? 0.2,
     );
   if (asteroidData.level > 1) {
     const nextLevel = (asteroidData.level - 1) as 1 | 2;
@@ -424,7 +424,7 @@ function damageEnemy(world: ServerWorld, enemy: Entity, damage: number): void {
   }
 
   const position = enemy.get(Position);
-  if (position) createExplosion(world, position.x, position.y, '#ffaa00', 15);
+  if (position) createExplosion(world, position.x, position.y, '#ffaa00', 0.15);
   enemy.destroy();
   addScore(world, SCORING.ALIEN);
 }
@@ -454,7 +454,7 @@ function damagePlayer(
 
 function killPlayer(world: ServerWorld, player: Entity): void {
   const position = player.get(Position);
-  if (position) createExplosion(world, position.x, position.y, '#fff', 20);
+  if (position) createExplosion(world, position.x, position.y, '#fff', 0.2);
   const playerShip = player.get(PlayerShip);
   const session = player.get(ChildOf)?.target;
   if (session?.get(PlayerSession) && playerShip) {
@@ -631,7 +631,7 @@ function createExplosion(
   x: number,
   y: number,
   color: string,
-  size = 20, // world units
+  size = 0.2, // meters
 ): void {
   world
     .entity()

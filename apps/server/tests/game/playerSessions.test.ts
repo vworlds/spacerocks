@@ -5,8 +5,10 @@ import {
   Point,
   Position,
   Shape,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -77,10 +79,10 @@ describe('player session ownership', () => {
     expect(playerShipB.playerIndex).toBe(1);
     expect(playerShipA.color).not.toBe(playerShipB.color);
     expect(positionA).not.toEqual(positionB);
-    expect(positionA.x).toBeGreaterThanOrEqual(0);
-    expect(positionA.x).toBeLessThanOrEqual(WORLD_WIDTH);
-    expect(positionB.y).toBeGreaterThanOrEqual(0);
-    expect(positionB.y).toBeLessThanOrEqual(WORLD_HEIGHT);
+    expect(positionA.x).toBeGreaterThanOrEqual(WORLD_MIN_X);
+    expect(positionA.x).toBeLessThanOrEqual(WORLD_MAX_X);
+    expect(positionB.y).toBeGreaterThanOrEqual(WORLD_MIN_Y);
+    expect(positionB.y).toBeLessThanOrEqual(WORLD_MAX_Y);
     expect(shipA.get(Shape)?.points).toEqual([
       expect.any(Point),
       expect.any(Point),

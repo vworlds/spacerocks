@@ -8,8 +8,10 @@ import {
   Rotation,
   Thrust,
   Velocity,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
   Wraps,
 } from '@spacerocks/common';
 import { PlayerInputIntent } from './playerSessions';
@@ -81,19 +83,19 @@ export function installMovementSystems(world: ServerWorld): void {
     .each([Position], (entity, [position]) => {
       let wrapped = false;
 
-      if (position.x < 0) {
-        position.x = WORLD_WIDTH;
+      if (position.x < WORLD_MIN_X) {
+        position.x = WORLD_MAX_X;
         wrapped = true;
-      } else if (position.x > WORLD_WIDTH) {
-        position.x = 0;
+      } else if (position.x > WORLD_MAX_X) {
+        position.x = WORLD_MIN_X;
         wrapped = true;
       }
 
-      if (position.y < 0) {
-        position.y = WORLD_HEIGHT;
+      if (position.y < WORLD_MIN_Y) {
+        position.y = WORLD_MAX_Y;
         wrapped = true;
-      } else if (position.y > WORLD_HEIGHT) {
-        position.y = 0;
+      } else if (position.y > WORLD_MAX_Y) {
+        position.y = WORLD_MIN_Y;
         wrapped = true;
       }
 

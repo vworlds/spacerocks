@@ -7,8 +7,8 @@ export class Point {
   }
 
   @wireType('f64')
-  x = 0; // world units
+  x = 0; // meters
 
   @wireType('f64')
-  y = 0; // world units
+  y = 0; // meters
 }

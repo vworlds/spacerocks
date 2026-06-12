@@ -271,7 +271,7 @@ export function createBullet(
     .set(Bullet, { ownerType: 'player' })
     .set(ProjectileView, { kind: PROJECTILE_KIND_BULLET, team: 0 })
     .set(Collider, {
-      radius: 2,
+      radius: 0.02,
       category: CAT_PLAYER_BULLET,
       mask: CAT_ASTEROID | CAT_ENEMY,
     })
@@ -279,7 +279,7 @@ export function createBullet(
     .set(Drawable, { zIndex: 20 })
     .add(Wraps)
     .set(FillStyle, { style: color })
-    .set(Arc, { radius: 2 });
+    .set(Arc, { radius: 0.02 });
 }
 
 export function createRocket(
@@ -300,7 +300,7 @@ export function createRocket(
     .set(Rocket, { straightTimer: ENTITY_CONFIG.ROCKET.STRAIGHT_FRAMES })
     .set(ProjectileView, { kind: PROJECTILE_KIND_ROCKET, team: 0 })
     .set(Collider, {
-      radius: 4,
+      radius: 0.04,
       category: CAT_PLAYER_BULLET,
       mask: CAT_ASTEROID | CAT_ENEMY,
     })
@@ -309,7 +309,11 @@ export function createRocket(
     .add(Wraps)
     .set(FillStyle, { style: '#ff6600' })
     .set(Shape, {
-      points: [new Point(6, 0), new Point(-3, 3), new Point(-3, -3)],
+      points: [
+        new Point(0.06, 0),
+        new Point(-0.03, 0.03),
+        new Point(-0.03, -0.03),
+      ],
     });
 }
 
@@ -321,7 +325,7 @@ export function createBoomerang(
   angle: number,
 ): Entity {
   const config = ENTITY_CONFIG.BOOMERANG;
-  const spawnOffset = ENTITY_CONFIG.SHIP.RADIUS + config.RADIUS + 4;
+  const spawnOffset = ENTITY_CONFIG.SHIP.RADIUS + config.RADIUS + 0.04;
   const entity = world
     .entity()
     .add(Networked)
@@ -349,11 +353,11 @@ export function createBoomerang(
     .set(Shape, {
       points: [
         new Point(0, 0),
-        new Point(2, 5),
-        new Point(5, 5),
-        new Point(3, 0),
-        new Point(5, -5),
-        new Point(2, -5),
+        new Point(0.02, 0.05),
+        new Point(0.05, 0.05),
+        new Point(0.03, 0),
+        new Point(0.05, -0.05),
+        new Point(0.02, -0.05),
       ],
     });
 

@@ -50,10 +50,10 @@ export class PlayerInputIntent {
 const PLAYER_COLORS = ['#00ffcc', '#ff00ff', '#ffff66', '#66aaff'] as const;
 
 const SPAWN_POSITIONS = [
-  { x: WORLD_WIDTH * 0.3, y: WORLD_HEIGHT * 0.5 },
-  { x: WORLD_WIDTH * 0.7, y: WORLD_HEIGHT * 0.5 },
-  { x: WORLD_WIDTH * 0.5, y: WORLD_HEIGHT * 0.3 },
-  { x: WORLD_WIDTH * 0.5, y: WORLD_HEIGHT * 0.7 },
+  { x: -WORLD_WIDTH * 0.2, y: 0 },
+  { x: WORLD_WIDTH * 0.2, y: 0 },
+  { x: 0, y: WORLD_HEIGHT * 0.2 },
+  { x: 0, y: -WORLD_HEIGHT * 0.2 },
 ] as const;
 
 export function registerPlayerSessionComponents(world: ServerWorld): void {
@@ -166,7 +166,7 @@ export function createPlayerShip(
     .add(Wraps)
     .set(StrokeStyle, { style: color, lineWidth: 2 })
     .set(Shape, {
-      points: [new Point(15, 0), new Point(-10, 10), new Point(-10, -10)],
+      points: [new Point(0.15, 0), new Point(-0.1, 0.1), new Point(-0.1, -0.1)],
     });
 }
 

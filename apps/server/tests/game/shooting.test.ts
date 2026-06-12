@@ -131,7 +131,7 @@ describe('server shooting systems', () => {
     rocket.set(Position, { x: 0, y: 0 });
     rocket.set(Velocity, { vx: ENTITY_CONFIG.ROCKET.SPEED, vy: 0 });
     rocket.set(Rotation, { angle: 0 });
-    world.entity().set(Position, { x: 100, y: 100 }).add(Asteroid);
+    world.entity().set(Position, { x: 1, y: 1 }).add(Asteroid);
 
     world.progress(1000 / 60, 1000 / 60);
 
@@ -153,7 +153,7 @@ describe('server shooting systems', () => {
     expect(boomerang.get(ChildOf)?.target).toBe(ship);
 
     boomerang.set(Position, {
-      x: ENTITY_CONFIG.BOOMERANG.ARM_DISTANCE + 10,
+      x: ENTITY_CONFIG.BOOMERANG.ARM_DISTANCE + 0.1,
       y: 0,
     });
     boomerang.set(Velocity, { vx: 0, vy: 0 });

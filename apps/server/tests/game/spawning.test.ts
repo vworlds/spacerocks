@@ -10,8 +10,10 @@ import {
   Point,
   Position,
   Shape,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPrng } from '../../src/game/rng';
@@ -98,10 +100,10 @@ describe('server spawning systems', () => {
     world
       .filter([Asteroid, Position])
       .forEach([Position], (_entity, [position]) => {
-        expect(position.x).toBeGreaterThanOrEqual(0);
-        expect(position.x).toBeLessThanOrEqual(WORLD_WIDTH);
-        expect(position.y).toBeGreaterThanOrEqual(0);
-        expect(position.y).toBeLessThanOrEqual(WORLD_HEIGHT);
+        expect(position.x).toBeGreaterThanOrEqual(WORLD_MIN_X);
+        expect(position.x).toBeLessThanOrEqual(WORLD_MAX_X);
+        expect(position.y).toBeGreaterThanOrEqual(WORLD_MIN_Y);
+        expect(position.y).toBeLessThanOrEqual(WORLD_MAX_Y);
       });
   });
 
@@ -210,15 +212,15 @@ describe('server spawning systems', () => {
     const asteroidA = createAsteroid(
       worldA as unknown as Parameters<typeof createAsteroid>[0],
       rngA,
-      10,
-      20,
+      0.1,
+      0.2,
       3,
     );
     const asteroidB = createAsteroid(
       worldB as unknown as Parameters<typeof createAsteroid>[0],
       rngB,
-      10,
-      20,
+      0.1,
+      0.2,
       3,
     );
     const pickupA = createPickup(

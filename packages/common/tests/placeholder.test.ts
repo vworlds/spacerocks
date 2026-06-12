@@ -54,8 +54,8 @@ describe('NETWORK_COMPONENTS', () => {
   });
 
   it('exports fixed world dimensions', () => {
-    expect(WORLD_WIDTH).toBe(1024);
-    expect(WORLD_HEIGHT).toBe(768);
+    expect(WORLD_WIDTH).toBe(10.24);
+    expect(WORLD_HEIGHT).toBe(7.68);
   });
 
   it('uses vecs-wire encodable network components', () => {
