@@ -1,4 +1,4 @@
-import { type ComponentClass, type Entity } from '@vworlds/vecs';
+import { ChildOf, type ComponentClass, type Entity } from '@vworlds/vecs';
 import { Networked } from '@vworlds/vecs-server';
 import {
   phaserRenderableComponents,
@@ -7,6 +7,13 @@ import {
   StrokeStyle,
   Text,
 } from '@vworlds/vecs-phaser';
+import {
+  Body,
+  Circle,
+  CollisionFilter,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
 import {
   Asteroid,
   COLORS,
@@ -20,7 +27,7 @@ import { createGameWorld } from '../../src/game/world';
 
 function entitiesWith(
   component: ComponentClass,
-  world = createGameWorld(),
+  world: Awaited<ReturnType<typeof createGameWorld>>,
 ): Entity[] {
   const entities: Entity[] = [];
   world.filter([component]).forEach([], (entity) => {
@@ -37,8 +44,8 @@ function countRenderableComponents(entity: Entity): number {
 }
 
 describe('server game world pipeline', () => {
-  it('boots, ticks, and produces authoritative networked render state', () => {
-    const world = createGameWorld();
+  it('boots, ticks, and produces authoritative networked render state', async () => {
+    const world = await createGameWorld();
     const dt = 1000 / TICK_RATE;
 
     expect(() => {
@@ -55,10 +62,19 @@ describe('server game world pipeline', () => {
     if (!asteroid) throw new Error('Expected spawned asteroid');
 
     expect(asteroid.get(Polygon)?.points.length).toBeGreaterThan(0);
+    expect(asteroid.get(Body)).toBeTruthy();
     expect(asteroid.get(StrokeStyle)).toBeTruthy();
     expect(asteroid.get(Position)).toBeTruthy();
     expect(asteroid.get(Networked)).toBeTruthy();
     expect(countRenderableComponents(asteroid)).toBe(1);
+
+    const shape = Array.from(asteroid.children(ChildOf)).find((child) =>
+      child.get(Circle),
+    );
+    expect(shape?.get(Circle)?.radius).toBeGreaterThan(0);
+    expect(shape?.get(Sensor)).toBeTruthy();
+    expect(shape?.get(SensorEvents)).toBeTruthy();
+    expect(shape?.get(CollisionFilter)).toBeTruthy();
 
     createExplosion(world, 0, 0, COLORS.white, 0.2);
     const explosion = entitiesWith(Explosion, world)[0];

@@ -6,11 +6,23 @@ import {
   type ServerWorld,
 } from '@vworlds/vecs-server';
 import {
-  Position,
-  Rotation,
+  Position as RenderPosition,
+  Rotation as RenderRotation,
   StrokeStyle,
   Triangle,
 } from '@vworlds/vecs-phaser';
+import {
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  AngularVelocity as PhysicsAngularVelocity,
+  LinearVelocity,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
 import {
   CAT_ASTEROID,
   CAT_BOOMERANG,
@@ -74,6 +86,15 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(Collider);
   world.component(Wraps);
   world.component(PlayerShip);
+  world.component(Body);
+  world.component(PhysicsPosition);
+  world.component(PhysicsRotation);
+  world.component(LinearVelocity);
+  world.component(PhysicsAngularVelocity);
+  world.component(Circle);
+  world.component(Sensor);
+  world.component(SensorEvents);
+  world.component(CollisionFilter);
 }
 
 export function installPlayerSessionSystems(world: ServerWorld): void {
@@ -123,14 +144,23 @@ export function createPlayerShip(
 ): Entity {
   const spawn = SPAWN_POSITIONS[playerIndex % SPAWN_POSITIONS.length]!;
   const color = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length]!;
+  const collider = {
+    radius: ENTITY_CONFIG.SHIP.RADIUS,
+    category: CAT_PLAYER,
+    mask:
+      CAT_ASTEROID | CAT_ENEMY_BULLET | CAT_ENEMY | CAT_PICKUP | CAT_BOOMERANG,
+  };
 
-  return world
+  const ship = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: session })
-    .set(Position, { x: spawn.x, y: spawn.y })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x: spawn.x, y: spawn.y })
+    .set(PhysicsRotation, { angle: 0 })
+    .set(RenderPosition, { x: spawn.x, y: spawn.y })
     .add(Velocity)
-    .set(Rotation, { angle: 0 })
+    .set(RenderRotation, { angle: 0 })
     .set(Thrust, { force: ENTITY_CONFIG.SHIP.THRUST_POWER, active: false })
     .set(Friction, { value: ENTITY_CONFIG.SHIP.FRICTION })
     .set(Health, {
@@ -144,16 +174,7 @@ export function createPlayerShip(
       barTimer: 0,
     })
     .add(DefaultWeapon)
-    .set(Collider, {
-      radius: ENTITY_CONFIG.SHIP.RADIUS,
-      category: CAT_PLAYER,
-      mask:
-        CAT_ASTEROID |
-        CAT_ENEMY_BULLET |
-        CAT_ENEMY |
-        CAT_PICKUP |
-        CAT_BOOMERANG,
-    })
+    .set(Collider, collider)
     .set(PlayerInputIntent, {})
     .set(PlayerShip, { playerIndex, color })
     .add(Wraps)
@@ -166,6 +187,19 @@ export function createPlayerShip(
       x3: -0.1,
       y3: -0.1,
     });
+
+  world
+    .entity()
+    .childOf(ship)
+    .set(Circle, { radius: collider.radius })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits: collider.category,
+      maskBits: collider.mask,
+    });
+
+  return ship;
 }
 
 function getOwnedShip(clientEntity: Entity): Entity | undefined {

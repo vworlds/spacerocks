@@ -4,13 +4,25 @@ import {
   Arc,
   FillStyle,
   Polygon,
-  Position,
-  Rotation,
+  Position as RenderPosition,
+  Rotation as RenderRotation,
   Triangle,
 } from '@vworlds/vecs-phaser';
 import {
+  AngularVelocity as PhysicsAngularVelocity,
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  LinearVelocity,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
+import {
   Alien,
-  AngularVelocity,
+  AngularVelocity as GameAngularVelocity,
   Asteroid,
   AuraWeapon,
   Boomerang,
@@ -86,9 +98,15 @@ export function installShootingSystems(world: ServerWorld): void {
 
   world
     .system('Shooting')
-    .with(PlayerShip, PlayerInputIntent, Position, Rotation, ShootingCooldown)
+    .with(
+      PlayerShip,
+      PlayerInputIntent,
+      RenderPosition,
+      RenderRotation,
+      ShootingCooldown,
+    )
     .each(
-      [PlayerInputIntent, Position, Rotation, ShootingCooldown],
+      [PlayerInputIntent, RenderPosition, RenderRotation, ShootingCooldown],
       (ship, [input, position, rotation, cooldown]) => {
         if (!input.shoot || cooldown.frames > 0) return;
 
@@ -160,9 +178,9 @@ export function installShootingSystems(world: ServerWorld): void {
 
   world
     .system('RocketSystem')
-    .with(Position, Velocity, Rotation, Rocket)
+    .with(RenderPosition, Velocity, RenderRotation, Rocket)
     .each(
-      [Position, Velocity, Rotation, Rocket],
+      [RenderPosition, Velocity, RenderRotation, Rocket],
       (entity, [position, velocity, rotation, rocket]) => {
         if (rocket.straightTimer > 0) {
           rocket.straightTimer -= 1;
@@ -187,21 +205,21 @@ export function installShootingSystems(world: ServerWorld): void {
         velocity.vx = Math.cos(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
         velocity.vy = Math.sin(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
         rotation.angle = newAngle;
-        entity.modified(Rotation);
+        entity.modified(RenderRotation);
       },
     );
 
   world
     .system('BoomerangSystem')
-    .with(Position, Velocity, Boomerang)
+    .with(RenderPosition, Velocity, Boomerang)
     .each(
-      [Position, Velocity, Boomerang],
+      [RenderPosition, Velocity, Boomerang],
       (_entity, [position, velocity, boomerang]) => {
         const owner =
           boomerang.ownerId === null
             ? undefined
             : world.getEntity(boomerang.ownerId);
-        const ownerPosition = owner?.get(Position);
+        const ownerPosition = owner?.get(RenderPosition);
         if (!ownerPosition) return;
 
         const dx = ownerPosition.x - position.x;
@@ -261,24 +279,34 @@ export function createBullet(
   color: number,
 ): Entity {
   const speed = ENTITY_CONFIG.BULLET.SPEED;
-  return world
+  const vx = Math.cos(angle) * speed;
+  const vy = Math.sin(angle) * speed;
+  const collider = {
+    radius: 0.02,
+    category: CAT_PLAYER_BULLET,
+    mask: CAT_ASTEROID | CAT_ENEMY,
+  };
+  const bullet = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: owner })
-    .set(Position, { x, y })
-    .set(Velocity, { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed })
-    .set(Rotation, { angle })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: vx, y: vy })
+    .set(RenderPosition, { x, y })
+    .set(Velocity, { vx, vy })
+    .set(RenderRotation, { angle })
     .set(Bullet, { ownerType: 'player' })
     .set(ProjectileView, { kind: PROJECTILE_KIND_BULLET, team: 0 })
-    .set(Collider, {
-      radius: 0.02,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID | CAT_ENEMY,
-    })
+    .set(Collider, collider)
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
     .add(Wraps)
     .set(FillStyle, { color, alpha: 1 })
     .set(Arc, { radius: 0.02 });
+
+  createPhysicsCircleSensor(world, bullet, collider);
+  return bullet;
 }
 
 export function createRocket(
@@ -289,20 +317,27 @@ export function createRocket(
   angle: number,
 ): Entity {
   const speed = ENTITY_CONFIG.ROCKET.SPEED;
-  return world
+  const vx = Math.cos(angle) * speed;
+  const vy = Math.sin(angle) * speed;
+  const collider = {
+    radius: 0.04,
+    category: CAT_PLAYER_BULLET,
+    mask: CAT_ASTEROID | CAT_ENEMY,
+  };
+  const rocket = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: owner })
-    .set(Position, { x, y })
-    .set(Velocity, { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed })
-    .set(Rotation, { angle })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: vx, y: vy })
+    .set(RenderPosition, { x, y })
+    .set(Velocity, { vx, vy })
+    .set(RenderRotation, { angle })
     .set(Rocket, { straightTimer: ENTITY_CONFIG.ROCKET.STRAIGHT_FRAMES })
     .set(ProjectileView, { kind: PROJECTILE_KIND_ROCKET, team: 0 })
-    .set(Collider, {
-      radius: 0.04,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID | CAT_ENEMY,
-    })
+    .set(Collider, collider)
     .set(Decay, { life: ENTITY_CONFIG.ROCKET.LIFE, decay: 1 })
     .add(Wraps)
     .set(FillStyle, { color: COLORS.rocket, alpha: 1 })
@@ -314,6 +349,9 @@ export function createRocket(
       x3: -0.03,
       y3: -0.03,
     });
+
+  createPhysicsCircleSensor(world, rocket, collider);
+  return rocket;
 }
 
 export function createBoomerang(
@@ -325,33 +363,38 @@ export function createBoomerang(
 ): Entity {
   const config = ENTITY_CONFIG.BOOMERANG;
   const spawnOffset = ENTITY_CONFIG.SHIP.RADIUS + config.RADIUS + 0.04;
+  const spawnX = x + Math.cos(angle) * spawnOffset;
+  const spawnY = y + Math.sin(angle) * spawnOffset;
+  const vx = Math.cos(angle) * config.SPEED;
+  const vy = Math.sin(angle) * config.SPEED;
+  const collider = {
+    radius: config.RADIUS,
+    category: CAT_BOOMERANG,
+    mask: CAT_ASTEROID | CAT_ENEMY | CAT_PLAYER,
+  };
   const entity = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: owner })
-    .set(Position, {
-      x: x + Math.cos(angle) * spawnOffset,
-      y: y + Math.sin(angle) * spawnOffset,
-    })
-    .set(Velocity, {
-      vx: Math.cos(angle) * config.SPEED,
-      vy: Math.sin(angle) * config.SPEED,
-    })
-    .set(Rotation, { angle })
-    .set(AngularVelocity, { omega: config.SPIN })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x: spawnX, y: spawnY })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: vx, y: vy })
+    .set(PhysicsAngularVelocity, { value: config.SPIN })
+    .set(RenderPosition, { x: spawnX, y: spawnY })
+    .set(Velocity, { vx, vy })
+    .set(RenderRotation, { angle })
+    .set(GameAngularVelocity, { omega: config.SPIN })
     .set(Boomerang, { ownerId: owner.eid, armed: false })
     .set(ProjectileView, { kind: PROJECTILE_KIND_BOOMERANG, team: 0 })
-    .set(Collider, {
-      radius: config.RADIUS,
-      category: CAT_BOOMERANG,
-      mask: CAT_ASTEROID | CAT_ENEMY | CAT_PLAYER,
-    })
+    .set(Collider, collider)
     .set(Decay, { life: 1, decay: 1 / config.LIFE })
     .set(FillStyle, { color: COLORS.boomerang, alpha: 1 })
     .set(Polygon, {
       points: [0, 0, 0.02, 0.05, 0.05, 0.05, 0.03, 0, 0.05, -0.05, 0.02, -0.05],
     });
 
+  createPhysicsCircleSensor(world, entity, collider);
   owner.getMut(BoomerangWeapon, (weapon) => {
     weapon.inFlight += 1;
   });
@@ -392,7 +435,7 @@ function currentWeapon(ship: Entity): { kind: number; ammo: number } {
 
 function findRocketTarget(
   world: ServerWorld,
-  position: Position,
+  position: RenderPosition,
 ): { x: number; y: number } | undefined {
   const alienTarget = findNearest(world, position, Alien);
   return alienTarget ?? findNearest(world, position, Asteroid);
@@ -400,14 +443,14 @@ function findRocketTarget(
 
 function findNearest(
   world: ServerWorld,
-  source: Position,
+  source: RenderPosition,
   component: typeof Alien | typeof Asteroid,
 ): { x: number; y: number } | undefined {
   let target: { x: number; y: number } | undefined;
   let minDistance = Infinity;
   world
-    .filter([Position, component])
-    .forEach([Position], (_entity, [position]) => {
+    .filter([RenderPosition, component])
+    .forEach([RenderPosition], (_entity, [position]) => {
       const distance = Math.hypot(source.x - position.x, source.y - position.y);
       if (
         distance >= ENTITY_CONFIG.ROCKET.HOME_RANGE ||
@@ -418,6 +461,23 @@ function findNearest(
       target = { x: position.x, y: position.y };
     });
   return target;
+}
+
+function createPhysicsCircleSensor(
+  world: ServerWorld,
+  body: Entity,
+  collider: { radius: number; category: number; mask: number },
+): void {
+  world
+    .entity()
+    .childOf(body)
+    .set(Circle, { radius: collider.radius })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits: collider.category,
+      maskBits: collider.mask,
+    });
 }
 
 function wrapAngle(angle: number): number {

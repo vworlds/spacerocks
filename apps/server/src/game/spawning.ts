@@ -3,10 +3,21 @@ import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
   Arc,
   Polygon,
-  Position,
-  Rotation,
+  Position as RenderPosition,
+  Rotation as RenderRotation,
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
+import {
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  LinearVelocity,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
 import {
   Alien,
   Asteroid,
@@ -157,6 +168,18 @@ export function createAsteroid(
   const color =
     ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ?? COLORS.asteroidGrey;
   const vert = 5 + rng.int(5);
+  const vx = rng.range(-0.5, 0.5) * speedFactor;
+  const vy = rng.range(-0.5, 0.5) * speedFactor;
+  const collider = {
+    radius,
+    category: CAT_ASTEROID,
+    mask:
+      CAT_PLAYER |
+      CAT_PLAYER_BULLET |
+      CAT_ENEMY_BULLET |
+      CAT_ENEMY |
+      CAT_BOOMERANG,
+  };
   const points: number[] = [];
   for (let i = 0; i < vert; i += 1) {
     const r = radius * rng.range(0.8, 1.2);
@@ -164,44 +187,46 @@ export function createAsteroid(
     points.push(Math.cos(a) * r, Math.sin(a) * r);
   }
 
-  return world
+  const asteroid = world
     .entity()
     .add(Networked)
-    .set(Position, { x, y })
-    .set(Velocity, {
-      vx: rng.range(-0.5, 0.5) * speedFactor,
-      vy: rng.range(-0.5, 0.5) * speedFactor,
-    })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(LinearVelocity, { x: vx, y: vy })
+    .set(RenderPosition, { x, y })
+    .set(Velocity, { vx, vy })
     .set(Asteroid, { level, color })
     .set(AsteroidView, { level, color, radius })
-    .set(Collider, {
-      radius,
-      category: CAT_ASTEROID,
-      mask:
-        CAT_PLAYER |
-        CAT_PLAYER_BULLET |
-        CAT_ENEMY_BULLET |
-        CAT_ENEMY |
-        CAT_BOOMERANG,
-    })
+    .set(Collider, collider)
     .add(Wraps)
     .set(StrokeStyle, { color, alpha: 1, width: 2 })
     .set(Polygon, { points });
+
+  createPhysicsCircleSensor(world, asteroid, collider);
+  return asteroid;
 }
 
 export function createAlien(world: ServerWorld, rng: Prng): Entity {
-  return world
+  const x = rng.bool() ? WORLD_MIN_X - 0.2 : WORLD_MAX_X + 0.2;
+  const y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
+  const vx = rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR;
+  const vy = rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR;
+  const angle = rng.range(0, Math.PI * 2);
+  const collider = {
+    radius: ENTITY_CONFIG.ALIEN.RADIUS,
+    category: CAT_ENEMY,
+    mask: CAT_PLAYER | CAT_ASTEROID | CAT_PLAYER_BULLET | CAT_BOOMERANG,
+  };
+  const alien = world
     .entity()
     .add(Networked)
-    .set(Position, {
-      x: rng.bool() ? WORLD_MIN_X - 0.2 : WORLD_MAX_X + 0.2,
-      y: rng.range(WORLD_MIN_Y, WORLD_MAX_Y),
-    })
-    .set(Velocity, {
-      vx: rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR,
-      vy: rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR,
-    })
-    .set(Rotation, { angle: rng.range(0, Math.PI * 2) })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: vx, y: vy })
+    .set(RenderPosition, { x, y })
+    .set(Velocity, { vx, vy })
+    .set(RenderRotation, { angle })
     .set(Alien, { shootCooldown: ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE })
     .set(Health, {
       hp: ENTITY_CONFIG.ALIEN.MAX_HP,
@@ -213,14 +238,13 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
       maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
       barTimer: 0,
     })
-    .set(Collider, {
-      radius: ENTITY_CONFIG.ALIEN.RADIUS,
-      category: CAT_ENEMY,
-      mask: CAT_PLAYER | CAT_ASTEROID | CAT_PLAYER_BULLET | CAT_BOOMERANG,
-    })
+    .set(Collider, collider)
     .add(Wraps)
     .set(StrokeStyle, { color: COLORS.orange, alpha: 1, width: 2 })
     .set(Polygon, { points: [0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1] });
+
+  createPhysicsCircleSensor(world, alien, collider);
+  return alien;
 }
 
 export function createPickup(
@@ -230,34 +254,54 @@ export function createPickup(
 ): Entity {
   const config = PICKUP_CONFIG[kind];
   const amount = kind === PickupKind.Health ? (rng.bool() ? 0.25 : 0.5) : 0;
+  const x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
+  const y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
+  const vx = rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR;
+  const vy = rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR;
+  const collider = {
+    radius: ENTITY_CONFIG.POWERUP.RADIUS,
+    category: CAT_PICKUP,
+    mask: CAT_PLAYER,
+  };
   const entity = world
     .entity()
     .add(Networked)
-    .set(Position, {
-      x: rng.range(WORLD_MIN_X, WORLD_MAX_X),
-      y: rng.range(WORLD_MIN_Y, WORLD_MAX_Y),
-    })
-    .set(Velocity, {
-      vx: rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR,
-      vy: rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR,
-    })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(LinearVelocity, { x: vx, y: vy })
+    .set(RenderPosition, { x, y })
+    .set(Velocity, { vx, vy })
     .set(Pickup, { kind })
     .set(PickupView, { kind: config.viewKind, amount })
     .set(Decay, {
       life: 1,
       decay: 1 / PICKUP_TTL_FRAMES[kind],
     })
-    .set(Collider, {
-      radius: ENTITY_CONFIG.POWERUP.RADIUS,
-      category: CAT_PICKUP,
-      mask: CAT_PLAYER,
-    })
+    .set(Collider, collider)
     .add(Wraps)
     .set(StrokeStyle, { color: config.color, alpha: 1, width: 2 })
     .set(Arc, { radius: ENTITY_CONFIG.POWERUP.RADIUS });
 
   if (kind === PickupKind.Health) entity.set(HealthPickup, { amount });
+  createPhysicsCircleSensor(world, entity, collider);
   return entity;
+}
+
+function createPhysicsCircleSensor(
+  world: ServerWorld,
+  body: Entity,
+  collider: { radius: number; category: number; mask: number },
+): void {
+  world
+    .entity()
+    .childOf(body)
+    .set(Circle, { radius: collider.radius })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits: collider.category,
+      maskBits: collider.mask,
+    });
 }
 
 function initializeGameWorld(world: ServerWorld, rng: Prng, now: number): void {

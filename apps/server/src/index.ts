@@ -22,7 +22,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   //   component:  32 – 899
   //   module:     900 – 999
   //   entity:     1000 – ∞ (Note: client will only consider entities up to 999,999 as "network entities")
-  const world = createGameWorld();
+  const world = await createGameWorld();
 
   // Instrument the world's connect/disconnect plumbing so we can see who
   // joins, who leaves, and which side initiates the close.
