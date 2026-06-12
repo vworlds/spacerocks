@@ -10,9 +10,8 @@ import {
   Position,
   Sensor,
   SensorEvents,
-  preloadPhysics,
 } from '@vworlds/vecs-physics';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 const DT_MS = 1000 / 60;
 const DT_SECONDS = 1 / 60;
@@ -28,10 +27,6 @@ type ProbeWorld = {
   sensorBegins: SensorBegin[];
   contactBegins: ContactBegin[];
 };
-
-beforeAll(async () => {
-  await preloadPhysics();
-});
 
 function createProbeWorld(): ProbeWorld {
   const world = new World();

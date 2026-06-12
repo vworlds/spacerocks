@@ -9,7 +9,8 @@ import { createGameWorld } from './game/world';
 export { stopServer } from './serverLifecycle';
 export { createGameWorld } from './game/world';
 
-const TICK_INTERVAL_MS = 1000 / TICK_RATE; // ms/frame
+const DT_MS = 1000 / TICK_RATE; // ms/frame
+const MAX_FRAME_TIME_MS = 250;
 
 export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const app = express();
@@ -51,13 +52,21 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
 
   const server = await listenWithRetry(app, port);
 
-  let lastTick = performance.now();
+  let previousTickTime = performance.now();
+  let accumulator = 0;
+  let tickCounter = 0;
   const tick = setInterval(() => {
     const now = performance.now();
-    const delta = now - lastTick;
-    lastTick = now;
-    world.progress(now, delta);
-  }, TICK_INTERVAL_MS);
+    const elapsed = Math.min(now - previousTickTime, MAX_FRAME_TIME_MS);
+    previousTickTime = now;
+    accumulator += elapsed;
+
+    while (accumulator >= DT_MS) {
+      tickCounter += 1;
+      world.progress(tickCounter * DT_MS, DT_MS);
+      accumulator -= DT_MS;
+    }
+  }, DT_MS);
 
   return { app, server, world, vecsListener, tick, port };
 }
