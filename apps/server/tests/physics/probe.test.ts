@@ -268,4 +268,73 @@ describe('vecs-physics Box2D sensor/contact probe', () => {
     // Same observed failure as KINEMATIC sensors; switching projectiles to
     // DYNAMIC sensors alone would not restore sensor-vs-solid detection.
   });
+
+  it('E: two dynamic sensor bodies both receive SensorEvents begin events', () => {
+    const { world, sensorBegins } = createProbeWorld();
+    const bodyA = createBody(world, BodyType.Dynamic);
+    const bodyB = createBody(world, BodyType.Dynamic);
+    const shapeA = createCircleShape(world, bodyA, {
+      sensor: true,
+      sensorEvents: true,
+      categoryBits: CAT_SENSOR,
+      maskBits: CAT_SOLID,
+    });
+    const shapeB = createCircleShape(world, bodyB, {
+      sensor: true,
+      sensorEvents: true,
+      categoryBits: CAT_SOLID,
+      maskBits: CAT_SENSOR,
+    });
+
+    stepProbe(world);
+
+    expectBeginAgainst(sensorBegins, shapeA, shapeB);
+    expectBeginAgainst(sensorBegins, shapeB, shapeA);
+    // PASS => a uniform all-DYNAMIC-sensor model can detect gameplay overlaps
+    // from SensorEvents on both participating shapes.
+  });
+
+  it('F: collision filters gate dynamic sensor-vs-sensor detection', () => {
+    const { world, sensorBegins } = createProbeWorld();
+    const bodyA = createBody(world, BodyType.Dynamic);
+    const bodyB = createBody(world, BodyType.Dynamic);
+    const shapeA = createCircleShape(world, bodyA, {
+      sensor: true,
+      sensorEvents: true,
+      categoryBits: CAT_SENSOR,
+      maskBits: CAT_BLOCKED,
+    });
+    const shapeB = createCircleShape(world, bodyB, {
+      sensor: true,
+      sensorEvents: true,
+      categoryBits: CAT_SOLID,
+      maskBits: CAT_SENSOR,
+    });
+
+    stepProbe(world);
+
+    expect(beginsForSelf(sensorBegins, shapeA)).toEqual([]);
+    expect(beginsForSelf(sensorBegins, shapeB)).toEqual([]);
+    // PASS => sensor-vs-sensor events honor CollisionFilter, so friendly-fire
+    // prevention can remain category/mask based in the uniform sensor model.
+  });
+
+  it('G: a dynamic body with only a sensor shape moves and writes Position back', () => {
+    const { world } = createProbeWorld();
+    const body = createBody(world, BodyType.Dynamic, { velocityX: 1 });
+    createCircleShape(world, body, {
+      sensor: true,
+      sensorEvents: true,
+      categoryBits: CAT_SENSOR,
+      maskBits: CAT_SOLID,
+    });
+
+    stepProbe(world, 30);
+
+    const position = body.get(Position);
+    expect(position?.x).toBeGreaterThan(0.25);
+    expect(position?.y).toBe(0);
+    // PASS => DYNAMIC sensor-only bodies still integrate LinearVelocity and
+    // write the simulated pose back to the ECS Position component.
+  });
 });
