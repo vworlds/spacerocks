@@ -29,11 +29,14 @@ export async function createGameWorld(): Promise<ServerWorld> {
   registerCombatComponents(world);
   registerEmbellishmentComponents(world);
   registerHudComponents(world);
-  installPlayerSessionSystems(world);
-  installSpawningSystems(world);
-  installShootingSystems(world);
-  installMovementSystems(world);
-  installCombatSystems(world);
+
+  // Physics + render modules MUST be installed BEFORE any system that spawns
+  // physics bodies. installSpawningSystems() spawns the wave-1 asteroids at
+  // install time; entities created before PhysicsModule never get working Box2D
+  // sensor shapes, so their collisions silently never fire (they still drift
+  // because velocity integration needs no mass). PhaserServerModule stays ahead
+  // of the embellishment/HUD systems so its PRE_STORE pose-sync runs before the
+  // PRE_STORE child-follow systems.
   await preloadPhysics();
   world.module(PhysicsModule, {
     gravity: { x: 0, y: 0 },
@@ -41,6 +44,12 @@ export async function createGameWorld(): Promise<ServerWorld> {
     subSteps: 4,
   });
   world.module(PhaserServerModule);
+
+  installPlayerSessionSystems(world);
+  installSpawningSystems(world);
+  installShootingSystems(world);
+  installMovementSystems(world);
+  installCombatSystems(world);
   installEmbellishmentSystems(world);
   installHudSystems(world);
   installClientViewSystem(world, View);
