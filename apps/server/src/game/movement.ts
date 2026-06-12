@@ -1,15 +1,18 @@
+import { POST_UPDATE } from '@vworlds/vecs';
 import type { ServerWorld } from '@vworlds/vecs-server';
 import {
-  AngularVelocity,
+  LinearVelocity,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+} from '@vworlds/vecs-physics';
+import {
   ENTITY_CONFIG,
-  Friction,
   PlayerShip,
-  Position,
-  Rotation,
-  Thrust,
-  Velocity,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  perSecond,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
   Wraps,
 } from '@spacerocks/common';
 import { PlayerInputIntent } from './playerSessions';
@@ -17,86 +20,62 @@ import { PlayerInputIntent } from './playerSessions';
 export function installMovementSystems(world: ServerWorld): void {
   world
     .system('ShipControl')
-    .with(PlayerShip, PlayerInputIntent, Rotation, Thrust)
+    .with(PlayerShip, PlayerInputIntent, PhysicsRotation, LinearVelocity)
     .each(
-      [PlayerInputIntent, Rotation, Thrust],
-      (entity, [input, rotation, thrust]) => {
+      [PlayerInputIntent, PhysicsRotation, LinearVelocity],
+      (entity, [input, rotation, linearVelocity]) => {
+        // Server coords are +y-up; CoordSpace.rot negates angles for Phaser,
+        // so increasing Rotation.angle renders visual CCW, i.e. Asteroids-left.
         if (input.rotateLeft) {
-          rotation.angle -= ENTITY_CONFIG.SHIP.ROTATION_SPEED;
-          entity.modified(Rotation);
+          rotation.angle += ENTITY_CONFIG.SHIP.ROTATION_SPEED;
+          entity.modified(PhysicsRotation);
         }
         if (input.rotateRight) {
-          rotation.angle += ENTITY_CONFIG.SHIP.ROTATION_SPEED;
-          entity.modified(Rotation);
+          rotation.angle -= ENTITY_CONFIG.SHIP.ROTATION_SPEED;
+          entity.modified(PhysicsRotation);
         }
-        thrust.active = input.thrust;
+
+        if (input.thrust) {
+          const thrustPower = perSecond(ENTITY_CONFIG.SHIP.THRUST_POWER);
+          linearVelocity.x += Math.cos(rotation.angle) * thrustPower;
+          linearVelocity.y += Math.sin(rotation.angle) * thrustPower;
+          entity.modified(LinearVelocity);
+        }
       },
     );
 
   world
-    .system('Thrust')
-    .with(Velocity, Thrust, Rotation)
-    .each(
-      [Velocity, Thrust, Rotation],
-      (_entity, [velocity, thrust, rotation]) => {
-        if (!thrust.active) return;
-
-        velocity.vx += Math.cos(rotation.angle) * thrust.force;
-        velocity.vy += Math.sin(rotation.angle) * thrust.force;
-        thrust.active = false;
-      },
-    );
-
-  world
-    .system('Movement')
-    .with(Position, Velocity)
-    .each([Position, Velocity], (entity, [position, velocity]) => {
-      position.x += velocity.vx;
-      position.y += velocity.vy;
-      entity.modified(Position);
-    });
-
-  world
-    .system('AngularMovement')
-    .with(Rotation, AngularVelocity)
-    .each(
-      [Rotation, AngularVelocity],
-      (entity, [rotation, angularVelocity]) => {
-        rotation.angle += angularVelocity.omega;
-        entity.modified(Rotation);
-      },
-    );
-
-  world
-    .system('FrictionSystem')
-    .with(Velocity, Friction)
-    .each([Velocity, Friction], (_entity, [velocity, friction]) => {
-      velocity.vx *= friction.value;
-      velocity.vy *= friction.value;
+    .system('ShipFriction')
+    .with(PlayerShip, LinearVelocity)
+    .each([LinearVelocity], (entity, [linearVelocity]) => {
+      linearVelocity.x *= ENTITY_CONFIG.SHIP.FRICTION;
+      linearVelocity.y *= ENTITY_CONFIG.SHIP.FRICTION;
+      entity.modified(LinearVelocity);
     });
 
   world
     .system('Wrap')
-    .with(Position, Wraps)
-    .each([Position], (entity, [position]) => {
+    .phase(POST_UPDATE)
+    .with(PhysicsPosition, Wraps)
+    .each([PhysicsPosition], (entity, [position]) => {
       let wrapped = false;
 
-      if (position.x < 0) {
-        position.x = WORLD_WIDTH;
+      if (position.x < WORLD_MIN_X) {
+        position.x = WORLD_MAX_X;
         wrapped = true;
-      } else if (position.x > WORLD_WIDTH) {
-        position.x = 0;
-        wrapped = true;
-      }
-
-      if (position.y < 0) {
-        position.y = WORLD_HEIGHT;
-        wrapped = true;
-      } else if (position.y > WORLD_HEIGHT) {
-        position.y = 0;
+      } else if (position.x > WORLD_MAX_X) {
+        position.x = WORLD_MIN_X;
         wrapped = true;
       }
 
-      if (wrapped) entity.modified(Position);
+      if (position.y < WORLD_MIN_Y) {
+        position.y = WORLD_MAX_Y;
+        wrapped = true;
+      } else if (position.y > WORLD_MAX_Y) {
+        position.y = WORLD_MIN_Y;
+        wrapped = true;
+      }
+
+      if (wrapped) entity.modified(PhysicsPosition);
     });
 }

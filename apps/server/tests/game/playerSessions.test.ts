@@ -1,12 +1,17 @@
 import { ChildOf, World, type Entity } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
 import {
-  PlayerShip,
-  Point,
+  phaserNetworkComponents,
   Position,
-  Shape,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  Triangle,
+} from '@vworlds/vecs-phaser';
+import {
+  PLAYER_COLORS,
+  PlayerShip,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -30,6 +35,7 @@ type PlayerSessionWorld = Parameters<typeof registerPlayerSessionComponents>[0];
 
 function createTestWorld(): World {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
   registerPlayerSessionComponents(world as unknown as PlayerSessionWorld);
   installPlayerSessionSystems(
     world as unknown as Parameters<typeof installPlayerSessionSystems>[0],
@@ -77,15 +83,19 @@ describe('player session ownership', () => {
     expect(playerShipB.playerIndex).toBe(1);
     expect(playerShipA.color).not.toBe(playerShipB.color);
     expect(positionA).not.toEqual(positionB);
-    expect(positionA.x).toBeGreaterThanOrEqual(0);
-    expect(positionA.x).toBeLessThanOrEqual(WORLD_WIDTH);
-    expect(positionB.y).toBeGreaterThanOrEqual(0);
-    expect(positionB.y).toBeLessThanOrEqual(WORLD_HEIGHT);
-    expect(shipA.get(Shape)?.points).toEqual([
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
-    ]);
+    expect(positionA.x).toBeGreaterThanOrEqual(WORLD_MIN_X);
+    expect(positionA.x).toBeLessThanOrEqual(WORLD_MAX_X);
+    expect(positionB.y).toBeGreaterThanOrEqual(WORLD_MIN_Y);
+    expect(positionB.y).toBeLessThanOrEqual(WORLD_MAX_Y);
+    expect(playerShipA.color).toBe(PLAYER_COLORS[0]);
+    expect(shipA.get(Triangle)).toMatchObject({
+      x1: 0.15,
+      y1: 0,
+      x2: -0.1,
+      y2: 0.1,
+      x3: -0.1,
+      y3: -0.1,
+    });
   });
 
   it('applies network input only to the owning ship', () => {

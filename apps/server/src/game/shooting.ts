@@ -1,9 +1,27 @@
 import { ChildOf, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
-  Alien,
-  AngularVelocity,
   Arc,
+  FillStyle,
+  Polygon,
+  Position as RenderPosition,
+  Rotation as RenderRotation,
+  Triangle,
+} from '@vworlds/vecs-phaser';
+import {
+  AngularVelocity as PhysicsAngularVelocity,
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  LinearVelocity,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
+import {
+  Alien,
   Asteroid,
   AuraWeapon,
   Boomerang,
@@ -14,37 +32,18 @@ import {
   CAT_ENEMY,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
-  Collider,
+  COLORS,
   Decay,
   DefaultWeapon,
-  Drawable,
   ENTITY_CONFIG,
-  FillStyle,
   LaserWeapon,
   PlayerShip,
-  Point,
-  Position,
-  ProjectileView,
+  perSecond,
   Rocket,
   RocketWeapon,
-  Rotation,
-  Shape,
-  StrokeStyle,
-  Velocity,
-  WeaponView,
   Wraps,
 } from '@spacerocks/common';
 import { PlayerInputIntent } from './playerSessions';
-
-const PROJECTILE_KIND_BULLET = 0; // enum id
-const PROJECTILE_KIND_ROCKET = 3; // enum id
-const PROJECTILE_KIND_BOOMERANG = 4; // enum id
-
-const WEAPON_KIND_DEFAULT = 0; // enum id
-const WEAPON_KIND_LASER = 1; // enum id
-const WEAPON_KIND_AURA = 2; // enum id
-const WEAPON_KIND_ROCKET = 3; // enum id
-const WEAPON_KIND_BOOMERANG = 4; // enum id
 
 export class ShootingCooldown {
   frames = 0; // frames
@@ -60,9 +59,6 @@ export function registerShootingComponents(world: ServerWorld): void {
   world.component(Rocket);
   world.component(Boomerang);
   world.component(Decay);
-  world.component(ProjectileView);
-  world.component(WeaponView);
-  world.component(FillStyle);
 }
 
 export function installShootingSystems(world: ServerWorld): void {
@@ -72,9 +68,6 @@ export function installShootingSystems(world: ServerWorld): void {
     .enter([PlayerShip], (ship) => {
       if (!ship.get(ShootingCooldown))
         ship.set(ShootingCooldown, { frames: 0 });
-      if (!ship.get(WeaponView))
-        ship.set(WeaponView, { activeWeapon: 0, ammo: 0 });
-      updateWeaponView(ship);
     });
 
   world
@@ -86,13 +79,19 @@ export function installShootingSystems(world: ServerWorld): void {
 
   world
     .system('Shooting')
-    .with(PlayerShip, PlayerInputIntent, Position, Rotation, ShootingCooldown)
+    .with(
+      PlayerShip,
+      PlayerInputIntent,
+      RenderPosition,
+      RenderRotation,
+      ShootingCooldown,
+    )
     .each(
-      [PlayerInputIntent, Position, Rotation, ShootingCooldown],
+      [PlayerInputIntent, RenderPosition, RenderRotation, ShootingCooldown],
       (ship, [input, position, rotation, cooldown]) => {
         if (!input.shoot || cooldown.frames > 0) return;
 
-        const color = ship.get(StrokeStyle)?.style ?? '#fff';
+        const color = ship.get(PlayerShip)?.color ?? COLORS.white;
         const aura = ship.getMut(AuraWeapon);
         const laser = ship.getMut(LaserWeapon);
         const rocketWeapon = ship.getMut(RocketWeapon);
@@ -111,24 +110,20 @@ export function installShootingSystems(world: ServerWorld): void {
           }
           aura.shots -= 1;
           if (aura.shots <= 0) switchToDefaultWeapon(ship);
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (laser && laser.shots > 0) {
           laser.firing = true;
           laser.timer = ENTITY_CONFIG.SHIP.LASER_TIMER;
           laser.shots -= 1;
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (rocketWeapon && rocketWeapon.shots > 0) {
           createRocket(world, ship, position.x, position.y, rotation.angle);
           rocketWeapon.shots -= 1;
           if (rocketWeapon.shots <= 0) switchToDefaultWeapon(ship);
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (boomerangWeapon && boomerangWeapon.shots > 0) {
           createBoomerang(world, ship, position.x, position.y, rotation.angle);
           boomerangWeapon.shots -= 1;
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (ship.get(DefaultWeapon)) {
           createBullet(
@@ -154,15 +149,20 @@ export function installShootingSystems(world: ServerWorld): void {
       if (laser.timer > 0) return;
 
       laser.firing = false;
+      // Mark the change so reactive consumers run — notably the laser-beam
+      // embellishment (.update(LaserWeapon)) that must DESTROY the beam when
+      // firing ends. .each injection does not auto-flag modified the way
+      // getMut (used when firing is turned on) does, so without this the beam
+      // would stay on screen after the timer expires even though damage stops.
+      ship.modified(LaserWeapon);
       if (laser.shots <= 0) switchToDefaultWeapon(ship);
-      updateWeaponView(ship);
     });
 
   world
     .system('RocketSystem')
-    .with(Position, Velocity, Rotation, Rocket)
+    .with(PhysicsPosition, LinearVelocity, PhysicsRotation, Rocket)
     .each(
-      [Position, Velocity, Rotation, Rocket],
+      [PhysicsPosition, LinearVelocity, PhysicsRotation, Rocket],
       (entity, [position, velocity, rotation, rocket]) => {
         if (rocket.straightTimer > 0) {
           rocket.straightTimer -= 1;
@@ -172,7 +172,7 @@ export function installShootingSystems(world: ServerWorld): void {
         const target = findRocketTarget(world, position);
         if (!target) return;
 
-        const currentAngle = Math.atan2(velocity.vy, velocity.vx);
+        const currentAngle = Math.atan2(velocity.y, velocity.x);
         const targetAngle = Math.atan2(
           target.y - position.y,
           target.x - position.x,
@@ -184,41 +184,44 @@ export function installShootingSystems(world: ServerWorld): void {
         );
         const newAngle = currentAngle + turn;
 
-        velocity.vx = Math.cos(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
-        velocity.vy = Math.sin(newAngle) * ENTITY_CONFIG.ROCKET.SPEED;
+        velocity.x = Math.cos(newAngle) * perSecond(ENTITY_CONFIG.ROCKET.SPEED);
+        velocity.y = Math.sin(newAngle) * perSecond(ENTITY_CONFIG.ROCKET.SPEED);
         rotation.angle = newAngle;
-        entity.modified(Rotation);
+        entity.modified(LinearVelocity);
+        entity.modified(PhysicsRotation);
       },
     );
 
   world
     .system('BoomerangSystem')
-    .with(Position, Velocity, Boomerang)
+    .with(PhysicsPosition, LinearVelocity, Boomerang)
     .each(
-      [Position, Velocity, Boomerang],
+      [PhysicsPosition, LinearVelocity, Boomerang],
       (_entity, [position, velocity, boomerang]) => {
         const owner =
           boomerang.ownerId === null
             ? undefined
             : world.getEntity(boomerang.ownerId);
-        const ownerPosition = owner?.get(Position);
+        const ownerPosition = owner?.get(PhysicsPosition);
         if (!ownerPosition) return;
 
         const dx = ownerPosition.x - position.x;
         const dy = ownerPosition.y - position.y;
         const distance = Math.hypot(dx, dy);
         if (distance > 0.001) {
-          velocity.vx += (dx / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
-          velocity.vy += (dy / distance) * ENTITY_CONFIG.BOOMERANG.PULL;
+          const pull = perSecond(ENTITY_CONFIG.BOOMERANG.PULL);
+          velocity.x += (dx / distance) * pull;
+          velocity.y += (dy / distance) * pull;
         }
 
-        const speed = Math.hypot(velocity.vx, velocity.vy);
-        if (speed > ENTITY_CONFIG.BOOMERANG.MAX_SPEED) {
-          velocity.vx =
-            (velocity.vx / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
-          velocity.vy =
-            (velocity.vy / speed) * ENTITY_CONFIG.BOOMERANG.MAX_SPEED;
+        const speed = Math.hypot(velocity.x, velocity.y);
+        const maxSpeed = perSecond(ENTITY_CONFIG.BOOMERANG.MAX_SPEED);
+        if (speed > maxSpeed) {
+          velocity.x = (velocity.x / speed) * maxSpeed;
+          velocity.y = (velocity.y / speed) * maxSpeed;
         }
+
+        _entity.modified(LinearVelocity);
 
         if (
           !boomerang.armed &&
@@ -240,7 +243,6 @@ export function installShootingSystems(world: ServerWorld): void {
       weapon.inFlight = Math.max(0, weapon.inFlight - 1);
       if (weapon.shots === 0 && weapon.inFlight === 0)
         switchToDefaultWeapon(owner);
-      updateWeaponView(owner);
     });
 
   world
@@ -258,28 +260,31 @@ export function createBullet(
   x: number,
   y: number,
   angle: number,
-  color: string,
+  color: number,
 ): Entity {
   const speed = ENTITY_CONFIG.BULLET.SPEED;
-  return world
+  const vx = Math.cos(angle) * speed;
+  const vy = Math.sin(angle) * speed;
+  const radius = 0.02;
+  const maskBits = CAT_ASTEROID | CAT_ENEMY;
+  const bullet = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: owner })
-    .set(Position, { x, y })
-    .set(Velocity, { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed })
-    .set(Rotation, { angle })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(RenderPosition, { x, y })
+    .set(RenderRotation, { angle })
     .set(Bullet, { ownerType: 'player' })
-    .set(ProjectileView, { kind: PROJECTILE_KIND_BULLET, team: 0 })
-    .set(Collider, {
-      radius: 2,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID | CAT_ENEMY,
-    })
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
-    .set(Drawable, { zIndex: 20 })
     .add(Wraps)
-    .set(FillStyle, { style: color })
-    .set(Arc, { radius: 2 });
+    .set(FillStyle, { color, alpha: 1 })
+    .set(Arc, { radius });
+
+  createPhysicsCircleSensor(world, bullet, radius, CAT_PLAYER_BULLET, maskBits);
+  return bullet;
 }
 
 export function createRocket(
@@ -290,27 +295,35 @@ export function createRocket(
   angle: number,
 ): Entity {
   const speed = ENTITY_CONFIG.ROCKET.SPEED;
-  return world
+  const vx = Math.cos(angle) * speed;
+  const vy = Math.sin(angle) * speed;
+  const radius = 0.04;
+  const maskBits = CAT_ASTEROID | CAT_ENEMY;
+  const rocket = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: owner })
-    .set(Position, { x, y })
-    .set(Velocity, { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed })
-    .set(Rotation, { angle })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(RenderPosition, { x, y })
+    .set(RenderRotation, { angle })
     .set(Rocket, { straightTimer: ENTITY_CONFIG.ROCKET.STRAIGHT_FRAMES })
-    .set(ProjectileView, { kind: PROJECTILE_KIND_ROCKET, team: 0 })
-    .set(Collider, {
-      radius: 4,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID | CAT_ENEMY,
-    })
     .set(Decay, { life: ENTITY_CONFIG.ROCKET.LIFE, decay: 1 })
-    .set(Drawable, { zIndex: 20 })
     .add(Wraps)
-    .set(FillStyle, { style: '#ff6600' })
-    .set(Shape, {
-      points: [new Point(6, 0), new Point(-3, 3), new Point(-3, -3)],
+    .set(FillStyle, { color: COLORS.rocket, alpha: 1 })
+    .set(Triangle, {
+      x1: 0.06,
+      y1: 0,
+      x2: -0.03,
+      y2: 0.03,
+      x3: -0.03,
+      y3: -0.03,
     });
+
+  createPhysicsCircleSensor(world, rocket, radius, CAT_PLAYER_BULLET, maskBits);
+  return rocket;
 }
 
 export function createBoomerang(
@@ -321,46 +334,40 @@ export function createBoomerang(
   angle: number,
 ): Entity {
   const config = ENTITY_CONFIG.BOOMERANG;
-  const spawnOffset = ENTITY_CONFIG.SHIP.RADIUS + config.RADIUS + 4;
+  const spawnOffset = ENTITY_CONFIG.SHIP.RADIUS + config.RADIUS + 0.04;
+  const spawnX = x + Math.cos(angle) * spawnOffset;
+  const spawnY = y + Math.sin(angle) * spawnOffset;
+  const vx = Math.cos(angle) * config.SPEED;
+  const vy = Math.sin(angle) * config.SPEED;
+  const maskBits = CAT_ASTEROID | CAT_ENEMY | CAT_PLAYER;
   const entity = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: owner })
-    .set(Position, {
-      x: x + Math.cos(angle) * spawnOffset,
-      y: y + Math.sin(angle) * spawnOffset,
-    })
-    .set(Velocity, {
-      vx: Math.cos(angle) * config.SPEED,
-      vy: Math.sin(angle) * config.SPEED,
-    })
-    .set(Rotation, { angle })
-    .set(AngularVelocity, { omega: config.SPIN })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x: spawnX, y: spawnY })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(PhysicsAngularVelocity, { value: perSecond(config.SPIN) })
+    .set(RenderPosition, { x: spawnX, y: spawnY })
+    .set(RenderRotation, { angle })
     .set(Boomerang, { ownerId: owner.eid, armed: false })
-    .set(ProjectileView, { kind: PROJECTILE_KIND_BOOMERANG, team: 0 })
-    .set(Collider, {
-      radius: config.RADIUS,
-      category: CAT_BOOMERANG,
-      mask: CAT_ASTEROID | CAT_ENEMY | CAT_PLAYER,
-    })
     .set(Decay, { life: 1, decay: 1 / config.LIFE })
-    .set(Drawable, { zIndex: 20 })
-    .set(FillStyle, { style: '#006400' })
-    .set(Shape, {
-      points: [
-        new Point(0, 0),
-        new Point(2, 5),
-        new Point(5, 5),
-        new Point(3, 0),
-        new Point(5, -5),
-        new Point(2, -5),
-      ],
+    .set(FillStyle, { color: COLORS.boomerang, alpha: 1 })
+    .set(Polygon, {
+      points: [0, 0, 0.02, 0.05, 0.05, 0.05, 0.03, 0, 0.05, -0.05, 0.02, -0.05],
     });
 
+  createPhysicsCircleSensor(
+    world,
+    entity,
+    config.RADIUS,
+    CAT_BOOMERANG,
+    maskBits,
+  );
   owner.getMut(BoomerangWeapon, (weapon) => {
     weapon.inFlight += 1;
   });
-  updateWeaponView(owner);
   return entity;
 }
 
@@ -372,32 +379,9 @@ function switchToDefaultWeapon(ship: Entity): void {
   if (!ship.get(DefaultWeapon)) ship.add(DefaultWeapon);
 }
 
-function updateWeaponView(ship: Entity): void {
-  const weapon = currentWeapon(ship);
-  const laser = ship.get(LaserWeapon);
-  const view = ship.getMut(WeaponView, (weaponView) => {
-    weaponView.activeWeapon = weapon.kind;
-    weaponView.ammo = weapon.ammo;
-    weaponView.firing = laser?.firing ? 1 : 0;
-  });
-  if (view) ship.modified(WeaponView);
-}
-
-function currentWeapon(ship: Entity): { kind: number; ammo: number } {
-  const laser = ship.get(LaserWeapon);
-  if (laser) return { kind: WEAPON_KIND_LASER, ammo: laser.shots };
-  const aura = ship.get(AuraWeapon);
-  if (aura) return { kind: WEAPON_KIND_AURA, ammo: aura.shots };
-  const rocket = ship.get(RocketWeapon);
-  if (rocket) return { kind: WEAPON_KIND_ROCKET, ammo: rocket.shots };
-  const boomerang = ship.get(BoomerangWeapon);
-  if (boomerang) return { kind: WEAPON_KIND_BOOMERANG, ammo: boomerang.shots };
-  return { kind: WEAPON_KIND_DEFAULT, ammo: 0 };
-}
-
 function findRocketTarget(
   world: ServerWorld,
-  position: Position,
+  position: PhysicsPosition,
 ): { x: number; y: number } | undefined {
   const alienTarget = findNearest(world, position, Alien);
   return alienTarget ?? findNearest(world, position, Asteroid);
@@ -405,14 +389,14 @@ function findRocketTarget(
 
 function findNearest(
   world: ServerWorld,
-  source: Position,
+  source: PhysicsPosition,
   component: typeof Alien | typeof Asteroid,
 ): { x: number; y: number } | undefined {
   let target: { x: number; y: number } | undefined;
   let minDistance = Infinity;
   world
-    .filter([Position, component])
-    .forEach([Position], (_entity, [position]) => {
+    .filter([PhysicsPosition, component])
+    .forEach([PhysicsPosition], (_entity, [position]) => {
       const distance = Math.hypot(source.x - position.x, source.y - position.y);
       if (
         distance >= ENTITY_CONFIG.ROCKET.HOME_RANGE ||
@@ -423,6 +407,25 @@ function findNearest(
       target = { x: position.x, y: position.y };
     });
   return target;
+}
+
+function createPhysicsCircleSensor(
+  world: ServerWorld,
+  body: Entity,
+  radius: number,
+  categoryBits: number,
+  maskBits: number,
+): void {
+  world
+    .entity()
+    .childOf(body)
+    .set(Circle, { radius })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits,
+      maskBits,
+    });
 }
 
 function wrapAngle(angle: number): number {

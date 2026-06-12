@@ -1,17 +1,30 @@
 import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
 import {
+  Arc,
+  phaserNetworkComponents,
+  Polygon,
+  Position,
+  StrokeStyle,
+} from '@vworlds/vecs-phaser';
+import {
+  LinearVelocity,
+  PhysicsModule,
+  Position as PhysicsPosition,
+} from '@vworlds/vecs-physics';
+import {
   Alien,
   Asteroid,
   AsteroidView,
+  COLORS,
   GameStateView,
   Pickup,
+  PICKUP_COLORS,
   PickupKind,
-  PickupView,
-  Point,
-  Position,
-  Shape,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  TICK_RATE,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPrng } from '../../src/game/rng';
@@ -23,6 +36,7 @@ import {
   registerSpawningComponents,
 } from '../../src/game/spawning';
 import { registerPlayerSessionComponents } from '../../src/game/playerSessions';
+import type { Prng } from '../../src/game/rng';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -40,6 +54,7 @@ function createTestWorld(seed = 1234): {
   world: World;
 } {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
   registerPlayerSessionComponents(
     world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
   );
@@ -53,6 +68,12 @@ function createTestWorld(seed = 1234): {
 
 function runSimulation(world: World, now: number): void {
   world.progress(now, 500);
+}
+
+function stepTicks(world: World, ticks: number): void {
+  for (let tick = 0; tick < ticks; tick += 1) {
+    world.progress(tick * (1000 / TICK_RATE), 1000 / TICK_RATE);
+  }
 }
 
 function count(world: World, component: ComponentClass): number {
@@ -91,33 +112,88 @@ describe('server spawning systems', () => {
     );
     expect(count(world, GameStateView)).toBe(1);
     expect(count(world, Asteroid)).toBe(5);
-    expect(firstEntity(world, Asteroid)?.get(Shape)?.points[0]).toBeInstanceOf(
-      Point,
-    );
+    expect(
+      firstEntity(world, Asteroid)?.get(Polygon)?.points.length,
+    ).toBeGreaterThan(0);
 
     world
       .filter([Asteroid, Position])
       .forEach([Position], (_entity, [position]) => {
-        expect(position.x).toBeGreaterThanOrEqual(0);
-        expect(position.x).toBeLessThanOrEqual(WORLD_WIDTH);
-        expect(position.y).toBeGreaterThanOrEqual(0);
-        expect(position.y).toBeLessThanOrEqual(WORLD_HEIGHT);
+        expect(position.x).toBeGreaterThanOrEqual(WORLD_MIN_X);
+        expect(position.x).toBeLessThanOrEqual(WORLD_MAX_X);
+        expect(position.y).toBeGreaterThanOrEqual(WORLD_MIN_Y);
+        expect(position.y).toBeLessThanOrEqual(WORLD_MAX_Y);
       });
   });
 
-  it('creates wire-encodable alien shape points', () => {
+  it('spawns asteroids with measurable per-second physics drift', () => {
+    const { world } = createTestWorld();
+    world.module(PhysicsModule, {
+      gravity: { x: 0, y: 0 },
+      fixedTimeStep: 1 / TICK_RATE,
+      subSteps: 4,
+    });
+    const rng = {
+      bool: () => false,
+      int: () => 0,
+      range: () => 0.5,
+    } as unknown as Prng;
+    const asteroid = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      rng,
+      0,
+      0,
+      1,
+    );
+
+    expect(
+      Math.hypot(
+        asteroid.get(LinearVelocity)!.x,
+        asteroid.get(LinearVelocity)!.y,
+      ),
+    ).toBeGreaterThan(0.5);
+
+    stepTicks(world, TICK_RATE);
+
+    expect(
+      Math.hypot(
+        asteroid.get(PhysicsPosition)!.x,
+        asteroid.get(PhysicsPosition)!.y,
+      ),
+    ).toBeGreaterThan(0.05);
+  });
+
+  it('creates phaser alien render components', () => {
     const { world } = createTestWorld();
     const alien = createAlien(
       world as unknown as Parameters<typeof createAlien>[0],
       createPrng(1234),
     );
 
-    expect(alien.get(Shape)?.points).toEqual([
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
-      expect.any(Point),
+    expect(alien.get(Polygon)?.points).toEqual([
+      0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1,
     ]);
+    expect(alien.get(StrokeStyle)).toMatchObject({
+      color: COLORS.orange,
+      alpha: 1,
+      width: 2,
+    });
+  });
+
+  it('creates pickup arc and u32 stroke color render components', () => {
+    const { world } = createTestWorld();
+    const pickup = createPickup(
+      world as unknown as Parameters<typeof createPickup>[0],
+      createPrng(1234),
+      PickupKind.Health,
+    );
+
+    expect(pickup.get(Arc)).toMatchObject({ radius: 0.15 });
+    expect(pickup.get(StrokeStyle)).toMatchObject({
+      color: PICKUP_COLORS[PickupKind.Health],
+      alpha: 1,
+      width: 2,
+    });
   });
 
   it('progresses waves when asteroids and aliens are cleared', () => {
@@ -210,15 +286,15 @@ describe('server spawning systems', () => {
     const asteroidA = createAsteroid(
       worldA as unknown as Parameters<typeof createAsteroid>[0],
       rngA,
-      10,
-      20,
+      0.1,
+      0.2,
       3,
     );
     const asteroidB = createAsteroid(
       worldB as unknown as Parameters<typeof createAsteroid>[0],
       rngB,
-      10,
-      20,
+      0.1,
+      0.2,
       3,
     );
     const pickupA = createPickup(
@@ -233,7 +309,7 @@ describe('server spawning systems', () => {
     );
 
     expect(asteroidA.get(AsteroidView)).toEqual(asteroidB.get(AsteroidView));
-    expect(pickupA.get(PickupView)).toEqual(pickupB.get(PickupView));
+    expect(pickupA.get(StrokeStyle)).toEqual(pickupB.get(StrokeStyle));
     expect(pickupA.get(Position)).toEqual(pickupB.get(Position));
   });
 });

@@ -1,5 +1,7 @@
-import { ChildOf, type Entity } from '@vworlds/vecs';
+import { ChildOf, POST_UPDATE, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
+import { Position, Rotation } from '@vworlds/vecs-phaser';
+import { CollisionFilter, SensorEvents } from '@vworlds/vecs-physics';
 import {
   Alien,
   Asteroid,
@@ -14,30 +16,25 @@ import {
   CAT_PICKUP,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
-  Collider,
+  COLORS,
   Decay,
   DefaultWeapon,
-  Drawable,
   ENTITY_CONFIG,
-  ExplosionView,
+  Explosion,
   GameStateView,
   Health,
   HealthPickup,
-  HealthView,
   LaserWeapon,
   Pickup,
   PickupKind,
   PlayerShip,
-  Position,
   Rocket,
   RocketWeapon,
-  Rotation,
   SCORING,
   SHIELD_DAMAGE,
   Shield,
-  ShieldView,
+  TICK_RATE,
   toFrames,
-  WeaponView,
 } from '@spacerocks/common';
 import { createAsteroid } from './spawning';
 import { createPrng, type Prng } from './rng';
@@ -46,17 +43,11 @@ import { createPlayerShip, PlayerSession } from './playerSessions';
 type CollisionHandler = (a: Entity, b: Entity) => void;
 
 const GAME_STATE_PLAYING = 0; // enum id
-const LASER_LENGTH = 1000; // world units
+const LASER_LENGTH = 10; // meters
 const RESPAWN_DELAY_FRAMES = toFrames(3_000); // frames
-const WEAPON_KIND_DEFAULT = 0; // enum id
-const WEAPON_KIND_LASER = 1; // enum id
-const WEAPON_KIND_AURA = 2; // enum id
-const WEAPON_KIND_ROCKET = 3; // enum id
-const WEAPON_KIND_BOOMERANG = 4; // enum id
-
 const registry = new Map<number, CollisionHandler[]>();
 
-class RespawnTimer {
+export class RespawnTimer {
   sessionId = 0; // entity id
   playerIndex = 0; // player index
   frames = RESPAWN_DELAY_FRAMES; // frames
@@ -69,10 +60,6 @@ export function registerCombatComponents(world: ServerWorld): void {
   world.component(BoomerangWeapon);
   world.component(DefaultWeapon);
   world.component(Shield);
-  world.component(ShieldView);
-  world.component(HealthView);
-  world.component(ExplosionView);
-  world.component(WeaponView);
   world.component(RespawnTimer);
 }
 
@@ -89,7 +76,6 @@ export function installCombatSystems(
     .each([Shield], (entity, [shield]) => {
       shield.shieldTime -= 1;
       entity.modified(Shield);
-      syncShieldView(entity, shield);
       if (shield.shieldTime <= 0) clearShield(entity);
     });
 
@@ -100,7 +86,6 @@ export function installCombatSystems(
       if (health.healthBarTimer > 0) {
         health.healthBarTimer -= 1;
         entity.modified(Health);
-        syncHealthView(entity, health);
       }
     });
 
@@ -131,38 +116,45 @@ export function installCombatSystems(
 
   world
     .system('ServerCollision')
-    .with(Collider, Position)
+    .phase(POST_UPDATE)
     .run(() => {
       if (!isPlaying(world)) return;
-      const entities = collectColliders(world);
+      const handled = new Set<string>();
       const consumed = new Set<number>();
 
-      for (let i = 0; i < entities.length; i += 1) {
-        const a = entities[i]!;
-        if (consumed.has(a.eid)) continue;
-        const colA = a.get(Collider);
-        const posA = a.get(Position);
-        if (!colA || !posA) continue;
+      world
+        .filter([SensorEvents, CollisionFilter])
+        .forEach(
+          [SensorEvents, CollisionFilter],
+          (shapeA, [eventsA, filterA]) => {
+            for (const event of eventsA.begin) {
+              const shapeB = event.other;
+              const filterB = shapeB.get(CollisionFilter);
+              const bodyA = shapeA.parent(ChildOf);
+              const bodyB = shapeB.parent(ChildOf);
+              if (!filterB || !bodyA || !bodyB || bodyA === bodyB) continue;
+              if (consumed.has(bodyA.eid) || consumed.has(bodyB.eid)) continue;
+              if (!world.getEntity(bodyA.eid) || !world.getEntity(bodyB.eid))
+                continue;
 
-        for (let j = i + 1; j < entities.length; j += 1) {
-          const b = entities[j]!;
-          if (consumed.has(a.eid) || consumed.has(b.eid)) continue;
-          const colB = b.get(Collider);
-          const posB = b.get(Position);
-          if (!colB || !posB) continue;
-          if (!(colA.mask & colB.category) || !(colB.mask & colA.category))
-            continue;
-          if (
-            Math.hypot(posA.x - posB.x, posA.y - posB.y) >=
-            colA.radius + colB.radius
-          )
-            continue;
+              const pairKey = `${Math.min(bodyA.eid, bodyB.eid)}:${Math.max(
+                bodyA.eid,
+                bodyB.eid,
+              )}`;
+              if (handled.has(pairKey)) continue;
+              handled.add(pairKey);
 
-          dispatchCollision(a, b, colA, colB);
-          if (!world.getEntity(a.eid)) consumed.add(a.eid);
-          if (!world.getEntity(b.eid)) consumed.add(b.eid);
-        }
-      }
+              dispatchCollision(
+                bodyA,
+                bodyB,
+                filterA.categoryBits,
+                filterB.categoryBits,
+              );
+              if (!world.getEntity(bodyA.eid)) consumed.add(bodyA.eid);
+              if (!world.getEntity(bodyB.eid)) consumed.add(bodyB.eid);
+            }
+          },
+        );
     });
 }
 
@@ -170,7 +162,8 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
   registerCollisionEffect(CAT_PLAYER, CAT_PICKUP, (player, pickup) => {
     applyPickupEffect(world, player, pickup);
     const position = player.get(Position);
-    if (position) createExplosion(world, position.x, position.y, '#fff', 20);
+    if (position)
+      createExplosion(world, position.x, position.y, COLORS.white, 0.2);
     pickup.destroy();
   });
 
@@ -204,7 +197,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
           world,
           position.x,
           position.y,
-          asteroidView?.color ?? '#aaa',
+          asteroidView?.color ?? COLORS.asteroidGrey,
         );
       asteroid.destroy();
       bullet.destroy();
@@ -219,8 +212,8 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         world,
         position.x,
         position.y,
-        asteroidView?.color ?? '#ffaa00',
-        20,
+        asteroidView?.color ?? COLORS.orange,
+        0.2,
       );
     alien.destroy();
     asteroid.destroy();
@@ -235,8 +228,8 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         world,
         playerPosition.x,
         playerPosition.y,
-        '#ffaa00',
-        player.get(Shield) ? 20 : 5,
+        COLORS.orange,
+        player.get(Shield) ? 0.2 : 0.05,
       );
     alien.destroy();
     addScore(world, SCORING.ALIEN);
@@ -269,7 +262,6 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
           weapon.shots + 1,
           ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
         );
-        syncWeaponView(player);
       }
       boomerangEntity.destroy();
     },
@@ -288,8 +280,8 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         world,
         explosionPosition.x,
         explosionPosition.y,
-        asteroidView?.color ?? '#aaa',
-        5,
+        asteroidView?.color ?? COLORS.asteroidGrey,
+        0.05,
       );
     destroyAsteroid(world, rng, asteroid, true, false);
   });
@@ -310,11 +302,11 @@ function registerCollisionEffect(
 function dispatchCollision(
   a: Entity,
   b: Entity,
-  colA: Collider,
-  colB: Collider,
+  categoryMaskA: number,
+  categoryMaskB: number,
 ): void {
-  const catAList = getCategoryBits(colA.category & colB.mask);
-  const catBList = getCategoryBits(colB.category & colA.mask);
+  const catAList = getCategoryBits(categoryMaskA);
+  const catBList = getCategoryBits(categoryMaskB);
   for (const categoryA of catAList) {
     for (const categoryB of catBList) {
       const low = Math.min(categoryA, categoryB);
@@ -344,14 +336,6 @@ function regKey(categoryA: number, categoryB: number): number {
   return Math.min(categoryA, categoryB) * 1000 + Math.max(categoryA, categoryB);
 }
 
-function collectColliders(world: ServerWorld): Entity[] {
-  const entities: Entity[] = [];
-  world.filter([Collider, Position]).forEach([], (entity) => {
-    entities.push(entity);
-  });
-  return entities;
-}
-
 function resolveLaserHits(
   world: ServerWorld,
   rng: Prng,
@@ -365,22 +349,20 @@ function resolveLaserHits(
   };
 
   world
-    .filter([Position, Collider, Asteroid])
-    .forEach([Position, Collider], (asteroid, [position, collider]) => {
-      if (distToSegment(position, start, end) < collider.radius) {
+    .filter([Position, Asteroid, AsteroidView])
+    .forEach([Position, AsteroidView], (asteroid, [position, asteroidView]) => {
+      if (distToSegment(position, start, end) < asteroidView.radius) {
         destroyAsteroid(world, rng, asteroid, true);
       }
     });
 
-  world
-    .filter([Position, Collider, Alien])
-    .forEach([Position, Collider], (alien, [position, collider]) => {
-      if (distToSegment(position, start, end) < collider.radius) {
-        createExplosion(world, position.x, position.y, '#ffaa00', 15);
-        alien.destroy();
-        addScore(world, SCORING.ALIEN);
-      }
-    });
+  world.filter([Position, Alien]).forEach([Position], (alien, [position]) => {
+    if (distToSegment(position, start, end) < ENTITY_CONFIG.ALIEN.RADIUS) {
+      createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
+      alien.destroy();
+      addScore(world, SCORING.ALIEN);
+    }
+  });
 }
 
 function destroyAsteroid(
@@ -401,7 +383,7 @@ function destroyAsteroid(
       position.x,
       position.y,
       asteroidData.color,
-      asteroidView?.radius ?? 20,
+      asteroidView?.radius ?? 0.2,
     );
   if (asteroidData.level > 1) {
     const nextLevel = (asteroidData.level - 1) as 1 | 2;
@@ -419,12 +401,12 @@ function damageEnemy(world: ServerWorld, enemy: Entity, damage: number): void {
     health.hp -= damage;
     health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
     enemy.modified(Health);
-    syncHealthView(enemy, health);
     if (health.hp > 0) return;
   }
 
   const position = enemy.get(Position);
-  if (position) createExplosion(world, position.x, position.y, '#ffaa00', 15);
+  if (position)
+    createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
   enemy.destroy();
   addScore(world, SCORING.ALIEN);
 }
@@ -438,7 +420,6 @@ function damagePlayer(
   if (shield) {
     shield.shieldTime = Math.max(0, shield.shieldTime - shieldDamage);
     player.modified(Shield);
-    syncShieldView(player, shield);
     if (shield.shieldTime <= 0) clearShield(player);
     return;
   }
@@ -448,13 +429,13 @@ function damagePlayer(
   health.hp -= 10;
   health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
   player.modified(Health);
-  syncHealthView(player, health);
   if (health.hp <= 0) killPlayer(world, player);
 }
 
 function killPlayer(world: ServerWorld, player: Entity): void {
   const position = player.get(Position);
-  if (position) createExplosion(world, position.x, position.y, '#fff', 20);
+  if (position)
+    createExplosion(world, position.x, position.y, COLORS.white, 0.2);
   const playerShip = player.get(PlayerShip);
   const session = player.get(ChildOf)?.target;
   if (session?.get(PlayerSession) && playerShip) {
@@ -478,7 +459,6 @@ function applyPickupEffect(
   if (pickup.kind === PickupKind.Shield) {
     const shield = { shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION };
     player.set(Shield, shield);
-    syncShieldView(player, shield);
     addScore(world, SCORING.SHIELD);
   } else if (pickup.kind === PickupKind.Laser) {
     setActiveWeapon(player, PickupKind.Laser);
@@ -502,7 +482,6 @@ function applyPickupEffect(
       );
       health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
       player.modified(Health);
-      syncHealthView(player, health);
       addScore(
         world,
         healthPickup.amount <= 0.25
@@ -526,38 +505,16 @@ function setActiveWeapon(player: Entity, kind: PickupKind): void {
       firing: false,
       timer: 0,
     });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_LASER,
-      ammo: ENTITY_CONFIG.SHIP.LASER_SHOT_COUNT,
-      firing: 0,
-    });
   } else if (kind === PickupKind.Aura) {
     player.set(AuraWeapon, { shots: ENTITY_CONFIG.SHIP.AURA_SHOT_COUNT });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_AURA,
-      ammo: ENTITY_CONFIG.SHIP.AURA_SHOT_COUNT,
-      firing: 0,
-    });
   } else if (kind === PickupKind.Rocket) {
     player.set(RocketWeapon, { shots: ENTITY_CONFIG.ROCKET.SHOT_COUNT });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_ROCKET,
-      ammo: ENTITY_CONFIG.ROCKET.SHOT_COUNT,
-      firing: 0,
-    });
   } else if (kind === PickupKind.Boomerang) {
     player.set(BoomerangWeapon, {
       shots: ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
       inFlight: 0,
     });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_BOOMERANG,
-      ammo: ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
-      firing: 0,
-    });
   }
-
-  player.modified(WeaponView);
 }
 
 function projectileDamage(projectile: Entity): number {
@@ -574,80 +531,31 @@ function addScore(world: ServerWorld, amount: number): void {
   entity.modified(GameStateView);
 }
 
-function syncHealthView(entity: Entity, health: Health): void {
-  entity.set(HealthView, {
-    hp: Math.max(0, health.hp),
-    maxHp: health.maxHp,
-    barTimer: health.healthBarTimer,
-  });
-  entity.modified(HealthView);
-}
-
-function syncShieldView(entity: Entity, shield: Shield): void {
-  entity.set(ShieldView, { remainingTime: Math.max(0, shield.shieldTime) });
-  entity.modified(ShieldView);
-}
-
-function syncWeaponView(entity: Entity): void {
-  const weapon = currentWeapon(entity);
-  entity.set(WeaponView, {
-    activeWeapon: weapon.kind,
-    ammo: weapon.ammo,
-    firing: weapon.firing,
-  });
-  entity.modified(WeaponView);
-}
-
 function clearShield(entity: Entity): void {
   if (entity.get(Shield)) entity.remove(Shield);
-  if (entity.get(ShieldView)) entity.remove(ShieldView);
 }
 
-function currentWeapon(entity: Entity): {
-  kind: number;
-  ammo: number;
-  firing: number;
-} {
-  const laser = entity.get(LaserWeapon);
-  if (laser)
-    return {
-      kind: WEAPON_KIND_LASER,
-      ammo: laser.shots,
-      firing: laser.firing ? 1 : 0,
-    };
-  const aura = entity.get(AuraWeapon);
-  if (aura) return { kind: WEAPON_KIND_AURA, ammo: aura.shots, firing: 0 };
-  const rocket = entity.get(RocketWeapon);
-  if (rocket)
-    return { kind: WEAPON_KIND_ROCKET, ammo: rocket.shots, firing: 0 };
-  const boomerang = entity.get(BoomerangWeapon);
-  if (boomerang)
-    return { kind: WEAPON_KIND_BOOMERANG, ammo: boomerang.shots, firing: 0 };
-  return { kind: WEAPON_KIND_DEFAULT, ammo: 0, firing: 0 };
-}
-
-function createExplosion(
+export function createExplosion(
   world: ServerWorld,
   x: number,
   y: number,
-  color: string,
-  size = 20, // world units
+  color: number,
+  size = 0.2, // meters
 ): void {
   world
     .entity()
     .add(Networked)
     .set(Position, { x, y })
-    .set(ExplosionView, {
+    .set(Explosion, {
       color,
       size,
       seed: Math.floor(Math.random() * 0xffffffff),
-      duration: ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES,
+      duration: ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES / TICK_RATE,
     })
     .set(Decay, {
       life: 1,
       decay: 1 / ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES,
-    })
-    .set(Drawable, { zIndex: 70 });
+    });
 }
 
 function distToSegment(

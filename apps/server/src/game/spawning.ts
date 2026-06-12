@@ -1,10 +1,28 @@
 import type { ComponentClass, Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
-  Alien,
   Arc,
+  Polygon,
+  Position as RenderPosition,
+  Rotation as RenderRotation,
+  StrokeStyle,
+} from '@vworlds/vecs-phaser';
+import {
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  LinearVelocity,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
+import {
+  Alien,
   Asteroid,
   AsteroidView,
+  ASTEROID_COLORS,
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
@@ -12,38 +30,33 @@ import {
   CAT_PICKUP,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
-  Collider,
+  COLORS,
   Decay,
-  Drawable,
   ENTITY_CONFIG,
   GAME_CONFIG,
   GameStateView,
   Health,
-  HealthView,
   HealthPickup,
   Pickup,
+  PICKUP_COLORS,
   PickupKind,
-  PickupView,
-  Point,
-  Position,
+  PIXELS_PER_METER,
+  perSecond,
   RandomClockKind,
-  Rotation,
-  Shape,
-  StrokeStyle,
-  Velocity,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
   Wraps,
 } from '@spacerocks/common';
 import { createPrng, type Prng } from './rng';
 
 const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // wave number
-const ASTEROID_COLORS = ['#aaa', '#888', '#bbb', '#999', '#777'] as const;
 const ASTEROID_RADII: Record<1 | 2 | 3, number> = {
-  1: 10, // world units
-  2: 20, // world units
-  3: 40, // world units
+  1: 0.1, // meters
+  2: 0.2, // meters
+  3: 0.4, // meters
 };
 
 const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
@@ -53,33 +66,6 @@ const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
   [PickupKind.Rocket]: GAME_CONFIG.ROCKET_PICKUP_TTL_FRAMES,
   [PickupKind.Boomerang]: GAME_CONFIG.BOOMERANG_PICKUP_TTL_FRAMES,
   [PickupKind.Health]: GAME_CONFIG.HEALTH_PICKUP_TTL_FRAMES,
-};
-
-const PICKUP_CONFIG: Record<PickupKind, { color: string; viewKind: number }> = {
-  [PickupKind.Shield]: {
-    color: '#0f0',
-    viewKind: 0, // enum id
-  },
-  [PickupKind.Laser]: {
-    color: '#f00',
-    viewKind: 1, // enum id
-  },
-  [PickupKind.Aura]: {
-    color: '#3af',
-    viewKind: 2, // enum id
-  },
-  [PickupKind.Rocket]: {
-    color: '#ff6600',
-    viewKind: 3, // enum id
-  },
-  [PickupKind.Boomerang]: {
-    color: '#006400',
-    viewKind: 4, // enum id
-  },
-  [PickupKind.Health]: {
-    color: '#fff',
-    viewKind: 5, // enum id
-  },
 };
 
 class SpawnTimer {
@@ -95,10 +81,8 @@ export function registerSpawningComponents(world: ServerWorld): void {
   world.component(AsteroidView);
   world.component(Alien);
   world.component(Pickup);
-  world.component(PickupView);
   world.component(HealthPickup);
   world.component(Decay);
-  world.component(Arc);
   world.component(GameStateView);
 }
 
@@ -148,81 +132,78 @@ export function createAsteroid(
   level: 1 | 2 | 3,
 ): Entity {
   const radius = ASTEROID_RADII[level];
-  const color = ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ?? '#aaa';
+  const speedFactor =
+    ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level / PIXELS_PER_METER;
+  const color =
+    ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ?? COLORS.asteroidGrey;
   const vert = 5 + rng.int(5);
-  const points: Point[] = [];
+  const vx = rng.range(-0.5, 0.5) * speedFactor;
+  const vy = rng.range(-0.5, 0.5) * speedFactor;
+  const maskBits =
+    CAT_PLAYER |
+    CAT_PLAYER_BULLET |
+    CAT_ENEMY_BULLET |
+    CAT_ENEMY |
+    CAT_BOOMERANG;
+  const points: number[] = [];
   for (let i = 0; i < vert; i += 1) {
     const r = radius * rng.range(0.8, 1.2);
     const a = (i / vert) * Math.PI * 2;
-    points.push(new Point(Math.cos(a) * r, Math.sin(a) * r));
+    points.push(Math.cos(a) * r, Math.sin(a) * r);
   }
 
-  return world
+  const asteroid = world
     .entity()
     .add(Networked)
-    .set(Position, { x, y })
-    .set(Velocity, {
-      vx: rng.range(-0.5, 0.5) * (ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level),
-      vy: rng.range(-0.5, 0.5) * (ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level),
-    })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(RenderPosition, { x, y })
     .set(Asteroid, { level, color })
     .set(AsteroidView, { level, color, radius })
-    .set(Collider, {
-      radius,
-      category: CAT_ASTEROID,
-      mask:
-        CAT_PLAYER |
-        CAT_PLAYER_BULLET |
-        CAT_ENEMY_BULLET |
-        CAT_ENEMY |
-        CAT_BOOMERANG,
-    })
-    .set(Drawable, { zIndex: 30 })
     .add(Wraps)
-    .set(StrokeStyle, { style: color, lineWidth: 2 })
-    .set(Shape, { points });
+    .set(StrokeStyle, { color, alpha: 1, width: 2 })
+    .set(Polygon, { points });
+
+  createPhysicsCircleSensor(world, asteroid, radius, CAT_ASTEROID, maskBits);
+  return asteroid;
 }
 
 export function createAlien(world: ServerWorld, rng: Prng): Entity {
-  return world
+  const x = rng.bool() ? WORLD_MIN_X - 0.2 : WORLD_MAX_X + 0.2;
+  const y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
+  const vx = rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR;
+  const vy = rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR;
+  const angle = rng.range(0, Math.PI * 2);
+  const maskBits =
+    CAT_PLAYER | CAT_ASTEROID | CAT_PLAYER_BULLET | CAT_BOOMERANG;
+  const alien = world
     .entity()
     .add(Networked)
-    .set(Position, {
-      x: rng.bool() ? -20 : WORLD_WIDTH + 20,
-      y: rng.range(0, WORLD_HEIGHT),
-    })
-    .set(Velocity, {
-      vx: rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR,
-      vy: rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR,
-    })
-    .set(Rotation, { angle: rng.range(0, Math.PI * 2) })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(PhysicsRotation, { angle })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(RenderPosition, { x, y })
+    .set(RenderRotation, { angle })
     .set(Alien, { shootCooldown: ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE })
     .set(Health, {
       hp: ENTITY_CONFIG.ALIEN.MAX_HP,
       maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
       healthBarTimer: 0,
     })
-    .set(HealthView, {
-      hp: ENTITY_CONFIG.ALIEN.MAX_HP,
-      maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
-      barTimer: 0,
-    })
-    .set(Collider, {
-      radius: ENTITY_CONFIG.ALIEN.RADIUS,
-      category: CAT_ENEMY,
-      mask: CAT_PLAYER | CAT_ASTEROID | CAT_PLAYER_BULLET | CAT_BOOMERANG,
-    })
-    .set(Drawable, { zIndex: 40 })
     .add(Wraps)
-    .set(StrokeStyle, { style: '#ffaa00', lineWidth: 2 })
-    .set(Shape, {
-      points: [
-        new Point(15, 0),
-        new Point(-10, 10),
-        new Point(-5, 0),
-        new Point(-10, -10),
-      ],
-    });
+    .set(StrokeStyle, { color: COLORS.orange, alpha: 1, width: 2 })
+    .set(Polygon, { points: [0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1] });
+
+  createPhysicsCircleSensor(
+    world,
+    alien,
+    ENTITY_CONFIG.ALIEN.RADIUS,
+    CAT_ENEMY,
+    maskBits,
+  );
+  return alien;
 }
 
 export function createPickup(
@@ -230,37 +211,55 @@ export function createPickup(
   rng: Prng,
   kind: PickupKind,
 ): Entity {
-  const config = PICKUP_CONFIG[kind];
   const amount = kind === PickupKind.Health ? (rng.bool() ? 0.25 : 0.5) : 0;
+  const x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
+  const y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
+  const vx = rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR;
+  const vy = rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR;
   const entity = world
     .entity()
     .add(Networked)
-    .set(Position, {
-      x: rng.range(0, WORLD_WIDTH),
-      y: rng.range(0, WORLD_HEIGHT),
-    })
-    .set(Velocity, {
-      vx: rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR,
-      vy: rng.range(-0.5, 0.5) * ENTITY_CONFIG.POWERUP.SPEED_FACTOR,
-    })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x, y })
+    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(RenderPosition, { x, y })
     .set(Pickup, { kind })
-    .set(PickupView, { kind: config.viewKind, amount })
     .set(Decay, {
       life: 1,
       decay: 1 / PICKUP_TTL_FRAMES[kind],
     })
-    .set(Collider, {
-      radius: ENTITY_CONFIG.POWERUP.RADIUS,
-      category: CAT_PICKUP,
-      mask: CAT_PLAYER,
-    })
-    .set(Drawable, { zIndex: 50 })
     .add(Wraps)
-    .set(StrokeStyle, { style: config.color, lineWidth: 2 })
+    .set(StrokeStyle, { color: PICKUP_COLORS[kind], alpha: 1, width: 2 })
     .set(Arc, { radius: ENTITY_CONFIG.POWERUP.RADIUS });
 
   if (kind === PickupKind.Health) entity.set(HealthPickup, { amount });
+  createPhysicsCircleSensor(
+    world,
+    entity,
+    ENTITY_CONFIG.POWERUP.RADIUS,
+    CAT_PICKUP,
+    CAT_PLAYER,
+  );
   return entity;
+}
+
+function createPhysicsCircleSensor(
+  world: ServerWorld,
+  body: Entity,
+  radius: number,
+  categoryBits: number,
+  maskBits: number,
+): void {
+  world
+    .entity()
+    .childOf(body)
+    .set(Circle, { radius })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits,
+      maskBits,
+    });
 }
 
 function initializeGameWorld(world: ServerWorld, rng: Prng, now: number): void {
@@ -337,9 +336,9 @@ function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
     let x: number;
     let y: number;
     do {
-      x = rng.range(0, WORLD_WIDTH);
-      y = rng.range(0, WORLD_HEIGHT);
-    } while (Math.hypot(x - WORLD_WIDTH / 2, y - WORLD_HEIGHT / 2) < 200);
+      x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
+      y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
+    } while (Math.hypot(x, y) < 2.0);
     createAsteroid(world, rng, x, y, 3);
   }
 }

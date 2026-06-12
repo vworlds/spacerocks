@@ -1,16 +1,28 @@
-import { World } from '@vworlds/vecs';
+import { ChildOf, World } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
+import { phaserNetworkComponents } from '@vworlds/vecs-phaser';
 import {
-  AngularVelocity,
+  AngularVelocity as PhysicsAngularVelocity,
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  LinearVelocity,
+  PhysicsModule,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
+import {
   ENTITY_CONFIG,
-  Friction,
   PlayerShip,
-  Position,
-  Rotation,
-  Thrust,
-  Velocity,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  perSecond,
+  TICK_RATE,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
   Wraps,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -36,6 +48,7 @@ type ServerWorldLike = Parameters<typeof registerPlayerSessionComponents>[0];
 
 function createTestWorld(): World {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
   registerPlayerSessionComponents(world as unknown as ServerWorldLike);
   installPlayerSessionSystems(
     world as unknown as Parameters<typeof installPlayerSessionSystems>[0],
@@ -43,7 +56,31 @@ function createTestWorld(): World {
   installMovementSystems(
     world as unknown as Parameters<typeof installMovementSystems>[0],
   );
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
   return world;
+}
+
+function addPhysicsShape(
+  world: World,
+  body: ReturnType<World['entity']>,
+): void {
+  world
+    .entity()
+    .set(ChildOf, { target: body })
+    .set(Circle, { radius: 0.1 })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, { categoryBits: 1, maskBits: 1 });
+}
+
+function stepTicks(world: World, ticks: number): void {
+  for (let tick = 0; tick < ticks; tick += 1) {
+    world.progress(tick * (1000 / TICK_RATE), 1000 / TICK_RATE);
+  }
 }
 
 describe('server movement systems', () => {
@@ -64,56 +101,97 @@ describe('server movement systems', () => {
       ship = entity;
     });
     if (!ship) throw new Error('Expected player ship to exist');
-    const rotation = ship.get(Rotation)!;
-    const velocity = ship.get(Velocity)!;
+    const rotation = ship.get(PhysicsRotation)!;
+    const velocity = ship.get(LinearVelocity)!;
 
-    expect(rotation.angle).toBeCloseTo(ENTITY_CONFIG.SHIP.ROTATION_SPEED * 2);
-    expect(velocity.vx).toBeGreaterThan(0);
-    expect(velocity.vy).toBeGreaterThan(0);
+    expect(rotation.angle).toBeCloseTo(-ENTITY_CONFIG.SHIP.ROTATION_SPEED * 2);
+    expect(velocity.x).toBeGreaterThan(0);
+    expect(velocity.y).toBeLessThan(0);
   });
 
-  it('integrates velocity and friction for moving entities', () => {
+  it('accelerates and moves a continuously-thrusting ship at visible per-second speed', () => {
     const world = createTestWorld();
-    const entity = world
+    const session = world.entity();
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    ship.set(PhysicsPosition, { x: 0, y: 0 });
+    ship.set(PlayerInputIntent, { thrust: true });
+
+    stepTicks(world, TICK_RATE);
+
+    const oneSecondVelocity = ship.get(LinearVelocity)!;
+    expect(oneSecondVelocity.x).toBeGreaterThan(1);
+    expect(oneSecondVelocity.x).toBeLessThan(3);
+    expect(Math.abs(oneSecondVelocity.y)).toBeLessThan(1e-9);
+
+    stepTicks(world, Math.round(TICK_RATE / 2));
+
+    expect(ship.get(PhysicsPosition)!.x).toBeGreaterThan(1);
+    expect(perSecond(ENTITY_CONFIG.SHIP.THRUST_POWER)).toBeCloseTo(0.12);
+  });
+
+  it('integrates physics velocity and applies ship friction', () => {
+    const world = createTestWorld();
+    const drifting = world
       .entity()
-      .set(Position, { x: 10, y: 20 })
-      .set(Velocity, { vx: 3, vy: -2 })
-      .set(Friction, { value: 0.5 });
-    const modified = vi.spyOn(entity, 'modified');
+      .set(Body, { type: BodyType.Dynamic })
+      .set(PhysicsPosition, { x: 1, y: 2 })
+      .set(LinearVelocity, { x: 3, y: -2 });
+    addPhysicsShape(world, drifting);
+
+    const session = world.entity();
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    ship.set(LinearVelocity, { x: 10, y: -5 });
 
     world.progress(0, 1000 / 60);
 
-    expect(entity.get(Position)).toMatchObject({ x: 13, y: 18 });
-    expect(entity.get(Velocity)).toMatchObject({ vx: 1.5, vy: -1 });
-    expect(modified).toHaveBeenCalledWith(Position);
+    expect(drifting.get(PhysicsPosition)!.x).toBeGreaterThan(1);
+    expect(drifting.get(PhysicsPosition)!.y).toBeLessThan(2);
+    expect(ship.get(LinearVelocity)!.x).toBeCloseTo(
+      10 * ENTITY_CONFIG.SHIP.FRICTION,
+    );
+    expect(ship.get(LinearVelocity)!.y).toBeCloseTo(
+      -5 * ENTITY_CONFIG.SHIP.FRICTION,
+    );
   });
 
-  it('updates angular movement and marks Rotation as modified', () => {
+  it('integrates physics angular velocity', () => {
     const world = createTestWorld();
     const entity = world
       .entity()
-      .set(Rotation, { angle: 1 })
-      .set(AngularVelocity, { omega: 0.25 });
-    const modified = vi.spyOn(entity, 'modified');
+      .set(Body, { type: BodyType.Dynamic })
+      .set(PhysicsPosition, { x: 0, y: 0 })
+      .set(PhysicsRotation, { angle: 1 })
+      .set(PhysicsAngularVelocity, { value: 0.25 });
+    addPhysicsShape(world, entity);
 
     world.progress(0, 1000 / 60);
 
-    expect(entity.get(Rotation)!.angle).toBeCloseTo(1.25);
-    expect(modified).toHaveBeenCalledWith(Rotation);
+    expect(entity.get(PhysicsRotation)!.angle).toBeGreaterThan(1);
   });
 
   it('wraps positions using shared world bounds', () => {
     const world = createTestWorld();
     const entity = world
       .entity()
-      .set(Position, { x: WORLD_WIDTH + 1, y: -1 })
+      .set(PhysicsPosition, { x: WORLD_MAX_X + 1, y: WORLD_MIN_Y - 1 })
       .add(Wraps);
     const modified = vi.spyOn(entity, 'modified');
 
     world.progress(0, 1000 / 60);
 
-    expect(entity.get(Position)).toMatchObject({ x: 0, y: WORLD_HEIGHT });
-    expect(modified).toHaveBeenCalledWith(Position);
+    expect(entity.get(PhysicsPosition)).toMatchObject({
+      x: WORLD_MIN_X,
+      y: WORLD_MAX_Y,
+    });
+    expect(modified).toHaveBeenCalledWith(PhysicsPosition);
   });
 
   it('preserves input isolation between owned ships', () => {
@@ -128,9 +206,9 @@ describe('server movement systems', () => {
 
     world.progress(0, 1000 / 60);
 
-    expect(ship.get(Rotation)!.angle).toBeCloseTo(
-      -ENTITY_CONFIG.SHIP.ROTATION_SPEED,
+    expect(ship.get(PhysicsRotation)!.angle).toBeCloseTo(
+      ENTITY_CONFIG.SHIP.ROTATION_SPEED,
     );
-    expect(ship.get(Thrust)!.active).toBe(false);
+    expect(ship.get(LinearVelocity)).toMatchObject({ x: 0, y: 0 });
   });
 });

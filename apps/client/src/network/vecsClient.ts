@@ -1,35 +1,22 @@
 import { ClientWorld } from '@vworlds/vecs-client';
 import {
+  PhaserRenderModule,
+  phaserInterpolators,
+} from '@vworlds/vecs-phaser-client';
+import {
   CLIENT_ENTITY_ID_START,
-  Decay,
   NETWORK_COMPONENTS,
-  Velocity,
+  PIXELS_PER_METER,
 } from '@spacerocks/common';
-import { Alpha } from '../components/Alpha';
-import { Label } from '../components/Label';
-import { Particle } from '../components/Particle';
-import { installRenderSystem, type RenderTarget } from '../systems/Render';
-import { installUISystem, type UITargets } from '../systems/UI';
-import { installParticleSystem } from '../systems/Particles';
-import { installExplosionSystem } from '../systems/Explosion';
-import { installAlphaDrawSystem } from '../systems/draw/AlphaSystem';
-import { installArcDrawSystem } from '../systems/draw/ArcSystem';
-import { installFilledRectDrawSystem } from '../systems/draw/FilledRectSystem';
-import { installFillStyleDrawSystem } from '../systems/draw/FillStyleSystem';
-import { installHealthDrawSystem } from '../systems/draw/HealthDraw';
-import { installLabelDrawSystem } from '../systems/draw/LabelSystem';
-import { installLaserBeamDrawSystem } from '../systems/draw/LaserBeamDraw';
-import { installShapeDrawSystem } from '../systems/draw/ShapeSystem';
-import { installShieldDrawSystem } from '../systems/draw/ShieldDraw';
-import { installStrokeStyleDrawSystem } from '../systems/draw/StrokeStyleSystem';
+import type Phaser from 'phaser';
+import { ExplosionEffectModule } from '../render/ExplosionEffectModule';
 
 const SERVER_PORT = 2567; // port
 const WORLD_NAME = 'main';
 const API_BASE_PATH = '/rtc/v1';
 
 export type ClientWorldConfig = {
-  renderTarget: RenderTarget;
-  ui: UITargets;
+  scene: Phaser.Scene;
 };
 
 type DgramClientSocket = {
@@ -72,31 +59,15 @@ export async function createClientWorld(
   //   entity:          1,000,000 – ∞ (local entities in the client)
   const world = new ClientWorld({
     networkComponents: NETWORK_COMPONENTS,
+    interpolators: phaserInterpolators(),
     localEntityIdStart: CLIENT_ENTITY_ID_START,
   });
 
-  world.component(Velocity);
-  world.component(Decay);
-  world.component(Alpha);
-  world.component(Label);
-  world.component(Particle);
-
-  installParticleSystem(world);
-  installExplosionSystem(world);
-
-  installAlphaDrawSystem(world);
-  installArcDrawSystem(world);
-  installFilledRectDrawSystem(world);
-  installFillStyleDrawSystem(world);
-  installStrokeStyleDrawSystem(world);
-  installShapeDrawSystem(world);
-  installLabelDrawSystem(world);
-  installHealthDrawSystem(world);
-  installShieldDrawSystem(world);
-  installLaserBeamDrawSystem(world);
-
-  installRenderSystem(world, config.renderTarget);
-  installUISystem(world, config.ui);
+  world.module(PhaserRenderModule, {
+    scene: config.scene,
+    pixelsPerMeter: PIXELS_PER_METER,
+  });
+  world.module(ExplosionEffectModule, { scene: config.scene });
 
   const tStarted = performance.now();
 

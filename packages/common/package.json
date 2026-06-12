@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@vworlds/vecs": "1.0.26",
+    "@vworlds/vecs-phaser": "1.0.26",
     "@vworlds/vecs-wire": "1.0.26"
   }
 }

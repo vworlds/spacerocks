@@ -1,40 +1,8 @@
 import type { ComponentClass } from '@vworlds/vecs';
-import {
-  Arc,
-  AsteroidView,
-  Drawable,
-  ExplosionView,
-  FillStyle,
-  FilledRect,
-  GameStateView,
-  HealthView,
-  PickupView,
-  PlayerShip,
-  Position,
-  ProjectileView,
-  Rotation,
-  Shape,
-  ShieldView,
-  StrokeStyle,
-  WeaponView,
-} from '../components';
+import { phaserNetworkComponents } from '@vworlds/vecs-phaser';
+import { Explosion } from '../components';
 
 export const NETWORK_COMPONENTS = [
-  Position,
-  Rotation,
-  Drawable,
-  StrokeStyle,
-  FillStyle,
-  Shape,
-  Arc,
-  FilledRect,
-  PlayerShip,
-  AsteroidView,
-  ProjectileView,
-  PickupView,
-  HealthView,
-  ShieldView,
-  WeaponView,
-  GameStateView,
-  ExplosionView,
+  ...phaserNetworkComponents, // type ids 1..16 — ORDER IS THE PROTOCOL, do not reorder
+  Explosion, // type id 17
 ] satisfies readonly ComponentClass[];

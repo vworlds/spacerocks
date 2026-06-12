@@ -1,28 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import {
+  Position as PhaserPosition,
+  phaserNetworkComponents,
+} from '@vworlds/vecs-phaser';
 import { Decoder, Encoder } from '@vworlds/vecs-wire';
 
 import {
-  Arc,
   AsteroidView,
-  Drawable,
-  ExplosionView,
-  FillStyle,
-  FilledRect,
+  Explosion,
   GameStateView,
-  HealthView,
   NETWORK_COMPONENTS,
-  PickupView,
   PlayerShip,
-  Point,
-  Position,
-  ProjectileView,
-  Rotation,
-  Shape,
-  ShieldView,
-  StrokeStyle,
   WORLD_HEIGHT,
   WORLD_WIDTH,
-  WeaponView,
 } from '../src/index';
 
 type WireEncodable = {
@@ -44,37 +34,20 @@ function roundTrip<T extends object>(ComponentClass: new () => T, value: T): T {
 
 describe('NETWORK_COMPONENTS', () => {
   it('keeps Position as the first network component', () => {
-    expect(NETWORK_COMPONENTS[0]).toBe(Position);
-    expect(NETWORK_COMPONENTS.indexOf(Position) + 1).toBe(1);
+    expect(NETWORK_COMPONENTS).toEqual([...phaserNetworkComponents, Explosion]);
+    expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });
 
   it('exports fixed world dimensions', () => {
-    expect(WORLD_WIDTH).toBe(1024);
-    expect(WORLD_HEIGHT).toBe(768);
+    expect(WORLD_WIDTH).toBe(10.24);
+    expect(WORLD_HEIGHT).toBe(7.68);
   });
 
   it('uses vecs-wire encodable network components', () => {
-    const shape = new Shape();
-    shape.points = [Object.assign(new Point(), { x: 1, y: 2 })];
-
     const cases = [
-      [Position, Object.assign(new Position(), { x: 1, y: 2 })],
-      [Rotation, Object.assign(new Rotation(), { angle: 3 })],
-      [Drawable, Object.assign(new Drawable(), { zIndex: 4 })],
-      [StrokeStyle, Object.assign(new StrokeStyle(), { style: '#abc' })],
-      [FillStyle, Object.assign(new FillStyle(), { style: '#def' })],
-      [Shape, shape],
-      [Arc, Object.assign(new Arc(), { radius: 5 })],
-      [FilledRect, Object.assign(new FilledRect(), { width: 6 })],
       [PlayerShip, Object.assign(new PlayerShip(), { playerIndex: 7 })],
       [AsteroidView, Object.assign(new AsteroidView(), { level: 2 })],
-      [ProjectileView, Object.assign(new ProjectileView(), { kind: 1 })],
-      [PickupView, Object.assign(new PickupView(), { amount: 9 })],
-      [HealthView, Object.assign(new HealthView(), { hp: 10 })],
-      [ShieldView, Object.assign(new ShieldView(), { remainingTime: 11 })],
-      [WeaponView, Object.assign(new WeaponView(), { ammo: 12, firing: 1 })],
       [GameStateView, Object.assign(new GameStateView(), { wave: 13 })],
-      [ExplosionView, Object.assign(new ExplosionView(), { seed: 14 })],
     ] as const;
 
     for (const [ComponentClass, value] of cases) {

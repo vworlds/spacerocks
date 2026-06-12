@@ -4,35 +4,45 @@ import {
   type ComponentClass,
   type Entity,
 } from '@vworlds/vecs';
+import { phaserNetworkComponents, Position } from '@vworlds/vecs-phaser';
+import {
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  LinearVelocity,
+  PhysicsModule,
+  Position as PhysicsPosition,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
 import {
   Asteroid,
+  Alien,
   Bullet,
   CAT_ASTEROID,
+  CAT_ENEMY,
   CAT_PICKUP,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
-  Collider,
+  Explosion,
   ENTITY_CONFIG,
-  ExplosionView,
   GameStateView,
   Health,
   HealthPickup,
-  HealthView,
   LaserWeapon,
   Pickup,
   PickupKind,
   PlayerShip,
-  Position,
   RocketWeapon,
   SCORING,
   Shield,
-  ShieldView,
-  WeaponView,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
   installCombatSystems,
   registerCombatComponents,
+  RespawnTimer,
 } from '../../src/game/combat';
 import {
   createPlayerShip,
@@ -42,12 +52,16 @@ import {
 import { createPrng } from '../../src/game/rng';
 import {
   createAsteroid,
+  createAlien,
   registerSpawningComponents,
 } from '../../src/game/spawning';
 import {
-  installShootingSystems,
+  createBullet,
   registerShootingComponents,
+  installShootingSystems,
 } from '../../src/game/shooting';
+
+const DT_MS = 1000 / 60;
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -61,6 +75,8 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): { world: World } {
   const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
+  world.component(Explosion);
   registerPlayerSessionComponents(
     world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
   );
@@ -73,6 +89,11 @@ function createTestWorld(): { world: World } {
   registerCombatComponents(
     world as unknown as Parameters<typeof registerCombatComponents>[0],
   );
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / 60,
+    subSteps: 4,
+  });
   installShootingSystems(
     world as unknown as Parameters<typeof installShootingSystems>[0],
   );
@@ -90,7 +111,57 @@ function createTestWorld(): { world: World } {
 }
 
 function runFrame(world: World): void {
-  world.progress(1000 / 60, 1000 / 60);
+  world.progress(DT_MS, DT_MS);
+}
+
+function moveBody(entity: Entity, x: number, y: number): void {
+  entity.set(Position, { x, y });
+  entity.set(PhysicsPosition, { x, y });
+}
+
+function createSensorBody(
+  world: World,
+  options: {
+    x: number;
+    y: number;
+    radius: number;
+    categoryBits: number;
+    maskBits: number;
+  },
+): Entity {
+  const body = world
+    .entity()
+    .set(Body, { type: BodyType.Dynamic })
+    .set(Position, { x: options.x, y: options.y })
+    .set(PhysicsPosition, { x: options.x, y: options.y });
+
+  world
+    .entity()
+    .childOf(body)
+    .set(Circle, { radius: options.radius })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits: options.categoryBits,
+      maskBits: options.maskBits,
+    });
+
+  return body;
+}
+
+function createTestPickup(
+  world: World,
+  x: number,
+  y: number,
+  kind: PickupKind,
+): Entity {
+  return createSensorBody(world, {
+    x,
+    y,
+    radius: ENTITY_CONFIG.POWERUP.RADIUS,
+    categoryBits: CAT_PICKUP,
+    maskBits: CAT_PLAYER,
+  }).set(Pickup, { kind });
 }
 
 function count(world: World, component: ComponentClass): number {
@@ -120,23 +191,25 @@ describe('server combat systems', () => {
       100,
       3,
     );
-    world.entity().set(Position, { x: 100, y: 100 }).add(Bullet).set(Collider, {
-      radius: 2,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID,
-    });
+    createSensorBody(world, {
+      x: 100,
+      y: 100,
+      radius: 0.02,
+      categoryBits: CAT_PLAYER_BULLET,
+      maskBits: CAT_ASTEROID,
+    }).add(Bullet);
 
     runFrame(world);
 
     expect(count(world, Asteroid)).toBe(2);
     expect(count(world, Bullet)).toBe(0);
-    expect(count(world, ExplosionView)).toBe(1);
+    expect(count(world, Explosion)).toBe(1);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
       SCORING.ASTEROID_BASE * 3,
     );
   });
 
-  it('expires explosion markers through server-side decay', () => {
+  it('expires explosion effect entities through server-side decay', () => {
     const { world } = createTestWorld();
     createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
@@ -145,23 +218,29 @@ describe('server combat systems', () => {
       100,
       3,
     );
-    world.entity().set(Position, { x: 100, y: 100 }).add(Bullet).set(Collider, {
-      radius: 2,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID,
-    });
+    createSensorBody(world, {
+      x: 100,
+      y: 100,
+      radius: 0.02,
+      categoryBits: CAT_PLAYER_BULLET,
+      maskBits: CAT_ASTEROID,
+    }).add(Bullet);
 
     runFrame(world);
-    expect(count(world, ExplosionView)).toBe(1);
+    expect(count(world, Explosion)).toBe(1);
+    expect(firstEntity(world, Explosion).get(Explosion)).toMatchObject({
+      size: 0.4,
+      duration: ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES / 30,
+    });
 
     for (let i = 0; i <= ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES; i += 1) {
       runFrame(world);
     }
 
-    expect(count(world, ExplosionView)).toBe(0);
+    expect(count(world, Explosion)).toBe(0);
   });
 
-  it('applies health pickups with server-side handlers and syncs health view', () => {
+  it('applies health pickups through server-side handlers', () => {
     const { world } = createTestWorld();
     const session = world.entity().set(PlayerSession, {
       clientId: 'client-a',
@@ -172,25 +251,18 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 10, y: 20 });
+    moveBody(ship, 10, 20);
     ship.set(Health, { hp: 50, maxHp: 100, healthBarTimer: 0 });
-    world
-      .entity()
-      .set(Position, { x: 10, y: 20 })
-      .set(Pickup, { kind: PickupKind.Health })
-      .set(HealthPickup, { amount: 0.5 })
-      .set(Collider, {
-        radius: ENTITY_CONFIG.POWERUP.RADIUS,
-        category: CAT_PICKUP,
-        mask: CAT_PLAYER,
-      });
+    createTestPickup(world, 10, 20, PickupKind.Health).set(HealthPickup, {
+      amount: 0.5,
+    });
 
     runFrame(world);
 
     expect(ship.get(Health)).toMatchObject({ hp: 100 });
-    expect(ship.get(HealthView)).toMatchObject({
+    expect(ship.get(Health)).toMatchObject({
       hp: 100,
-      barTimer: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
+      healthBarTimer: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
     });
     expect(count(world, Pickup)).toBe(0);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
@@ -198,7 +270,7 @@ describe('server combat systems', () => {
     );
   });
 
-  it('applies shield pickups through server-side handlers and syncs shield view', () => {
+  it('applies shield pickups through server-side handlers', () => {
     const { world } = createTestWorld();
     const session = world.entity().set(PlayerSession, {
       clientId: 'client-a',
@@ -209,24 +281,13 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 10, y: 20 });
-    world
-      .entity()
-      .set(Position, { x: 10, y: 20 })
-      .set(Pickup, { kind: PickupKind.Shield })
-      .set(Collider, {
-        radius: ENTITY_CONFIG.POWERUP.RADIUS,
-        category: CAT_PICKUP,
-        mask: CAT_PLAYER,
-      });
+    moveBody(ship, 10, 20);
+    createTestPickup(world, 10, 20, PickupKind.Shield);
 
     runFrame(world);
 
     expect(ship.get(Shield)).toMatchObject({
       shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION,
-    });
-    expect(ship.get(ShieldView)).toMatchObject({
-      remainingTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION,
     });
     expect(count(world, Pickup)).toBe(0);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
@@ -234,7 +295,7 @@ describe('server combat systems', () => {
     );
   });
 
-  it('applies weapon pickups through server-side handlers and syncs weapon view', () => {
+  it('applies weapon pickups through server-side handlers', () => {
     const { world } = createTestWorld();
     const session = world.entity().set(PlayerSession, {
       clientId: 'client-a',
@@ -245,16 +306,8 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 10, y: 20 });
-    world
-      .entity()
-      .set(Position, { x: 10, y: 20 })
-      .set(Pickup, { kind: PickupKind.Rocket })
-      .set(Collider, {
-        radius: ENTITY_CONFIG.POWERUP.RADIUS,
-        category: CAT_PICKUP,
-        mask: CAT_PLAYER,
-      });
+    moveBody(ship, 10, 20);
+    createTestPickup(world, 10, 20, PickupKind.Rocket);
 
     runFrame(world);
 
@@ -262,11 +315,6 @@ describe('server combat systems', () => {
       shots: ENTITY_CONFIG.ROCKET.SHOT_COUNT,
     });
     expect(ship.get(LaserWeapon)).toBeUndefined();
-    expect(ship.get(WeaponView)).toMatchObject({
-      activeWeapon: 3,
-      ammo: ENTITY_CONFIG.ROCKET.SHOT_COUNT,
-      firing: 0,
-    });
     expect(count(world, Pickup)).toBe(0);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
       SCORING.ROCKET,
@@ -284,7 +332,7 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 30, y: 30 });
+    moveBody(ship, 30, 30);
     ship.set(Health, { hp: 10, maxHp: 100, healthBarTimer: 0 });
     createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
@@ -297,6 +345,11 @@ describe('server combat systems', () => {
     runFrame(world);
 
     expect(world.getEntity(ship.eid)).toBeUndefined();
+    const respawnTimer = firstEntity(world, RespawnTimer).get(RespawnTimer);
+    expect(respawnTimer).toMatchObject({
+      sessionId: session.eid,
+      playerIndex: 0,
+    });
     expect(
       [...session.children(ChildOf)].filter((e) => e.get(PlayerShip)),
     ).toHaveLength(0);
@@ -310,5 +363,135 @@ describe('server combat systems', () => {
     expect(
       [...session.children(ChildOf)].filter((e) => e.get(PlayerShip)),
     ).toHaveLength(1);
+    const respawnedShip = [...session.children(ChildOf)].find((e) =>
+      e.get(PlayerShip),
+    );
+    expect(respawnedShip?.get(Body)).toBeTruthy();
+    expect(
+      [...(respawnedShip?.children(ChildOf) ?? [])].filter((e) =>
+        e.get(Circle),
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('deletes a ship, its owned projectiles, and every physics shape child without orphans', () => {
+    const { world } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    const bulletA = createBullet(
+      world as unknown as Parameters<typeof createBullet>[0],
+      ship,
+      0,
+      0,
+      0,
+      0xffffff,
+    );
+    const bulletB = createBullet(
+      world as unknown as Parameters<typeof createBullet>[0],
+      ship,
+      0,
+      0,
+      Math.PI,
+      0xffffff,
+    );
+
+    runFrame(world);
+
+    expect(count(world, Body)).toBe(3);
+    expect(count(world, Circle)).toBe(3);
+
+    ship.destroy();
+    world.flush();
+    runFrame(world);
+
+    expect(world.getEntity(ship.eid)).toBeUndefined();
+    expect(world.getEntity(bulletA.eid)).toBeUndefined();
+    expect(world.getEntity(bulletB.eid)).toBeUndefined();
+    expect(count(world, Body)).toBe(0);
+    expect(count(world, Circle)).toBe(0);
+  });
+
+  it('keeps projectiles as owned bodies, not ship fixtures, and filters self-collision', () => {
+    const { world } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    moveBody(ship, 0, 0);
+    ship.set(Health, { hp: 100, maxHp: 100, healthBarTimer: 0 });
+    const bullet = createBullet(
+      world as unknown as Parameters<typeof createBullet>[0],
+      ship,
+      0,
+      0,
+      0,
+      0xffffff,
+    );
+    moveBody(bullet, 0, 0);
+
+    runFrame(world);
+
+    expect(
+      [...ship.children(ChildOf)].filter((e) => e.get(Circle)),
+    ).toHaveLength(1);
+    expect([...ship.children(ChildOf)].filter((e) => e.get(Body))).toHaveLength(
+      1,
+    );
+
+    runFrame(world);
+
+    expect(world.getEntity(bullet.eid)).toBeTruthy();
+    expect(ship.get(Health)?.hp).toBe(100);
+  });
+
+  it('moves aliens as physics bodies and damages players on sensor collision', () => {
+    const { world } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    moveBody(ship, 0, 0);
+    ship.set(Health, { hp: 100, maxHp: 100, healthBarTimer: 0 });
+    const alien = createAlien(
+      world as unknown as Parameters<typeof createAlien>[0],
+      createPrng(9),
+    );
+    moveBody(alien, 0, 0);
+    alien.set(LinearVelocity, { x: 1, y: 0 });
+
+    runFrame(world);
+
+    expect(ship.get(Health)?.hp).toBe(90);
+    expect(world.getEntity(alien.eid)).toBeUndefined();
+    const driftingAlien = createSensorBody(world, {
+      x: -1,
+      y: 0,
+      radius: ENTITY_CONFIG.ALIEN.RADIUS,
+      categoryBits: CAT_ENEMY,
+      maskBits: CAT_PLAYER,
+    })
+      .set(LinearVelocity, { x: 1, y: 0 })
+      .add(Alien);
+
+    runFrame(world);
+
+    expect(driftingAlien.get(PhysicsPosition)!.x).toBeGreaterThan(-1);
   });
 });

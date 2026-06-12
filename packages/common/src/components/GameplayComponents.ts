@@ -1,4 +1,4 @@
-import { perFrame, perFrameMultiplier, toFrames } from '../constants';
+import { perFrame, toFrames } from '../constants';
 
 export type OwnerType = 'player' | 'alien';
 export type PlayerId = 0 | 1;
@@ -20,30 +20,6 @@ export enum RandomClockKind {
   RocketPickup = 'rocketPickup',
   BoomerangPickup = 'boomerangPickup',
   HealthPickup = 'healthPickup',
-}
-
-export class Velocity {
-  vx = 0; // world units/frame
-  vy = 0; // world units/frame
-}
-
-export class AngularVelocity {
-  omega = 0; // radians/frame
-}
-
-export class Friction {
-  value = perFrameMultiplier(0.98); // multiplier/frame
-}
-
-export class Thrust {
-  force = 0; // world units/frame^2
-  active = false;
-}
-
-export class Collider {
-  radius = 10; // world units
-  category = 0; // bitmask
-  mask = 0; // bitmask
 }
 
 export class Health {
@@ -112,7 +88,7 @@ export class Rocket {
 
 export class Asteroid {
   level: 1 | 2 | 3 = 3; // tier
-  color = '#aaa';
+  color = 0xaaaaaa; // u32 RGB
 }
 
 export class Alien {

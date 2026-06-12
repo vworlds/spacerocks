@@ -6,33 +6,39 @@ import {
   type ServerWorld,
 } from '@vworlds/vecs-server';
 import {
+  Position as RenderPosition,
+  Rotation as RenderRotation,
+  StrokeStyle,
+  Triangle,
+} from '@vworlds/vecs-phaser';
+import {
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  AngularVelocity as PhysicsAngularVelocity,
+  LinearVelocity,
+  Position as PhysicsPosition,
+  Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
+import {
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
   CAT_ENEMY_BULLET,
   CAT_PICKUP,
   CAT_PLAYER,
-  AngularVelocity,
   DefaultWeapon,
-  Drawable,
   ENTITY_CONFIG,
-  Friction,
   Health,
-  HealthView,
   PlayerShip,
-  Point,
-  Position,
-  Rotation,
-  Shape,
   Shield,
-  ShieldView,
-  StrokeStyle,
-  Thrust,
-  Velocity,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   Wraps,
-  Collider,
+  PLAYER_COLORS,
 } from '@spacerocks/common';
 
 export class PlayerSession {
@@ -47,13 +53,11 @@ export class PlayerInputIntent {
   shoot = false;
 }
 
-const PLAYER_COLORS = ['#00ffcc', '#ff00ff', '#ffff66', '#66aaff'] as const;
-
 const SPAWN_POSITIONS = [
-  { x: WORLD_WIDTH * 0.3, y: WORLD_HEIGHT * 0.5 },
-  { x: WORLD_WIDTH * 0.7, y: WORLD_HEIGHT * 0.5 },
-  { x: WORLD_WIDTH * 0.5, y: WORLD_HEIGHT * 0.3 },
-  { x: WORLD_WIDTH * 0.5, y: WORLD_HEIGHT * 0.7 },
+  { x: -WORLD_WIDTH * 0.2, y: 0 },
+  { x: WORLD_WIDTH * 0.2, y: 0 },
+  { x: 0, y: WORLD_HEIGHT * 0.2 },
+  { x: 0, y: -WORLD_HEIGHT * 0.2 },
 ] as const;
 
 export function registerPlayerSessionComponents(world: ServerWorld): void {
@@ -63,23 +67,20 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(PlayerInputIntent);
   world.component(ChildOf).meta.onDeleteTarget = CleanupPolicy.Delete;
   world.component(Networked);
-  world.component(Position);
-  world.component(Velocity);
-  world.component(AngularVelocity);
-  world.component(Rotation);
-  world.component(Thrust);
-  world.component(Friction);
   world.component(Health);
-  world.component(HealthView);
   world.component(Shield);
-  world.component(ShieldView);
   world.component(DefaultWeapon);
-  world.component(Collider);
-  world.component(Drawable);
   world.component(Wraps);
-  world.component(StrokeStyle);
-  world.component(Shape);
   world.component(PlayerShip);
+  world.component(Body);
+  world.component(PhysicsPosition);
+  world.component(PhysicsRotation);
+  world.component(LinearVelocity);
+  world.component(PhysicsAngularVelocity);
+  world.component(Circle);
+  world.component(Sensor);
+  world.component(SensorEvents);
+  world.component(CollisionFilter);
 }
 
 export function installPlayerSessionSystems(world: ServerWorld): void {
@@ -129,45 +130,51 @@ export function createPlayerShip(
 ): Entity {
   const spawn = SPAWN_POSITIONS[playerIndex % SPAWN_POSITIONS.length]!;
   const color = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length]!;
+  const categoryBits = CAT_PLAYER;
+  const maskBits =
+    CAT_ASTEROID | CAT_ENEMY_BULLET | CAT_ENEMY | CAT_PICKUP | CAT_BOOMERANG;
 
-  return world
+  const ship = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: session })
-    .set(Position, { x: spawn.x, y: spawn.y })
-    .add(Velocity)
-    .set(Rotation, { angle: 0 })
-    .set(Thrust, { force: ENTITY_CONFIG.SHIP.THRUST_POWER, active: false })
-    .set(Friction, { value: ENTITY_CONFIG.SHIP.FRICTION })
+    .set(Body, { type: BodyType.Dynamic })
+    .set(PhysicsPosition, { x: spawn.x, y: spawn.y })
+    .set(PhysicsRotation, { angle: 0 })
+    .set(LinearVelocity, { x: 0, y: 0 })
+    .set(RenderPosition, { x: spawn.x, y: spawn.y })
+    .set(RenderRotation, { angle: 0 })
     .set(Health, {
       hp: ENTITY_CONFIG.SHIP.MAX_HP,
       maxHp: ENTITY_CONFIG.SHIP.MAX_HP,
       healthBarTimer: 0,
     })
-    .set(HealthView, {
-      hp: ENTITY_CONFIG.SHIP.MAX_HP,
-      maxHp: ENTITY_CONFIG.SHIP.MAX_HP,
-      barTimer: 0,
-    })
     .add(DefaultWeapon)
-    .set(Collider, {
-      radius: ENTITY_CONFIG.SHIP.RADIUS,
-      category: CAT_PLAYER,
-      mask:
-        CAT_ASTEROID |
-        CAT_ENEMY_BULLET |
-        CAT_ENEMY |
-        CAT_PICKUP |
-        CAT_BOOMERANG,
-    })
     .set(PlayerInputIntent, {})
     .set(PlayerShip, { playerIndex, color })
-    .set(Drawable, { zIndex: 60 })
     .add(Wraps)
-    .set(StrokeStyle, { style: color, lineWidth: 2 })
-    .set(Shape, {
-      points: [new Point(15, 0), new Point(-10, 10), new Point(-10, -10)],
+    .set(StrokeStyle, { color, alpha: 1, width: 2 })
+    .set(Triangle, {
+      x1: 0.15,
+      y1: 0,
+      x2: -0.1,
+      y2: 0.1,
+      x3: -0.1,
+      y3: -0.1,
     });
+
+  world
+    .entity()
+    .childOf(ship)
+    .set(Circle, { radius: ENTITY_CONFIG.SHIP.RADIUS })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits,
+      maskBits,
+    });
+
+  return ship;
 }
 
 function getOwnedShip(clientEntity: Entity): Entity | undefined {
