@@ -18,6 +18,10 @@ import {
   registerShootingComponents,
 } from './game/shooting';
 import { installCombatSystems, registerCombatComponents } from './game/combat';
+import {
+  installEmbellishmentSystems,
+  registerEmbellishmentComponents,
+} from './game/embellishments';
 import { listenWithRetry } from './serverLifecycle';
 import { installClientViewSystem } from './network/clientViews';
 
@@ -44,11 +48,13 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   registerSpawningComponents(world);
   registerShootingComponents(world);
   registerCombatComponents(world);
+  registerEmbellishmentComponents(world);
   installPlayerSessionSystems(world);
   installSpawningSystems(world);
   installShootingSystems(world);
   installMovementSystems(world);
   installCombatSystems(world);
+  installEmbellishmentSystems(world);
   installClientViewSystem(world, View);
 
   // Instrument the world's connect/disconnect plumbing so we can see who
