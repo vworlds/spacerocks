@@ -12,7 +12,6 @@ import {
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
 import {
-  Collider,
   COLORS,
   ENTITY_CONFIG,
   Health,
@@ -68,8 +67,7 @@ function createParent(world: World): Entity {
   return world
     .entity()
     .set(Position, { x: 1, y: 2 })
-    .set(Rotation, { angle: Math.PI / 4 })
-    .set(Collider, { radius: 0.2, category: 0, mask: 0 });
+    .set(Rotation, { angle: Math.PI / 4 });
 }
 
 describe('server embellishment child entities', () => {
@@ -95,7 +93,7 @@ describe('server embellishment child entities', () => {
       alpha: 1,
       width: 1,
     });
-    expect(refs.healthBar?.get(Offset)).toMatchObject({ x: 0, y: 0.35 });
+    expect(refs.healthBar?.get(Offset)).toMatchObject({ x: 0, y: 0.27 });
     expect(refs.healthBar?.get(FollowParent)).toBeDefined();
     expect(refs.healthBar?.get(Alpha)).toMatchObject({ value: 0 });
 
@@ -113,8 +111,8 @@ describe('server embellishment child entities', () => {
     parent.set(Position, { x: 3, y: 4 });
     runFrame(world, 1);
 
-    expect(refs.healthBar?.get(Position)).toMatchObject({ x: 3, y: 4.35 });
-    expect(refs.healthBarFill?.get(Position)).toMatchObject({ x: 3, y: 4.35 });
+    expect(refs.healthBar?.get(Position)).toMatchObject({ x: 3, y: 4.27 });
+    expect(refs.healthBarFill?.get(Position)).toMatchObject({ x: 3, y: 4.27 });
   });
 
   it('updates health fill width, left alignment, color, and visibility', () => {
@@ -135,7 +133,7 @@ describe('server embellishment child entities', () => {
     expect(fill.get(Size)).toMatchObject({ width: 0.075, height: 0.05 });
     expect(fill.get(Offset)).toMatchObject({
       x: -0.11249999999999999,
-      y: 0.35,
+      y: 0.27,
     });
     expect(fill.get(FillStyle)).toMatchObject({ color: 0xff0000 });
     expect(fill.get(Alpha)).toMatchObject({ value: 1 });

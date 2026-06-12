@@ -1,6 +1,7 @@
-import { ChildOf, type Entity } from '@vworlds/vecs';
+import { ChildOf, POST_UPDATE, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import { Position, Rotation } from '@vworlds/vecs-phaser';
+import { CollisionFilter, SensorEvents } from '@vworlds/vecs-physics';
 import {
   Alien,
   Asteroid,
@@ -15,7 +16,6 @@ import {
   CAT_PICKUP,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
-  Collider,
   COLORS,
   Decay,
   DefaultWeapon,
@@ -130,38 +130,45 @@ export function installCombatSystems(
 
   world
     .system('ServerCollision')
-    .with(Collider, Position)
+    .phase(POST_UPDATE)
     .run(() => {
       if (!isPlaying(world)) return;
-      const entities = collectColliders(world);
+      const handled = new Set<string>();
       const consumed = new Set<number>();
 
-      for (let i = 0; i < entities.length; i += 1) {
-        const a = entities[i]!;
-        if (consumed.has(a.eid)) continue;
-        const colA = a.get(Collider);
-        const posA = a.get(Position);
-        if (!colA || !posA) continue;
+      world
+        .filter([SensorEvents, CollisionFilter])
+        .forEach(
+          [SensorEvents, CollisionFilter],
+          (shapeA, [eventsA, filterA]) => {
+            for (const event of eventsA.begin) {
+              const shapeB = event.other;
+              const filterB = shapeB.get(CollisionFilter);
+              const bodyA = shapeA.parent(ChildOf);
+              const bodyB = shapeB.parent(ChildOf);
+              if (!filterB || !bodyA || !bodyB || bodyA === bodyB) continue;
+              if (consumed.has(bodyA.eid) || consumed.has(bodyB.eid)) continue;
+              if (!world.getEntity(bodyA.eid) || !world.getEntity(bodyB.eid))
+                continue;
 
-        for (let j = i + 1; j < entities.length; j += 1) {
-          const b = entities[j]!;
-          if (consumed.has(a.eid) || consumed.has(b.eid)) continue;
-          const colB = b.get(Collider);
-          const posB = b.get(Position);
-          if (!colB || !posB) continue;
-          if (!(colA.mask & colB.category) || !(colB.mask & colA.category))
-            continue;
-          if (
-            Math.hypot(posA.x - posB.x, posA.y - posB.y) >=
-            colA.radius + colB.radius
-          )
-            continue;
+              const pairKey = `${Math.min(bodyA.eid, bodyB.eid)}:${Math.max(
+                bodyA.eid,
+                bodyB.eid,
+              )}`;
+              if (handled.has(pairKey)) continue;
+              handled.add(pairKey);
 
-          dispatchCollision(a, b, colA, colB);
-          if (!world.getEntity(a.eid)) consumed.add(a.eid);
-          if (!world.getEntity(b.eid)) consumed.add(b.eid);
-        }
-      }
+              dispatchCollision(
+                bodyA,
+                bodyB,
+                filterA.categoryBits,
+                filterB.categoryBits,
+              );
+              if (!world.getEntity(bodyA.eid)) consumed.add(bodyA.eid);
+              if (!world.getEntity(bodyB.eid)) consumed.add(bodyB.eid);
+            }
+          },
+        );
     });
 }
 
@@ -310,11 +317,11 @@ function registerCollisionEffect(
 function dispatchCollision(
   a: Entity,
   b: Entity,
-  colA: Collider,
-  colB: Collider,
+  categoryMaskA: number,
+  categoryMaskB: number,
 ): void {
-  const catAList = getCategoryBits(colA.category & colB.mask);
-  const catBList = getCategoryBits(colB.category & colA.mask);
+  const catAList = getCategoryBits(categoryMaskA);
+  const catBList = getCategoryBits(categoryMaskB);
   for (const categoryA of catAList) {
     for (const categoryB of catBList) {
       const low = Math.min(categoryA, categoryB);
@@ -344,14 +351,6 @@ function regKey(categoryA: number, categoryB: number): number {
   return Math.min(categoryA, categoryB) * 1000 + Math.max(categoryA, categoryB);
 }
 
-function collectColliders(world: ServerWorld): Entity[] {
-  const entities: Entity[] = [];
-  world.filter([Collider, Position]).forEach([], (entity) => {
-    entities.push(entity);
-  });
-  return entities;
-}
-
 function resolveLaserHits(
   world: ServerWorld,
   rng: Prng,
@@ -365,22 +364,20 @@ function resolveLaserHits(
   };
 
   world
-    .filter([Position, Collider, Asteroid])
-    .forEach([Position, Collider], (asteroid, [position, collider]) => {
-      if (distToSegment(position, start, end) < collider.radius) {
+    .filter([Position, Asteroid, AsteroidView])
+    .forEach([Position, AsteroidView], (asteroid, [position, asteroidView]) => {
+      if (distToSegment(position, start, end) < asteroidView.radius) {
         destroyAsteroid(world, rng, asteroid, true);
       }
     });
 
-  world
-    .filter([Position, Collider, Alien])
-    .forEach([Position, Collider], (alien, [position, collider]) => {
-      if (distToSegment(position, start, end) < collider.radius) {
-        createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
-        alien.destroy();
-        addScore(world, SCORING.ALIEN);
-      }
-    });
+  world.filter([Position, Alien]).forEach([Position], (alien, [position]) => {
+    if (distToSegment(position, start, end) < ENTITY_CONFIG.ALIEN.RADIUS) {
+      createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
+      alien.destroy();
+      addScore(world, SCORING.ALIEN);
+    }
+  });
 }
 
 function destroyAsteroid(

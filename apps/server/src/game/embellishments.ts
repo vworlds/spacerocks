@@ -12,11 +12,13 @@ import {
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
 import {
-  Collider,
+  Alien,
+  AsteroidView,
   COLORS,
   ENTITY_CONFIG,
   Health,
   LaserWeapon,
+  PlayerShip,
   Shield,
   WORLD_WIDTH,
 } from '@spacerocks/common';
@@ -46,6 +48,9 @@ export class Embellishments {
 }
 
 export function registerEmbellishmentComponents(world: ServerWorld): void {
+  world.component(Alien);
+  world.component(AsteroidView);
+  world.component(PlayerShip);
   world.component(Offset);
   world.component(FollowParent);
   world.component(FollowParentRotation);
@@ -58,7 +63,7 @@ export function installEmbellishmentSystems(world: ServerWorld): void {
     .with(Health)
     .update(Health, (entity, health) => {
       const refs = ensureEmbellishments(entity);
-      const radius = entity.get(Collider)?.radius ?? ENTITY_CONFIG.SHIP.RADIUS;
+      const radius = getBodyRadius(entity);
       const offsetY = radius + HEALTH_BAR_OFFSET;
       const ratio =
         health.maxHp > 0 ? clamp(health.hp / health.maxHp, 0, 1) : 0;
@@ -185,6 +190,14 @@ export function installEmbellishmentSystems(world: ServerWorld): void {
         entity.modified(RenderRotation);
       },
     );
+}
+
+function getBodyRadius(entity: Entity): number {
+  const asteroidView = entity.get(AsteroidView);
+  if (asteroidView) return asteroidView.radius;
+  if (entity.get(Alien)) return ENTITY_CONFIG.ALIEN.RADIUS;
+  if (entity.get(PlayerShip)) return ENTITY_CONFIG.SHIP.RADIUS;
+  return ENTITY_CONFIG.SHIP.RADIUS;
 }
 
 function ensureEmbellishments(entity: Entity): Embellishments {

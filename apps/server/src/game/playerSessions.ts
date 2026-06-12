@@ -40,7 +40,6 @@ import {
   WORLD_HEIGHT,
   WORLD_WIDTH,
   Wraps,
-  Collider,
   PLAYER_COLORS,
 } from '@spacerocks/common';
 
@@ -75,7 +74,6 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(Shield);
   world.component(ShieldView);
   world.component(DefaultWeapon);
-  world.component(Collider);
   world.component(Wraps);
   world.component(PlayerShip);
   world.component(Body);
@@ -136,12 +134,9 @@ export function createPlayerShip(
 ): Entity {
   const spawn = SPAWN_POSITIONS[playerIndex % SPAWN_POSITIONS.length]!;
   const color = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length]!;
-  const collider = {
-    radius: ENTITY_CONFIG.SHIP.RADIUS,
-    category: CAT_PLAYER,
-    mask:
-      CAT_ASTEROID | CAT_ENEMY_BULLET | CAT_ENEMY | CAT_PICKUP | CAT_BOOMERANG,
-  };
+  const categoryBits = CAT_PLAYER;
+  const maskBits =
+    CAT_ASTEROID | CAT_ENEMY_BULLET | CAT_ENEMY | CAT_PICKUP | CAT_BOOMERANG;
 
   const ship = world
     .entity()
@@ -164,7 +159,6 @@ export function createPlayerShip(
       barTimer: 0,
     })
     .add(DefaultWeapon)
-    .set(Collider, collider)
     .set(PlayerInputIntent, {})
     .set(PlayerShip, { playerIndex, color })
     .add(Wraps)
@@ -181,12 +175,12 @@ export function createPlayerShip(
   world
     .entity()
     .childOf(ship)
-    .set(Circle, { radius: collider.radius })
+    .set(Circle, { radius: ENTITY_CONFIG.SHIP.RADIUS })
     .add(Sensor)
     .add(SensorEvents)
     .set(CollisionFilter, {
-      categoryBits: collider.category,
-      maskBits: collider.mask,
+      categoryBits,
+      maskBits,
     });
 
   return ship;

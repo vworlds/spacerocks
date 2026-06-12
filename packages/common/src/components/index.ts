@@ -18,7 +18,6 @@ export {
   Boomerang,
   BoomerangWeapon,
   Bullet,
-  Collider,
   Decay,
   DefaultWeapon,
   Health,

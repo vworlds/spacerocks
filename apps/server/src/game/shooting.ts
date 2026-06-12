@@ -32,7 +32,6 @@ import {
   CAT_ENEMY,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
-  Collider,
   COLORS,
   Decay,
   DefaultWeapon,
@@ -280,11 +279,8 @@ export function createBullet(
   const speed = ENTITY_CONFIG.BULLET.SPEED;
   const vx = Math.cos(angle) * speed;
   const vy = Math.sin(angle) * speed;
-  const collider = {
-    radius: 0.02,
-    category: CAT_PLAYER_BULLET,
-    mask: CAT_ASTEROID | CAT_ENEMY,
-  };
+  const radius = 0.02;
+  const maskBits = CAT_ASTEROID | CAT_ENEMY;
   const bullet = world
     .entity()
     .add(Networked)
@@ -297,13 +293,12 @@ export function createBullet(
     .set(RenderRotation, { angle })
     .set(Bullet, { ownerType: 'player' })
     .set(ProjectileView, { kind: PROJECTILE_KIND_BULLET, team: 0 })
-    .set(Collider, collider)
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
     .add(Wraps)
     .set(FillStyle, { color, alpha: 1 })
-    .set(Arc, { radius: 0.02 });
+    .set(Arc, { radius });
 
-  createPhysicsCircleSensor(world, bullet, collider);
+  createPhysicsCircleSensor(world, bullet, radius, CAT_PLAYER_BULLET, maskBits);
   return bullet;
 }
 
@@ -317,11 +312,8 @@ export function createRocket(
   const speed = ENTITY_CONFIG.ROCKET.SPEED;
   const vx = Math.cos(angle) * speed;
   const vy = Math.sin(angle) * speed;
-  const collider = {
-    radius: 0.04,
-    category: CAT_PLAYER_BULLET,
-    mask: CAT_ASTEROID | CAT_ENEMY,
-  };
+  const radius = 0.04;
+  const maskBits = CAT_ASTEROID | CAT_ENEMY;
   const rocket = world
     .entity()
     .add(Networked)
@@ -334,7 +326,6 @@ export function createRocket(
     .set(RenderRotation, { angle })
     .set(Rocket, { straightTimer: ENTITY_CONFIG.ROCKET.STRAIGHT_FRAMES })
     .set(ProjectileView, { kind: PROJECTILE_KIND_ROCKET, team: 0 })
-    .set(Collider, collider)
     .set(Decay, { life: ENTITY_CONFIG.ROCKET.LIFE, decay: 1 })
     .add(Wraps)
     .set(FillStyle, { color: COLORS.rocket, alpha: 1 })
@@ -347,7 +338,7 @@ export function createRocket(
       y3: -0.03,
     });
 
-  createPhysicsCircleSensor(world, rocket, collider);
+  createPhysicsCircleSensor(world, rocket, radius, CAT_PLAYER_BULLET, maskBits);
   return rocket;
 }
 
@@ -364,11 +355,7 @@ export function createBoomerang(
   const spawnY = y + Math.sin(angle) * spawnOffset;
   const vx = Math.cos(angle) * config.SPEED;
   const vy = Math.sin(angle) * config.SPEED;
-  const collider = {
-    radius: config.RADIUS,
-    category: CAT_BOOMERANG,
-    mask: CAT_ASTEROID | CAT_ENEMY | CAT_PLAYER,
-  };
+  const maskBits = CAT_ASTEROID | CAT_ENEMY | CAT_PLAYER;
   const entity = world
     .entity()
     .add(Networked)
@@ -382,14 +369,19 @@ export function createBoomerang(
     .set(RenderRotation, { angle })
     .set(Boomerang, { ownerId: owner.eid, armed: false })
     .set(ProjectileView, { kind: PROJECTILE_KIND_BOOMERANG, team: 0 })
-    .set(Collider, collider)
     .set(Decay, { life: 1, decay: 1 / config.LIFE })
     .set(FillStyle, { color: COLORS.boomerang, alpha: 1 })
     .set(Polygon, {
       points: [0, 0, 0.02, 0.05, 0.05, 0.05, 0.03, 0, 0.05, -0.05, 0.02, -0.05],
     });
 
-  createPhysicsCircleSensor(world, entity, collider);
+  createPhysicsCircleSensor(
+    world,
+    entity,
+    config.RADIUS,
+    CAT_BOOMERANG,
+    maskBits,
+  );
   owner.getMut(BoomerangWeapon, (weapon) => {
     weapon.inFlight += 1;
   });
@@ -461,17 +453,19 @@ function findNearest(
 function createPhysicsCircleSensor(
   world: ServerWorld,
   body: Entity,
-  collider: { radius: number; category: number; mask: number },
+  radius: number,
+  categoryBits: number,
+  maskBits: number,
 ): void {
   world
     .entity()
     .childOf(body)
-    .set(Circle, { radius: collider.radius })
+    .set(Circle, { radius })
     .add(Sensor)
     .add(SensorEvents)
     .set(CollisionFilter, {
-      categoryBits: collider.category,
-      maskBits: collider.mask,
+      categoryBits,
+      maskBits,
     });
 }
 

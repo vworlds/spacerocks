@@ -22,12 +22,6 @@ export enum RandomClockKind {
   HealthPickup = 'healthPickup',
 }
 
-export class Collider {
-  radius = 0.1; // meters
-  category = 0; // bitmask
-  mask = 0; // bitmask
-}
-
 export class Health {
   hp = 100; // hp
   maxHp = 100; // hp

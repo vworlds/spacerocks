@@ -6,13 +6,22 @@ import {
 } from '@vworlds/vecs';
 import { phaserNetworkComponents, Position } from '@vworlds/vecs-phaser';
 import {
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
+  PhysicsModule,
+  Position as PhysicsPosition,
+  Sensor,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
+import {
   Asteroid,
   Bullet,
   CAT_ASTEROID,
   CAT_PICKUP,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
-  Collider,
   Explosion,
   ENTITY_CONFIG,
   GameStateView,
@@ -45,9 +54,11 @@ import {
   registerSpawningComponents,
 } from '../../src/game/spawning';
 import {
-  installShootingSystems,
   registerShootingComponents,
+  installShootingSystems,
 } from '../../src/game/shooting';
+
+const DT_MS = 1000 / 60;
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -75,6 +86,11 @@ function createTestWorld(): { world: World } {
   registerCombatComponents(
     world as unknown as Parameters<typeof registerCombatComponents>[0],
   );
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / 60,
+    subSteps: 4,
+  });
   installShootingSystems(
     world as unknown as Parameters<typeof installShootingSystems>[0],
   );
@@ -92,7 +108,57 @@ function createTestWorld(): { world: World } {
 }
 
 function runFrame(world: World): void {
-  world.progress(1000 / 60, 1000 / 60);
+  world.progress(DT_MS, DT_MS);
+}
+
+function moveBody(entity: Entity, x: number, y: number): void {
+  entity.set(Position, { x, y });
+  entity.set(PhysicsPosition, { x, y });
+}
+
+function createSensorBody(
+  world: World,
+  options: {
+    x: number;
+    y: number;
+    radius: number;
+    categoryBits: number;
+    maskBits: number;
+  },
+): Entity {
+  const body = world
+    .entity()
+    .set(Body, { type: BodyType.Dynamic })
+    .set(Position, { x: options.x, y: options.y })
+    .set(PhysicsPosition, { x: options.x, y: options.y });
+
+  world
+    .entity()
+    .childOf(body)
+    .set(Circle, { radius: options.radius })
+    .add(Sensor)
+    .add(SensorEvents)
+    .set(CollisionFilter, {
+      categoryBits: options.categoryBits,
+      maskBits: options.maskBits,
+    });
+
+  return body;
+}
+
+function createTestPickup(
+  world: World,
+  x: number,
+  y: number,
+  kind: PickupKind,
+): Entity {
+  return createSensorBody(world, {
+    x,
+    y,
+    radius: ENTITY_CONFIG.POWERUP.RADIUS,
+    categoryBits: CAT_PICKUP,
+    maskBits: CAT_PLAYER,
+  }).set(Pickup, { kind });
 }
 
 function count(world: World, component: ComponentClass): number {
@@ -122,11 +188,13 @@ describe('server combat systems', () => {
       100,
       3,
     );
-    world.entity().set(Position, { x: 100, y: 100 }).add(Bullet).set(Collider, {
-      radius: 2,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID,
-    });
+    createSensorBody(world, {
+      x: 100,
+      y: 100,
+      radius: 0.02,
+      categoryBits: CAT_PLAYER_BULLET,
+      maskBits: CAT_ASTEROID,
+    }).add(Bullet);
 
     runFrame(world);
 
@@ -147,11 +215,13 @@ describe('server combat systems', () => {
       100,
       3,
     );
-    world.entity().set(Position, { x: 100, y: 100 }).add(Bullet).set(Collider, {
-      radius: 2,
-      category: CAT_PLAYER_BULLET,
-      mask: CAT_ASTEROID,
-    });
+    createSensorBody(world, {
+      x: 100,
+      y: 100,
+      radius: 0.02,
+      categoryBits: CAT_PLAYER_BULLET,
+      maskBits: CAT_ASTEROID,
+    }).add(Bullet);
 
     runFrame(world);
     expect(count(world, Explosion)).toBe(1);
@@ -178,18 +248,11 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 10, y: 20 });
+    moveBody(ship, 10, 20);
     ship.set(Health, { hp: 50, maxHp: 100, healthBarTimer: 0 });
-    world
-      .entity()
-      .set(Position, { x: 10, y: 20 })
-      .set(Pickup, { kind: PickupKind.Health })
-      .set(HealthPickup, { amount: 0.5 })
-      .set(Collider, {
-        radius: ENTITY_CONFIG.POWERUP.RADIUS,
-        category: CAT_PICKUP,
-        mask: CAT_PLAYER,
-      });
+    createTestPickup(world, 10, 20, PickupKind.Health).set(HealthPickup, {
+      amount: 0.5,
+    });
 
     runFrame(world);
 
@@ -215,16 +278,8 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 10, y: 20 });
-    world
-      .entity()
-      .set(Position, { x: 10, y: 20 })
-      .set(Pickup, { kind: PickupKind.Shield })
-      .set(Collider, {
-        radius: ENTITY_CONFIG.POWERUP.RADIUS,
-        category: CAT_PICKUP,
-        mask: CAT_PLAYER,
-      });
+    moveBody(ship, 10, 20);
+    createTestPickup(world, 10, 20, PickupKind.Shield);
 
     runFrame(world);
 
@@ -251,16 +306,8 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 10, y: 20 });
-    world
-      .entity()
-      .set(Position, { x: 10, y: 20 })
-      .set(Pickup, { kind: PickupKind.Rocket })
-      .set(Collider, {
-        radius: ENTITY_CONFIG.POWERUP.RADIUS,
-        category: CAT_PICKUP,
-        mask: CAT_PLAYER,
-      });
+    moveBody(ship, 10, 20);
+    createTestPickup(world, 10, 20, PickupKind.Rocket);
 
     runFrame(world);
 
@@ -290,7 +337,7 @@ describe('server combat systems', () => {
       session,
       0,
     );
-    ship.set(Position, { x: 30, y: 30 });
+    moveBody(ship, 30, 30);
     ship.set(Health, { hp: 10, maxHp: 100, healthBarTimer: 0 });
     createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
