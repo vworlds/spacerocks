@@ -38,23 +38,11 @@ import {
   ENTITY_CONFIG,
   LaserWeapon,
   PlayerShip,
-  ProjectileView,
   Rocket,
   RocketWeapon,
-  WeaponView,
   Wraps,
 } from '@spacerocks/common';
 import { PlayerInputIntent } from './playerSessions';
-
-const PROJECTILE_KIND_BULLET = 0; // enum id
-const PROJECTILE_KIND_ROCKET = 3; // enum id
-const PROJECTILE_KIND_BOOMERANG = 4; // enum id
-
-const WEAPON_KIND_DEFAULT = 0; // enum id
-const WEAPON_KIND_LASER = 1; // enum id
-const WEAPON_KIND_AURA = 2; // enum id
-const WEAPON_KIND_ROCKET = 3; // enum id
-const WEAPON_KIND_BOOMERANG = 4; // enum id
 
 export class ShootingCooldown {
   frames = 0; // frames
@@ -70,8 +58,6 @@ export function registerShootingComponents(world: ServerWorld): void {
   world.component(Rocket);
   world.component(Boomerang);
   world.component(Decay);
-  world.component(ProjectileView);
-  world.component(WeaponView);
 }
 
 export function installShootingSystems(world: ServerWorld): void {
@@ -81,9 +67,6 @@ export function installShootingSystems(world: ServerWorld): void {
     .enter([PlayerShip], (ship) => {
       if (!ship.get(ShootingCooldown))
         ship.set(ShootingCooldown, { frames: 0 });
-      if (!ship.get(WeaponView))
-        ship.set(WeaponView, { activeWeapon: 0, ammo: 0 });
-      updateWeaponView(ship);
     });
 
   world
@@ -126,24 +109,20 @@ export function installShootingSystems(world: ServerWorld): void {
           }
           aura.shots -= 1;
           if (aura.shots <= 0) switchToDefaultWeapon(ship);
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (laser && laser.shots > 0) {
           laser.firing = true;
           laser.timer = ENTITY_CONFIG.SHIP.LASER_TIMER;
           laser.shots -= 1;
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (rocketWeapon && rocketWeapon.shots > 0) {
           createRocket(world, ship, position.x, position.y, rotation.angle);
           rocketWeapon.shots -= 1;
           if (rocketWeapon.shots <= 0) switchToDefaultWeapon(ship);
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (boomerangWeapon && boomerangWeapon.shots > 0) {
           createBoomerang(world, ship, position.x, position.y, rotation.angle);
           boomerangWeapon.shots -= 1;
-          updateWeaponView(ship);
           cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
         } else if (ship.get(DefaultWeapon)) {
           createBullet(
@@ -170,7 +149,6 @@ export function installShootingSystems(world: ServerWorld): void {
 
       laser.firing = false;
       if (laser.shots <= 0) switchToDefaultWeapon(ship);
-      updateWeaponView(ship);
     });
 
   world
@@ -256,7 +234,6 @@ export function installShootingSystems(world: ServerWorld): void {
       weapon.inFlight = Math.max(0, weapon.inFlight - 1);
       if (weapon.shots === 0 && weapon.inFlight === 0)
         switchToDefaultWeapon(owner);
-      updateWeaponView(owner);
     });
 
   world
@@ -292,7 +269,6 @@ export function createBullet(
     .set(RenderPosition, { x, y })
     .set(RenderRotation, { angle })
     .set(Bullet, { ownerType: 'player' })
-    .set(ProjectileView, { kind: PROJECTILE_KIND_BULLET, team: 0 })
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
     .add(Wraps)
     .set(FillStyle, { color, alpha: 1 })
@@ -325,7 +301,6 @@ export function createRocket(
     .set(RenderPosition, { x, y })
     .set(RenderRotation, { angle })
     .set(Rocket, { straightTimer: ENTITY_CONFIG.ROCKET.STRAIGHT_FRAMES })
-    .set(ProjectileView, { kind: PROJECTILE_KIND_ROCKET, team: 0 })
     .set(Decay, { life: ENTITY_CONFIG.ROCKET.LIFE, decay: 1 })
     .add(Wraps)
     .set(FillStyle, { color: COLORS.rocket, alpha: 1 })
@@ -368,7 +343,6 @@ export function createBoomerang(
     .set(RenderPosition, { x: spawnX, y: spawnY })
     .set(RenderRotation, { angle })
     .set(Boomerang, { ownerId: owner.eid, armed: false })
-    .set(ProjectileView, { kind: PROJECTILE_KIND_BOOMERANG, team: 0 })
     .set(Decay, { life: 1, decay: 1 / config.LIFE })
     .set(FillStyle, { color: COLORS.boomerang, alpha: 1 })
     .set(Polygon, {
@@ -385,7 +359,6 @@ export function createBoomerang(
   owner.getMut(BoomerangWeapon, (weapon) => {
     weapon.inFlight += 1;
   });
-  updateWeaponView(owner);
   return entity;
 }
 
@@ -395,29 +368,6 @@ function switchToDefaultWeapon(ship: Entity): void {
   if (ship.get(RocketWeapon)) ship.remove(RocketWeapon);
   if (ship.get(BoomerangWeapon)) ship.remove(BoomerangWeapon);
   if (!ship.get(DefaultWeapon)) ship.add(DefaultWeapon);
-}
-
-function updateWeaponView(ship: Entity): void {
-  const weapon = currentWeapon(ship);
-  const laser = ship.get(LaserWeapon);
-  const view = ship.getMut(WeaponView, (weaponView) => {
-    weaponView.activeWeapon = weapon.kind;
-    weaponView.ammo = weapon.ammo;
-    weaponView.firing = laser?.firing ? 1 : 0;
-  });
-  if (view) ship.modified(WeaponView);
-}
-
-function currentWeapon(ship: Entity): { kind: number; ammo: number } {
-  const laser = ship.get(LaserWeapon);
-  if (laser) return { kind: WEAPON_KIND_LASER, ammo: laser.shots };
-  const aura = ship.get(AuraWeapon);
-  if (aura) return { kind: WEAPON_KIND_AURA, ammo: aura.shots };
-  const rocket = ship.get(RocketWeapon);
-  if (rocket) return { kind: WEAPON_KIND_ROCKET, ammo: rocket.shots };
-  const boomerang = ship.get(BoomerangWeapon);
-  if (boomerang) return { kind: WEAPON_KIND_BOOMERANG, ammo: boomerang.shots };
-  return { kind: WEAPON_KIND_DEFAULT, ammo: 0 };
 }
 
 function findRocketTarget(

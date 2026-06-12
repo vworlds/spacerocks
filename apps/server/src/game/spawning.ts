@@ -36,12 +36,10 @@ import {
   GAME_CONFIG,
   GameStateView,
   Health,
-  HealthView,
   HealthPickup,
   Pickup,
   PICKUP_COLORS,
   PickupKind,
-  PickupView,
   PIXELS_PER_METER,
   RandomClockKind,
   WORLD_MAX_X,
@@ -69,33 +67,6 @@ const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
   [PickupKind.Health]: GAME_CONFIG.HEALTH_PICKUP_TTL_FRAMES,
 };
 
-const PICKUP_CONFIG: Record<PickupKind, { color: number; viewKind: number }> = {
-  [PickupKind.Shield]: {
-    color: PICKUP_COLORS[PickupKind.Shield],
-    viewKind: 0, // enum id
-  },
-  [PickupKind.Laser]: {
-    color: PICKUP_COLORS[PickupKind.Laser],
-    viewKind: 1, // enum id
-  },
-  [PickupKind.Aura]: {
-    color: PICKUP_COLORS[PickupKind.Aura],
-    viewKind: 2, // enum id
-  },
-  [PickupKind.Rocket]: {
-    color: PICKUP_COLORS[PickupKind.Rocket],
-    viewKind: 3, // enum id
-  },
-  [PickupKind.Boomerang]: {
-    color: PICKUP_COLORS[PickupKind.Boomerang],
-    viewKind: 4, // enum id
-  },
-  [PickupKind.Health]: {
-    color: PICKUP_COLORS[PickupKind.Health],
-    viewKind: 5, // enum id
-  },
-};
-
 class SpawnTimer {
   kind: RandomClockKind = RandomClockKind.Alien;
   minWait = 0; // ms
@@ -109,7 +80,6 @@ export function registerSpawningComponents(world: ServerWorld): void {
   world.component(AsteroidView);
   world.component(Alien);
   world.component(Pickup);
-  world.component(PickupView);
   world.component(HealthPickup);
   world.component(Decay);
   world.component(GameStateView);
@@ -221,11 +191,6 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
       maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
       healthBarTimer: 0,
     })
-    .set(HealthView, {
-      hp: ENTITY_CONFIG.ALIEN.MAX_HP,
-      maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
-      barTimer: 0,
-    })
     .add(Wraps)
     .set(StrokeStyle, { color: COLORS.orange, alpha: 1, width: 2 })
     .set(Polygon, { points: [0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1] });
@@ -245,7 +210,6 @@ export function createPickup(
   rng: Prng,
   kind: PickupKind,
 ): Entity {
-  const config = PICKUP_CONFIG[kind];
   const amount = kind === PickupKind.Health ? (rng.bool() ? 0.25 : 0.5) : 0;
   const x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
   const y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
@@ -259,13 +223,12 @@ export function createPickup(
     .set(LinearVelocity, { x: vx, y: vy })
     .set(RenderPosition, { x, y })
     .set(Pickup, { kind })
-    .set(PickupView, { kind: config.viewKind, amount })
     .set(Decay, {
       life: 1,
       decay: 1 / PICKUP_TTL_FRAMES[kind],
     })
     .add(Wraps)
-    .set(StrokeStyle, { color: config.color, alpha: 1, width: 2 })
+    .set(StrokeStyle, { color: PICKUP_COLORS[kind], alpha: 1, width: 2 })
     .set(Arc, { radius: ENTITY_CONFIG.POWERUP.RADIUS });
 
   if (kind === PickupKind.Health) entity.set(HealthPickup, { amount });

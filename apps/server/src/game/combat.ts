@@ -24,7 +24,6 @@ import {
   GameStateView,
   Health,
   HealthPickup,
-  HealthView,
   LaserWeapon,
   Pickup,
   PickupKind,
@@ -34,10 +33,8 @@ import {
   SCORING,
   SHIELD_DAMAGE,
   Shield,
-  ShieldView,
   TICK_RATE,
   toFrames,
-  WeaponView,
 } from '@spacerocks/common';
 import { createAsteroid } from './spawning';
 import { createPrng, type Prng } from './rng';
@@ -48,15 +45,9 @@ type CollisionHandler = (a: Entity, b: Entity) => void;
 const GAME_STATE_PLAYING = 0; // enum id
 const LASER_LENGTH = 10; // meters
 const RESPAWN_DELAY_FRAMES = toFrames(3_000); // frames
-const WEAPON_KIND_DEFAULT = 0; // enum id
-const WEAPON_KIND_LASER = 1; // enum id
-const WEAPON_KIND_AURA = 2; // enum id
-const WEAPON_KIND_ROCKET = 3; // enum id
-const WEAPON_KIND_BOOMERANG = 4; // enum id
-
 const registry = new Map<number, CollisionHandler[]>();
 
-class RespawnTimer {
+export class RespawnTimer {
   sessionId = 0; // entity id
   playerIndex = 0; // player index
   frames = RESPAWN_DELAY_FRAMES; // frames
@@ -69,9 +60,6 @@ export function registerCombatComponents(world: ServerWorld): void {
   world.component(BoomerangWeapon);
   world.component(DefaultWeapon);
   world.component(Shield);
-  world.component(ShieldView);
-  world.component(HealthView);
-  world.component(WeaponView);
   world.component(RespawnTimer);
 }
 
@@ -88,7 +76,6 @@ export function installCombatSystems(
     .each([Shield], (entity, [shield]) => {
       shield.shieldTime -= 1;
       entity.modified(Shield);
-      syncShieldView(entity, shield);
       if (shield.shieldTime <= 0) clearShield(entity);
     });
 
@@ -99,7 +86,6 @@ export function installCombatSystems(
       if (health.healthBarTimer > 0) {
         health.healthBarTimer -= 1;
         entity.modified(Health);
-        syncHealthView(entity, health);
       }
     });
 
@@ -276,7 +262,6 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
           weapon.shots + 1,
           ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
         );
-        syncWeaponView(player);
       }
       boomerangEntity.destroy();
     },
@@ -416,7 +401,6 @@ function damageEnemy(world: ServerWorld, enemy: Entity, damage: number): void {
     health.hp -= damage;
     health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
     enemy.modified(Health);
-    syncHealthView(enemy, health);
     if (health.hp > 0) return;
   }
 
@@ -436,7 +420,6 @@ function damagePlayer(
   if (shield) {
     shield.shieldTime = Math.max(0, shield.shieldTime - shieldDamage);
     player.modified(Shield);
-    syncShieldView(player, shield);
     if (shield.shieldTime <= 0) clearShield(player);
     return;
   }
@@ -446,7 +429,6 @@ function damagePlayer(
   health.hp -= 10;
   health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
   player.modified(Health);
-  syncHealthView(player, health);
   if (health.hp <= 0) killPlayer(world, player);
 }
 
@@ -477,7 +459,6 @@ function applyPickupEffect(
   if (pickup.kind === PickupKind.Shield) {
     const shield = { shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION };
     player.set(Shield, shield);
-    syncShieldView(player, shield);
     addScore(world, SCORING.SHIELD);
   } else if (pickup.kind === PickupKind.Laser) {
     setActiveWeapon(player, PickupKind.Laser);
@@ -501,7 +482,6 @@ function applyPickupEffect(
       );
       health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
       player.modified(Health);
-      syncHealthView(player, health);
       addScore(
         world,
         healthPickup.amount <= 0.25
@@ -525,38 +505,16 @@ function setActiveWeapon(player: Entity, kind: PickupKind): void {
       firing: false,
       timer: 0,
     });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_LASER,
-      ammo: ENTITY_CONFIG.SHIP.LASER_SHOT_COUNT,
-      firing: 0,
-    });
   } else if (kind === PickupKind.Aura) {
     player.set(AuraWeapon, { shots: ENTITY_CONFIG.SHIP.AURA_SHOT_COUNT });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_AURA,
-      ammo: ENTITY_CONFIG.SHIP.AURA_SHOT_COUNT,
-      firing: 0,
-    });
   } else if (kind === PickupKind.Rocket) {
     player.set(RocketWeapon, { shots: ENTITY_CONFIG.ROCKET.SHOT_COUNT });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_ROCKET,
-      ammo: ENTITY_CONFIG.ROCKET.SHOT_COUNT,
-      firing: 0,
-    });
   } else if (kind === PickupKind.Boomerang) {
     player.set(BoomerangWeapon, {
       shots: ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
       inFlight: 0,
     });
-    player.set(WeaponView, {
-      activeWeapon: WEAPON_KIND_BOOMERANG,
-      ammo: ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
-      firing: 0,
-    });
   }
-
-  player.modified(WeaponView);
 }
 
 function projectileDamage(projectile: Entity): number {
@@ -573,56 +531,8 @@ function addScore(world: ServerWorld, amount: number): void {
   entity.modified(GameStateView);
 }
 
-function syncHealthView(entity: Entity, health: Health): void {
-  entity.set(HealthView, {
-    hp: Math.max(0, health.hp),
-    maxHp: health.maxHp,
-    barTimer: health.healthBarTimer,
-  });
-  entity.modified(HealthView);
-}
-
-function syncShieldView(entity: Entity, shield: Shield): void {
-  entity.set(ShieldView, { remainingTime: Math.max(0, shield.shieldTime) });
-  entity.modified(ShieldView);
-}
-
-function syncWeaponView(entity: Entity): void {
-  const weapon = currentWeapon(entity);
-  entity.set(WeaponView, {
-    activeWeapon: weapon.kind,
-    ammo: weapon.ammo,
-    firing: weapon.firing,
-  });
-  entity.modified(WeaponView);
-}
-
 function clearShield(entity: Entity): void {
   if (entity.get(Shield)) entity.remove(Shield);
-  if (entity.get(ShieldView)) entity.remove(ShieldView);
-}
-
-function currentWeapon(entity: Entity): {
-  kind: number;
-  ammo: number;
-  firing: number;
-} {
-  const laser = entity.get(LaserWeapon);
-  if (laser)
-    return {
-      kind: WEAPON_KIND_LASER,
-      ammo: laser.shots,
-      firing: laser.firing ? 1 : 0,
-    };
-  const aura = entity.get(AuraWeapon);
-  if (aura) return { kind: WEAPON_KIND_AURA, ammo: aura.shots, firing: 0 };
-  const rocket = entity.get(RocketWeapon);
-  if (rocket)
-    return { kind: WEAPON_KIND_ROCKET, ammo: rocket.shots, firing: 0 };
-  const boomerang = entity.get(BoomerangWeapon);
-  if (boomerang)
-    return { kind: WEAPON_KIND_BOOMERANG, ammo: boomerang.shots, firing: 0 };
-  return { kind: WEAPON_KIND_DEFAULT, ammo: 0, firing: 0 };
 }
 
 export function createExplosion(

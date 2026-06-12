@@ -1,16 +1,6 @@
 export { Networked } from './Networked';
 export { Explosion } from './Explosion';
-export {
-  AsteroidView,
-  ExplosionView,
-  GameStateView,
-  HealthView,
-  PickupView,
-  PlayerShip,
-  ProjectileView,
-  ShieldView,
-  WeaponView,
-} from './ViewComponents';
+export { AsteroidView, GameStateView, PlayerShip } from './ViewComponents';
 export {
   Alien,
   Asteroid,

@@ -27,7 +27,6 @@ import {
   COLORS,
   ENTITY_CONFIG,
   PLAYER_COLORS,
-  ProjectileView,
   Rocket,
   RocketWeapon,
   TICK_RATE,
@@ -122,7 +121,6 @@ describe('server shooting systems', () => {
 
     expect(count(world, Bullet)).toBe(1);
     const bullet = firstEntity(world, Bullet);
-    expect(bullet.get(ProjectileView)).toMatchObject({ kind: 0, team: 0 });
     expect(bullet.get(Arc)).toMatchObject({ radius: 0.02 });
     expect(bullet.get(FillStyle)).toMatchObject({
       color: PLAYER_COLORS[0],

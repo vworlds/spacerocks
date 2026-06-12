@@ -8,17 +8,11 @@ import { Decoder, Encoder } from '@vworlds/vecs-wire';
 import {
   AsteroidView,
   Explosion,
-  ExplosionView,
   GameStateView,
-  HealthView,
   NETWORK_COMPONENTS,
-  PickupView,
   PlayerShip,
-  ProjectileView,
-  ShieldView,
   WORLD_HEIGHT,
   WORLD_WIDTH,
-  WeaponView,
 } from '../src/index';
 
 type WireEncodable = {
@@ -53,13 +47,7 @@ describe('NETWORK_COMPONENTS', () => {
     const cases = [
       [PlayerShip, Object.assign(new PlayerShip(), { playerIndex: 7 })],
       [AsteroidView, Object.assign(new AsteroidView(), { level: 2 })],
-      [ProjectileView, Object.assign(new ProjectileView(), { kind: 1 })],
-      [PickupView, Object.assign(new PickupView(), { amount: 9 })],
-      [HealthView, Object.assign(new HealthView(), { hp: 10 })],
-      [ShieldView, Object.assign(new ShieldView(), { remainingTime: 11 })],
-      [WeaponView, Object.assign(new WeaponView(), { ammo: 12, firing: 1 })],
       [GameStateView, Object.assign(new GameStateView(), { wave: 13 })],
-      [ExplosionView, Object.assign(new ExplosionView(), { seed: 14 })],
     ] as const;
 
     for (const [ComponentClass, value] of cases) {

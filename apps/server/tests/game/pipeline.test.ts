@@ -15,6 +15,7 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
+  Alien,
   Asteroid,
   COLORS,
   Explosion,
@@ -79,5 +80,35 @@ describe('server game world pipeline', () => {
     createExplosion(world, 0, 0, COLORS.white, 0.2);
     const explosion = entitiesWith(Explosion, world)[0];
     expect(explosion?.get(Networked)).toBeTruthy();
+  });
+
+  it('progresses waves in the full physics pipeline and spawns asteroid bodies with shapes', async () => {
+    const world = await createGameWorld();
+    const dt = 1000 / TICK_RATE;
+    world.progress(0, dt);
+    const stateEntity = entitiesWith(GameStateView, world)[0];
+    if (!stateEntity) throw new Error('Expected GameStateView entity');
+    const startingWave = stateEntity.get(GameStateView)?.wave ?? 0;
+
+    for (const asteroid of entitiesWith(Asteroid, world)) asteroid.destroy();
+    for (const alien of entitiesWith(Alien, world)) alien.destroy();
+    world.flush();
+
+    for (let i = 0; i < 20; i += 1) {
+      world.progress((i + 1) * dt, dt);
+    }
+
+    expect(stateEntity.get(GameStateView)?.wave).toBe(startingWave + 1);
+    const asteroids = entitiesWith(Asteroid, world);
+    expect(asteroids.length).toBeGreaterThan(0);
+    for (const asteroid of asteroids) {
+      expect(asteroid.get(Body)).toBeTruthy();
+      const shape = Array.from(asteroid.children(ChildOf)).find((child) =>
+        child.get(Circle),
+      );
+      expect(shape?.get(Sensor)).toBeTruthy();
+      expect(shape?.get(SensorEvents)).toBeTruthy();
+      expect(shape?.get(CollisionFilter)).toBeTruthy();
+    }
   });
 });

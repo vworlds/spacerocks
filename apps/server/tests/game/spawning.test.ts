@@ -15,7 +15,6 @@ import {
   Pickup,
   PICKUP_COLORS,
   PickupKind,
-  PickupView,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -260,7 +259,7 @@ describe('server spawning systems', () => {
     );
 
     expect(asteroidA.get(AsteroidView)).toEqual(asteroidB.get(AsteroidView));
-    expect(pickupA.get(PickupView)).toEqual(pickupB.get(PickupView));
+    expect(pickupA.get(StrokeStyle)).toEqual(pickupB.get(StrokeStyle));
     expect(pickupA.get(Position)).toEqual(pickupB.get(Position));
   });
 });

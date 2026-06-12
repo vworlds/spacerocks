@@ -33,10 +33,8 @@ import {
   DefaultWeapon,
   ENTITY_CONFIG,
   Health,
-  HealthView,
   PlayerShip,
   Shield,
-  ShieldView,
   WORLD_HEIGHT,
   WORLD_WIDTH,
   Wraps,
@@ -70,9 +68,7 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(ChildOf).meta.onDeleteTarget = CleanupPolicy.Delete;
   world.component(Networked);
   world.component(Health);
-  world.component(HealthView);
   world.component(Shield);
-  world.component(ShieldView);
   world.component(DefaultWeapon);
   world.component(Wraps);
   world.component(PlayerShip);
@@ -152,11 +148,6 @@ export function createPlayerShip(
       hp: ENTITY_CONFIG.SHIP.MAX_HP,
       maxHp: ENTITY_CONFIG.SHIP.MAX_HP,
       healthBarTimer: 0,
-    })
-    .set(HealthView, {
-      hp: ENTITY_CONFIG.SHIP.MAX_HP,
-      maxHp: ENTITY_CONFIG.SHIP.MAX_HP,
-      barTimer: 0,
     })
     .add(DefaultWeapon)
     .set(PlayerInputIntent, {})
