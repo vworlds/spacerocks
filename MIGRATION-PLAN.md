@@ -145,13 +145,15 @@ The current `CAT_*` category bits and per-entity `mask` map **directly** onto `C
 This yields a **uniform model — simpler and a closer match to the original pure-trigger game than the pre-probe hybrid**:
 
 - **Every gameplay shape is a `Dynamic` body + `Circle` + `Sensor` + `SensorEvents` + `CollisionFilter`.** All interactions are sensor overlaps with **zero physical response** (nothing bounces — exactly like the old radius-overlap collision). The non-bipartite interaction graph is irrelevant because there is only one shape kind.
-- **All collision gameplay is driven from `SensorEvents.begin`.** Both shapes in an interacting pair receive the event; the handler resolves it once (dedupe by entity-pair, or designate the handler by category — e.g. handle on the projectile/pickup side, and for body↔body pairs pick the lower category). Get the other body via `event.other.parent(ChildOf)`.
+- **All collision gameplay is driven from `SensorEvents.begin`.** Both shapes in an interacting pair receive the event; the handler resolves it once (dedupe by entity-pair, or designate the handler by category — e.g. handle on the projectile/pickup side, and for body↔body pairs pick the lower category). Get the other body via `event.other.target(ChildOf)`.
 - **`CollisionFilter` gates friendly-fire** (probe F): a player bullet's mask excludes `CAT_PLAYER`, etc. — same bits as today.
 - **No `ContactEvents`, no `Material.restitution`/bounce tuning needed** (no solids), and asteroid↔asteroid simply never matches filters, so asteroids pass through each other as before.
-- **Laser** is a **ray cast**, which **vecs-physics v1 does not provide** → keep the existing `resolveLaserHits` (`distToSegment` over `Position`) as a gameplay system.
-- **Screen wrap, rocket homing, boomerang pull-back** have no physics primitive → gameplay systems that write `LinearVelocity` (homing/pull) or teleport `Position` (wrap).
+- **Laser** is a **ray cast**. *(vecs-physics v1 lacked ray casts; **1.0.27 added `physics(world).rayCastAll`** and the laser now uses it — `resolveLaserHits` casts along the beam and the hand-rolled `distToSegment` is removed. See UP-3 / SR-FU-3 in the migration report.)*
+- **Screen wrap, rocket homing, boomerang pull-back** drive motion via gameplay systems that write `LinearVelocity` (homing/pull) or teleport `Position` (wrap). *(Rocket homing **target selection** now uses **`physics(world).overlapCircle`** (1.0.27) instead of an O(n) scan — see UP-4 / SR-FU-4.)*
 
 > **De-risked (ticket P1, DONE).** `apps/server/tests/physics/probe.test.ts` empirically established the above (scenarios A–G). The original hybrid (kinematic-sensor detecting dynamic-solid) **failed** and was replaced by this uniform dynamic-sensor model, which the probe confirms.
+
+> **Update (vecs 1.0.27).** The sensor↔solid limitation (UP-1) is **resolved upstream**: a solid shape that opts in via the new `Detectable` marker is now seen by sensors (the probe was updated to prove this — scenarios A/variant). We **retain the uniform sensor model by design** (pure-trigger gameplay, zero physical response), so `Detectable`/solids/`ContactEvents` remain unused in gameplay. The two query-based workarounds were also removed: the **laser** uses `physics(world).rayCastAll` (UP-3) and **rocket homing** uses `physics(world).overlapCircle` (UP-4). See the migration report §6 for the full status of each gap.
 
 ---
 
@@ -278,7 +280,7 @@ world.module(ExplosionEffectModule, { scene });  // app: .with(Explosion).enter 
 | Risk | Mitigation |
 | --- | --- |
 | Box2D v3 sensor/contact semantics differ from assumptions | **P1 probe spike runs first**; body-type fallbacks documented in §5.3. |
-| No raycast in v1 (laser) | Keep custom `distToSegment` raycast reading replicated `Position`. |
+| No raycast in v1 (laser) | ~~Keep custom `distToSegment` raycast reading replicated `Position`.~~ **Resolved in vecs 1.0.27** — laser uses `physics(world).rayCastAll` (UP-3 / SR-FU-3). |
 | Units conversion is wide (every constant) + handedness flip | Isolate in Phase 1; pixel/flip only in `CoordSpace`; R8 calibration + forward-fire test. |
 | Physical-response artifacts | None — the P1-confirmed uniform model uses **sensors only** (zero response), exactly like the old radius-overlap triggers. |
 | `ChildOf` overloaded (ownership + physics + render) | Physics only sees children with physics geometry; document leaf-shape rule; keep cascade-delete. |

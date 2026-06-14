@@ -4,6 +4,8 @@
 **Outcome:** Migration complete and green. Server validated end-to-end headlessly; client builds and renders via Phaser (one item — live browser playtest — is owner-verified, see §5).
 **Companion docs:** [`MIGRATION-PLAN.md`](./MIGRATION-PLAN.md) (design + ticket breakdown).
 
+**Update (2026-06-14) — vecs 1.0.27 follow-up.** Upgraded the `@vworlds/vecs*` suite to **1.0.27** and removed the workarounds upstream now obsoletes: **UP-1** (sensor↔solid via the new `Detectable` marker), **UP-3** (laser via `physics(world).rayCastAll`), **UP-4** (rocket homing via `physics(world).overlapCircle`). **UP-2** was discarded upstream (it is now a documented requirement, not a bug). The one API break — Entity `.parent(rel)` → `.target(rel)` — was fixed during the bump. Full gate (typecheck/lint/test/build) green. Per-gap status is marked in §6.
+
 This report covers: what worked out of the box, what was deferred or couldn't be done, recommendations, follow-up tickets, and — the centerpiece — **upstream engine feature gaps** with descriptions, example usage, the workaround built in spacerocks, the upstream ticket to file, and the paired spacerocks follow-up ticket to remove each workaround once fixed upstream.
 
 ---
@@ -94,7 +96,11 @@ Severity legend: 🔴 blocked/changed architecture · 🟠 forced a non-trivial 
 
 ---
 
+> **Resolution status (vecs 1.0.27).** **UP-1, UP-3, UP-4 are resolved upstream** and their spacerocks workarounds have been removed (SR-FU-1/3/4 below). **UP-2 was discarded upstream** — resolved by documentation: installing `PhysicsModule` before adding physics components is now a documented requirement (no backfill), which is the correct usage, so the install-before-spawn ordering is kept. **UP-5…UP-10 remain open** as of 1.0.27.
+
 ### UP-1 — Sensors don't detect solids; sensor semantics undocumented 🔴 {#up-1}
+
+> **✅ RESOLVED in vecs 1.0.27** via the new `Detectable` marker — a solid shape opts into sensor detection (Box2D v3 requires both sides to opt in). Verified empirically by the updated probe (`apps/server/tests/physics/probe.test.ts`, scenarios A/variant). Spacerocks **retains the uniform sensor model by design** (pure-trigger gameplay), so no gameplay code changed — see SR-FU-1.
 
 **What's missing / wrong.** `lib/vecs-physics/docs/events.md` implies a `Sensor` shape detects overlapping **solid** shapes (the "checkpoint" example pairs a sensor zone with a solid player). Empirically, in the shipped `box2d3-wasm` build (probe `apps/server/tests/physics/probe.test.ts`):
 
@@ -119,11 +125,13 @@ playerShape.set(CollisionFilter, { categoryBits: PLAYER, maskBits: PICKUP }); //
 
 **Upstream ticket (file against vecs-physics):** *"Document and fix sensor↔solid detection semantics."* Clarify which shapes a sensor detects; make the checkpoint-style sensor↔solid example actually work (or replace it); add an `enableSensorEvents`/`Detectable` opt-in if that's the intended model; add parity tests for sensor↔solid, sensor↔sensor, and filter gating across body types.
 
-**Spacerocks follow-up — SR-FU-1.** *Once UP-1 ships:* re-evaluate the uniform-sensor model. If we ever want **physical response** anywhere (e.g. ships bouncing off a future asteroid type), switch those pairs to solids + `ContactEvents` and use sensors only for triggers. Until then, keep the uniform model but drop the empirical probe's "sensor↔solid fails" assertions if upstream changes the behavior.
+**Spacerocks follow-up — SR-FU-1. ✅ DONE (vecs 1.0.27).** Probe updated to prove `Detectable` enables sensor↔solid detection; the uniform sensor model is retained by design (no gameplay change). *Original guidance — once UP-1 ships:* re-evaluate the uniform-sensor model. If we ever want **physical response** anywhere (e.g. ships bouncing off a future asteroid type), switch those pairs to solids + `ContactEvents` and use sensors only for triggers. Until then, keep the uniform model but drop the empirical probe's "sensor↔solid fails" assertions if upstream changes the behavior.
 
 ---
 
 ### UP-2 — `PhysicsModule` installed after entities exist doesn't backfill their shapes 🔴 {#up-2}
+
+> **⛔ DISCARDED upstream — resolved by documentation.** Installing `PhysicsModule` before adding physics components is now a documented requirement (entities created before install are intentionally not backfilled). This is the correct way to use vecs-physics; spacerocks keeps the install-before-spawn ordering in `world.ts` — see SR-FU-2.
 
 **What's missing / wrong.** `docs/systems-and-phases.md` says physics "can be installed after a world already exists" and participates "starting with the next `world.progress()`." In practice, entities that have `Body` + a child shape **before** `world.module(PhysicsModule)` get a body that **integrates velocity (they move)** but whose **sensor shape never functions** — `SensorEvents` never fire, so collisions are silently dead. Entities created **after** install work perfectly. This produced a shipped bug where the entire **wave‑1** of asteroids (spawned at startup, before install) was non-collidable while wave 2+ worked (repro: a wave-1 asteroid survived a point-blank bullet; an identical runtime asteroid was destroyed).
 
@@ -142,11 +150,13 @@ world.progress(now, dt);          // ground collides normally
 
 **Upstream ticket (file against vecs-physics):** *"Late `PhysicsModule` install must backfill existing Body/shape entities (or warn)."* Reproduce: create body+shape, then install module, then step — assert the shape's `SensorEvents`/`ContactEvents` fire. Fix the lifecycle backfill ordering (body created but child shape not attached on backfill), and add a debug warning for physics components present at install time if backfill is intentionally unsupported.
 
-**Spacerocks follow-up — SR-FU-2.** *Once UP-2 ships:* the install-before-spawn ordering constraint in `world.ts` can be relaxed (install order no longer load-bearing). Keep `startupCollision.test.ts` as a guard regardless.
+**Spacerocks follow-up — SR-FU-2. ⛔ N/A — UP-2 discarded upstream.** Installing `PhysicsModule` before creating physics entities is now a documented requirement, so the install-before-spawn ordering in `world.ts` **stays** (it is correct usage, not a workaround). `startupCollision.test.ts` is kept as a guard.
 
 ---
 
 ### UP-3 — No ray casts 🟠 {#up-3}
+
+> **✅ RESOLVED in vecs 1.0.27** via `physics(world).rayCastAll` / `rayCastClosest` (returns shape entities with point/normal/fraction, honoring `CollisionFilter`). The hand-rolled laser raycast was removed — see SR-FU-3.
 
 **What's missing.** vecs-physics v1 has **no ray/segment casts** (documented limitation). The laser is a hitscan beam that should test the beam segment against shapes.
 
@@ -160,11 +170,13 @@ for (const h of hits) damage(h.shape.parent(ChildOf));
 
 **Upstream ticket (file against vecs-physics):** *"Add ray/segment cast queries (`raycastClosest`/`raycastAll`) honoring `CollisionFilter`, returning shape + point + normal + fraction."*
 
-**Spacerocks follow-up — SR-FU-3.** *Once UP-3 ships:* replace `resolveLaserHits` + `distToSegment` with a physics segment cast along the ship's facing (more accurate, shape-aware, broadphase-backed). Remove the hand-rolled `distToSegment` helper.
+**Spacerocks follow-up — SR-FU-3. ✅ DONE (vecs 1.0.27).** `resolveLaserHits` now casts with `physics(world).rayCastAll` along the beam (filter `CAT_ASTEROID | CAT_ENEMY`), mapping hit shapes to bodies via `.target(ChildOf)`; the hand-rolled `distToSegment` helper was deleted. *Original guidance — once UP-3 ships:* replace `resolveLaserHits` + `distToSegment` with a physics segment cast along the ship's facing (more accurate, shape-aware, broadphase-backed). Remove the hand-rolled `distToSegment` helper.
 
 ---
 
 ### UP-4 — No spatial / overlap / nearest queries 🟠 {#up-4}
+
+> **✅ RESOLVED in vecs 1.0.27** via `physics(world).overlapCircle` (precise mid-phase) and `overlapAABB` (broad-phase), honoring `CollisionFilter`. The O(n) rocket-homing scan was removed — see SR-FU-4.
 
 **What's missing.** No AABB/region/overlap queries (documented v1 limitation). Gameplay that needs "what's near here?" must scan all entities.
 
@@ -177,7 +189,7 @@ const near = world.overlapAABB({ minX, minY, maxX, maxY }, { maskBits });   // o
 
 **Upstream ticket (file against vecs-physics):** *"Add broadphase-backed spatial queries: `overlapAABB`, `queryCircle`/`queryPoint`, and a `closest`/k-nearest helper, honoring `CollisionFilter`."*
 
-**Spacerocks follow-up — SR-FU-4.** *Once UP-4 ships:* replace `findNearest` O(n) scans (rocket homing, and any proximity checks) with a `queryCircle(position, HOME_RANGE)` against the broadphase.
+**Spacerocks follow-up — SR-FU-4. ✅ DONE (vecs 1.0.27).** `findNearest` now queries `physics(world).overlapCircle({ center, radius: HOME_RANGE, filter })` and picks the nearest candidate (alien-first, asteroid fallback) instead of scanning every entity. *Original guidance — once UP-4 ships:* replace `findNearest` O(n) scans (rocket homing, and any proximity checks) with a `queryCircle(position, HOME_RANGE)` against the broadphase.
 
 ---
 
@@ -276,7 +288,7 @@ child.set(ChildOf, { target: parent }).set(LocalPosition, { x: 0, y: 0.3 }).add(
 
 ## 7. Consolidated follow-up tickets
 
-**Upstream-dependent (remove a workaround when the engine ships the fix):** SR-FU-1 … SR-FU-10 above, each paired to UP-1 … UP-10.
+**Upstream-dependent (remove a workaround when the engine ships the fix):** SR-FU-1 … SR-FU-10 above, each paired to UP-1 … UP-10. *Status: **SR-FU-1, SR-FU-3, SR-FU-4 are DONE** (vecs 1.0.27); **SR-FU-2 is N/A** (UP-2 discarded upstream); SR-FU-5 … SR-FU-10 remain open.*
 
 **Spacerocks-only (no upstream dependency):**
 
