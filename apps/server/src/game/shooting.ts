@@ -19,6 +19,7 @@ import {
   Rotation as PhysicsRotation,
   Sensor,
   SensorEvents,
+  physics,
 } from '@vworlds/vecs-physics';
 import {
   Alien,
@@ -383,29 +384,37 @@ function findRocketTarget(
   world: ServerWorld,
   position: PhysicsPosition,
 ): { x: number; y: number } | undefined {
-  const alienTarget = findNearest(world, position, Alien);
-  return alienTarget ?? findNearest(world, position, Asteroid);
+  const alienTarget = findNearest(world, position, CAT_ENEMY, Alien);
+  return alienTarget ?? findNearest(world, position, CAT_ASTEROID, Asteroid);
 }
 
 function findNearest(
   world: ServerWorld,
   source: PhysicsPosition,
+  maskBits: number,
   component: typeof Alien | typeof Asteroid,
 ): { x: number; y: number } | undefined {
   let target: { x: number; y: number } | undefined;
   let minDistance = Infinity;
-  world
-    .filter([PhysicsPosition, component])
-    .forEach([PhysicsPosition], (_entity, [position]) => {
-      const distance = Math.hypot(source.x - position.x, source.y - position.y);
-      if (
-        distance >= ENTITY_CONFIG.ROCKET.HOME_RANGE ||
-        distance >= minDistance
-      )
-        return;
-      minDistance = distance;
-      target = { x: position.x, y: position.y };
-    });
+
+  const shapes = physics(world).overlapCircle({
+    center: { x: source.x, y: source.y },
+    radius: ENTITY_CONFIG.ROCKET.HOME_RANGE,
+    filter: { maskBits },
+  });
+
+  for (const shape of shapes) {
+    const body = shape.target(ChildOf);
+    if (!body || !body.get(component)) continue;
+    const position = body.get(PhysicsPosition);
+    if (!position) continue;
+
+    const distance = Math.hypot(source.x - position.x, source.y - position.y);
+    if (distance >= minDistance) continue;
+    minDistance = distance;
+    target = { x: position.x, y: position.y };
+  }
+
   return target;
 }
 
