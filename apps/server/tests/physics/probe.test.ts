@@ -5,6 +5,7 @@ import {
   Circle,
   CollisionFilter,
   ContactEvents,
+  Detectable,
   LinearVelocity,
   PhysicsModule,
   Position,
@@ -96,6 +97,7 @@ function createCircleShape(
     sensor?: boolean;
     sensorEvents?: boolean;
     contactEvents?: boolean;
+    detectable?: boolean;
   },
 ): Entity {
   const shape = world
@@ -110,6 +112,7 @@ function createCircleShape(
   if (options.sensor) shape.add(Sensor);
   if (options.sensorEvents) shape.add(SensorEvents);
   if (options.contactEvents) shape.add(ContactEvents);
+  if (options.detectable) shape.add(Detectable);
 
   return shape;
 }
@@ -138,31 +141,58 @@ function expectBeginAgainst(
 }
 
 describe('vecs-physics Box2D sensor/contact probe', () => {
-  it('A: kinematic sensor detects a dynamic solid', () => {
-    const { world, sensorBegins } = createProbeWorld();
-    const sensorBody = createBody(world, BodyType.Kinematic, {
-      x: -1.5,
-      velocityX: 10,
-    });
-    const solidBody = createBody(world, BodyType.Dynamic);
-    const sensorShape = createCircleShape(world, sensorBody, {
-      sensor: true,
-      sensorEvents: true,
-      categoryBits: CAT_SENSOR,
-      maskBits: CAT_SOLID,
-    });
-    const solidShape = createCircleShape(world, solidBody, {
-      categoryBits: CAT_SOLID,
-      maskBits: CAT_SENSOR,
-    });
+  it('A: kinematic sensor detects only dynamic solids that opt in with Detectable', () => {
+    {
+      const { world, sensorBegins } = createProbeWorld();
+      const sensorBody = createBody(world, BodyType.Kinematic, {
+        x: -1.5,
+        velocityX: 10,
+      });
+      const solidBody = createBody(world, BodyType.Dynamic);
+      const sensorShape = createCircleShape(world, sensorBody, {
+        sensor: true,
+        sensorEvents: true,
+        categoryBits: CAT_SENSOR,
+        maskBits: CAT_SOLID,
+      });
+      const solidShape = createCircleShape(world, solidBody, {
+        categoryBits: CAT_SOLID,
+        maskBits: CAT_SENSOR,
+      });
 
-    stepProbe(world);
+      stepProbe(world);
 
-    expect(beginsForSelf(sensorBegins, sensorShape)).toEqual([]);
-    expect(solidShape.target(ChildOf)).toBe(solidBody);
-    // FAIL: this Box2D build does NOT report SensorEvents for KINEMATIC sensor
-    // shapes overlapping DYNAMIC solid shapes, even when moved into overlap.
-    // => projectiles/pickups cannot rely on KINEMATIC sensor-vs-solid SensorEvents.
+      expect(beginsForSelf(sensorBegins, sensorShape)).toEqual([]);
+      expect(solidShape.target(ChildOf)).toBe(solidBody);
+    }
+
+    {
+      const { world, sensorBegins } = createProbeWorld();
+      const sensorBody = createBody(world, BodyType.Kinematic, {
+        x: -1.5,
+        velocityX: 10,
+      });
+      const solidBody = createBody(world, BodyType.Dynamic);
+      const sensorShape = createCircleShape(world, sensorBody, {
+        sensor: true,
+        sensorEvents: true,
+        categoryBits: CAT_SENSOR,
+        maskBits: CAT_SOLID,
+      });
+      const solidShape = createCircleShape(world, solidBody, {
+        detectable: true,
+        categoryBits: CAT_SOLID,
+        maskBits: CAT_SENSOR,
+      });
+
+      stepProbe(world);
+
+      expectBeginAgainst(sensorBegins, sensorShape, solidShape);
+      expect(solidShape.target(ChildOf)).toBe(solidBody);
+    }
+
+    // Sensor-vs-solid SensorEvents require the solid shape to opt in with
+    // Detectable; plain solids are intentionally invisible to sensors.
   });
 
   it('B: two dynamic solids with ContactEvents both receive begin events', () => {
@@ -205,9 +235,7 @@ describe('vecs-physics Box2D sensor/contact probe', () => {
     stepProbe(world);
 
     expect(beginsForSelf(sensorBegins, sensorShape)).toEqual([]);
-    // Observed empty as expected for a blocked filter, but A shows the allowed
-    // sensor-vs-solid case is also empty, so this does not independently prove
-    // friendly-fire gating for the intended projectile model.
+    // PASS => blocked CollisionFilter pairs remain invisible to SensorEvents.
   });
 
   it('D: documents sensor-vs-sensor behavior without relying on it', () => {
@@ -238,30 +266,58 @@ describe('vecs-physics Box2D sensor/contact probe', () => {
     // The migration still avoids depending on projectile/pickup sensor-vs-sensor pairs.
   });
 
-  it('variant: dynamic sensor also detects a dynamic solid', () => {
-    const { world, sensorBegins } = createProbeWorld();
-    const sensorBody = createBody(world, BodyType.Dynamic, {
-      x: -1.5,
-      velocityX: 10,
-    });
-    const solidBody = createBody(world, BodyType.Dynamic);
-    const sensorShape = createCircleShape(world, sensorBody, {
-      sensor: true,
-      sensorEvents: true,
-      categoryBits: CAT_SENSOR,
-      maskBits: CAT_SOLID,
-    });
-    const solidShape = createCircleShape(world, solidBody, {
-      categoryBits: CAT_SOLID,
-      maskBits: CAT_SENSOR,
-    });
+  it('variant: dynamic sensor detects only dynamic solids that opt in with Detectable', () => {
+    {
+      const { world, sensorBegins } = createProbeWorld();
+      const sensorBody = createBody(world, BodyType.Dynamic, {
+        x: -1.5,
+        velocityX: 10,
+      });
+      const solidBody = createBody(world, BodyType.Dynamic);
+      const sensorShape = createCircleShape(world, sensorBody, {
+        sensor: true,
+        sensorEvents: true,
+        categoryBits: CAT_SENSOR,
+        maskBits: CAT_SOLID,
+      });
+      const solidShape = createCircleShape(world, solidBody, {
+        categoryBits: CAT_SOLID,
+        maskBits: CAT_SENSOR,
+      });
 
-    stepProbe(world);
+      stepProbe(world);
 
-    expect(beginsForSelf(sensorBegins, sensorShape)).toEqual([]);
-    expect(solidShape.target(ChildOf)).toBe(solidBody);
-    // Same observed failure as KINEMATIC sensors; switching projectiles to
-    // DYNAMIC sensors alone would not restore sensor-vs-solid detection.
+      expect(beginsForSelf(sensorBegins, sensorShape)).toEqual([]);
+      expect(solidShape.target(ChildOf)).toBe(solidBody);
+    }
+
+    {
+      const { world, sensorBegins } = createProbeWorld();
+      const sensorBody = createBody(world, BodyType.Dynamic, {
+        x: -1.5,
+        velocityX: 10,
+      });
+      const solidBody = createBody(world, BodyType.Dynamic);
+      const sensorShape = createCircleShape(world, sensorBody, {
+        sensor: true,
+        sensorEvents: true,
+        categoryBits: CAT_SENSOR,
+        maskBits: CAT_SOLID,
+      });
+      const solidShape = createCircleShape(world, solidBody, {
+        detectable: true,
+        categoryBits: CAT_SOLID,
+        maskBits: CAT_SENSOR,
+      });
+
+      stepProbe(world);
+
+      expectBeginAgainst(sensorBegins, sensorShape, solidShape);
+      expect(solidShape.target(ChildOf)).toBe(solidBody);
+    }
+
+    // Dynamic sensor bodies follow the same opt-in rule: Detectable solids are
+    // reported, while plain solids are not.
   });
 
   it('E: two dynamic sensor bodies both receive SensorEvents begin events', () => {
