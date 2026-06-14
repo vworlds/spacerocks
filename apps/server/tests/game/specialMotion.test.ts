@@ -137,6 +137,11 @@ function createLaserWorld(): World {
   registerCombatComponents(
     world as unknown as Parameters<typeof registerCombatComponents>[0],
   );
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
   installCombatSystems(
     world as unknown as Parameters<typeof installCombatSystems>[0],
     createPrng(1234),
@@ -340,12 +345,14 @@ describe('special motion under physics', () => {
 
   it('laser raycasts destroy only asteroids along the beam and score the hit', () => {
     const world = createLaserWorld();
-    world
+    const ship = world
       .entity()
       .set(PlayerShip, { playerIndex: 0, color: COLORS.white })
+      .set(PhysicsPosition, { x: 0, y: 0 })
+      .set(PhysicsRotation, { angle: 0 })
       .set(RenderPosition, { x: 0, y: 0 })
       .set(RenderRotation, { angle: 0 })
-      .set(LaserWeapon, { shots: 1, firing: true, timer: 10 });
+      .set(LaserWeapon, { shots: 1, firing: false, timer: 10 });
     createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
       createPrng(2),
@@ -360,6 +367,8 @@ describe('special motion under physics', () => {
       1,
       1,
     );
+    step(world);
+    ship.set(LaserWeapon, { shots: 1, firing: true, timer: 10 });
 
     step(world);
 

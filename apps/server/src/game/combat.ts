@@ -1,7 +1,7 @@
 import { ChildOf, POST_UPDATE, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import { Position, Rotation } from '@vworlds/vecs-phaser';
-import { CollisionFilter, SensorEvents } from '@vworlds/vecs-physics';
+import { CollisionFilter, physics, SensorEvents } from '@vworlds/vecs-physics';
 import {
   Alien,
   Asteroid,
@@ -348,21 +348,26 @@ function resolveLaserHits(
     y: origin.y + Math.sin(rotation.angle) * LASER_LENGTH,
   };
 
-  world
-    .filter([Position, Asteroid, AsteroidView])
-    .forEach([Position, AsteroidView], (asteroid, [position, asteroidView]) => {
-      if (distToSegment(position, start, end) < asteroidView.radius) {
-        destroyAsteroid(world, rng, asteroid, true);
-      }
-    });
+  const hits = physics(world).rayCastAll({
+    from: start,
+    to: end,
+    filter: { maskBits: CAT_ASTEROID | CAT_ENEMY },
+  });
 
-  world.filter([Position, Alien]).forEach([Position], (alien, [position]) => {
-    if (distToSegment(position, start, end) < ENTITY_CONFIG.ALIEN.RADIUS) {
-      createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
-      alien.destroy();
+  for (const hit of hits) {
+    const body = hit.entity.target(ChildOf);
+    if (!body || !world.getEntity(body.eid)) continue;
+
+    if (body.get(Asteroid)) {
+      destroyAsteroid(world, rng, body, true);
+    } else if (body.get(Alien)) {
+      const position = body.get(Position);
+      if (position)
+        createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
+      body.destroy();
       addScore(world, SCORING.ALIEN);
     }
-  });
+  }
 }
 
 function destroyAsteroid(
@@ -556,31 +561,6 @@ export function createExplosion(
       life: 1,
       decay: 1 / ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES,
     });
-}
-
-function distToSegment(
-  point: { x: number; y: number },
-  start: { x: number; y: number },
-  end: { x: number; y: number },
-): number {
-  const lengthSquared =
-    (end.x - start.x) * (end.x - start.x) +
-    (end.y - start.y) * (end.y - start.y);
-  if (lengthSquared === 0)
-    return Math.hypot(point.x - start.x, point.y - start.y);
-  const t = Math.max(
-    0,
-    Math.min(
-      1,
-      ((point.x - start.x) * (end.x - start.x) +
-        (point.y - start.y) * (end.y - start.y)) /
-        lengthSquared,
-    ),
-  );
-  return Math.hypot(
-    point.x - (start.x + t * (end.x - start.x)),
-    point.y - (start.y + t * (end.y - start.y)),
-  );
 }
 
 function isPlaying(world: ServerWorld): boolean {
