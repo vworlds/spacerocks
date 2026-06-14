@@ -13,10 +13,16 @@ import {
   Triangle,
 } from '@vworlds/vecs-phaser';
 import {
+  Body,
+  BodyType,
+  Circle,
+  CollisionFilter,
   LinearVelocity,
   PhysicsModule,
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
+  Sensor,
+  SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
   Alien,
@@ -24,6 +30,7 @@ import {
   Boomerang,
   BoomerangWeapon,
   Bullet,
+  CAT_ASTEROID,
   COLORS,
   ENTITY_CONFIG,
   PLAYER_COLORS,
@@ -181,9 +188,24 @@ describe('server shooting systems', () => {
       y: 0,
     });
     rocket.set(PhysicsRotation, { angle: 0 });
-    world.entity().set(PhysicsPosition, { x: 1, y: 1 }).add(Asteroid);
+    const asteroid = world
+      .entity()
+      .set(Body, { type: BodyType.Dynamic })
+      .set(PhysicsPosition, { x: 1, y: 1 })
+      .set(LinearVelocity, { x: 0, y: 0 })
+      .add(Asteroid);
+    world
+      .entity()
+      .childOf(asteroid)
+      .set(Circle, { radius: 0.1 })
+      .add(Sensor)
+      .add(SensorEvents)
+      .set(CollisionFilter, {
+        categoryBits: CAT_ASTEROID,
+        maskBits: CAT_ASTEROID,
+      });
 
-    world.progress(1000 / 60, 1000 / 60);
+    stepTicks(world, 5);
 
     expect(rocket.get(PhysicsRotation)!.angle).toBeGreaterThan(0);
     expect(rocket.get(LinearVelocity)!.y).toBeGreaterThan(0);

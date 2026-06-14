@@ -18,6 +18,7 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
+  Alien,
   Asteroid,
   Boomerang,
   BoomerangWeapon,
@@ -53,6 +54,7 @@ import {
 } from '../../src/game/playerSessions';
 import { createPrng } from '../../src/game/rng';
 import {
+  createAlien,
   createAsteroid,
   registerSpawningComponents,
 } from '../../src/game/spawning';
@@ -278,6 +280,61 @@ describe('special motion under physics', () => {
     const finalAngle = angleBetween(velocity, targetDirection);
 
     expect(finalAngle).toBeLessThan(initialAngle);
+    expect(velocity.y).toBeGreaterThan(0);
+    expect(rocket.get(PhysicsRotation)?.angle).toBeCloseTo(
+      Math.atan2(velocity.y, velocity.x),
+    );
+  });
+
+  it('homes rockets toward aliens before equal-distance asteroids from overlapCircle candidates', () => {
+    const world = createSpecialMotionWorld();
+    const ship = createShip(world);
+    const rocket = createRocket(
+      world as unknown as Parameters<typeof createRocket>[0],
+      ship,
+      0,
+      0,
+      0,
+    );
+    rocket.set(Rocket, { straightTimer: 0 });
+    rocket.set(PhysicsPosition, { x: 0, y: 0 });
+    rocket.set(RenderPosition, { x: 0, y: 0 });
+    rocket.set(LinearVelocity, {
+      x: perSecond(ENTITY_CONFIG.ROCKET.SPEED),
+      y: 0,
+    });
+    rocket.set(PhysicsRotation, { angle: 0 });
+
+    const alien = createAlien(
+      world as unknown as Parameters<typeof createAlien>[0],
+      createPrng(2),
+    );
+    alien.set(PhysicsPosition, { x: 1, y: 1 });
+    alien.set(RenderPosition, { x: 1, y: 1 });
+    alien.set(LinearVelocity, { x: 0, y: 0 });
+
+    const equalDistanceAsteroid = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      createPrng(3),
+      1,
+      -1,
+      1,
+    );
+    equalDistanceAsteroid.set(LinearVelocity, { x: 0, y: 0 });
+    const outsideAsteroid = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      createPrng(4),
+      0,
+      ENTITY_CONFIG.ROCKET.HOME_RANGE + 1,
+      1,
+    );
+    outsideAsteroid.set(LinearVelocity, { x: 0, y: 0 });
+
+    step(world, 5);
+
+    const velocity = rocket.get(LinearVelocity)!;
+    expect(count(world, Alien)).toBe(1);
+    expect(count(world, Asteroid)).toBe(2);
     expect(velocity.y).toBeGreaterThan(0);
     expect(rocket.get(PhysicsRotation)?.angle).toBeCloseTo(
       Math.atan2(velocity.y, velocity.x),
