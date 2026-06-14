@@ -159,7 +159,7 @@ describe('vecs-physics Box2D sensor/contact probe', () => {
     stepProbe(world);
 
     expect(beginsForSelf(sensorBegins, sensorShape)).toEqual([]);
-    expect(solidShape.parent(ChildOf)).toBe(solidBody);
+    expect(solidShape.target(ChildOf)).toBe(solidBody);
     // FAIL: this Box2D build does NOT report SensorEvents for KINEMATIC sensor
     // shapes overlapping DYNAMIC solid shapes, even when moved into overlap.
     // => projectiles/pickups cannot rely on KINEMATIC sensor-vs-solid SensorEvents.
@@ -259,7 +259,7 @@ describe('vecs-physics Box2D sensor/contact probe', () => {
     stepProbe(world);
 
     expect(beginsForSelf(sensorBegins, sensorShape)).toEqual([]);
-    expect(solidShape.parent(ChildOf)).toBe(solidBody);
+    expect(solidShape.target(ChildOf)).toBe(solidBody);
     // Same observed failure as KINEMATIC sensors; switching projectiles to
     // DYNAMIC sensors alone would not restore sensor-vs-solid detection.
   });

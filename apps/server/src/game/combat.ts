@@ -130,8 +130,8 @@ export function installCombatSystems(
             for (const event of eventsA.begin) {
               const shapeB = event.other;
               const filterB = shapeB.get(CollisionFilter);
-              const bodyA = shapeA.parent(ChildOf);
-              const bodyB = shapeB.parent(ChildOf);
+              const bodyA = shapeA.target(ChildOf);
+              const bodyB = shapeB.target(ChildOf);
               if (!filterB || !bodyA || !bodyB || bodyA === bodyB) continue;
               if (consumed.has(bodyA.eid) || consumed.has(bodyB.eid)) continue;
               if (!world.getEntity(bodyA.eid) || !world.getEntity(bodyB.eid))
