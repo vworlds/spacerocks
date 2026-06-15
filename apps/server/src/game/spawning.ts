@@ -181,7 +181,14 @@ export function createAsteroid(
 
   if (collidable) {
     asteroid.set(Asteroid, { mass, color });
-    createPhysicsCircleSolid(world, asteroid, radius, CAT_ASTEROID, maskBits);
+    createPhysicsCircleSolid(
+      world,
+      asteroid,
+      radius,
+      CAT_ASTEROID,
+      maskBits,
+      ENTITY_CONFIG.ASTEROID.DENSITY,
+    );
   } else if (options.ttlFrames) {
     asteroid.set(Decay, { life: options.ttlFrames, decay: 1 });
   }
@@ -220,6 +227,15 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
     .set(StrokeStyle, { color: COLORS.orange, alpha: 1, width: 2 })
     .set(Polygon, { points: [0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1] });
 
+  createPhysicsCircleSolid(
+    world,
+    alien,
+    ENTITY_CONFIG.ALIEN.RADIUS,
+    CAT_ENEMY,
+    CAT_ASTEROID,
+    ENTITY_CONFIG.ALIEN.MASS /
+      (Math.PI * ENTITY_CONFIG.ALIEN.RADIUS * ENTITY_CONFIG.ALIEN.RADIUS),
+  );
   createPhysicsCircleSensor(
     world,
     alien,
@@ -373,13 +389,14 @@ function createPhysicsCircleSolid(
   radius: number,
   categoryBits: number,
   maskBits: number,
+  density: number,
 ): void {
   world
     .entity()
     .childOf(body)
     .set(Circle, { radius })
     .set(Material, {
-      density: ENTITY_CONFIG.ASTEROID.DENSITY,
+      density,
       friction: 0,
       restitution: 0.2,
     })

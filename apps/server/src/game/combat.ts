@@ -204,17 +204,15 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
   registerCollisionEffect(CAT_ASTEROID, CAT_ENEMY, (asteroid, alien) => {
     const asteroidView = asteroid.get(AsteroidView);
     const position = asteroid.get(Position);
+    damageEnemy(world, alien, ENTITY_CONFIG.BULLET.DAMAGE);
     if (position)
       createExplosion(
         world,
         position.x,
         position.y,
         asteroidView?.color ?? COLORS.orange,
-        0.2,
+        0.05,
       );
-    alien.destroy();
-    asteroid.destroy();
-    addScore(world, SCORING.ALIEN);
   });
 
   registerCollisionEffect(CAT_PLAYER, CAT_ENEMY, (player, alien) => {

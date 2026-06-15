@@ -318,6 +318,41 @@ describe('server combat systems', () => {
     );
   });
 
+  it('damages and bumps enemies on asteroid contact without destroying the asteroid', () => {
+    const { world } = createTestWorld();
+    const asteroid = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      createPrng(1),
+      -0.35,
+      0,
+      ENTITY_CONFIG.ASTEROID.MASS,
+      { velocity: { x: 2, y: 0 } },
+    )!;
+    const alien = createAlien(
+      world as unknown as Parameters<typeof createAlien>[0],
+      createPrng(2),
+    );
+    moveBody(alien, 0.15, 0);
+    alien.set(LinearVelocity, { x: 0, y: 0 });
+    alien.set(Health, {
+      hp: ENTITY_CONFIG.ALIEN.MAX_HP,
+      maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
+      healthBarTimer: 0,
+    });
+
+    runFrame(world);
+
+    expect(world.getEntity(asteroid.eid)).toBe(asteroid);
+    expect(world.getEntity(alien.eid)).toBe(alien);
+    expect(alien.get(Health)).toMatchObject({
+      hp: ENTITY_CONFIG.ALIEN.MAX_HP - ENTITY_CONFIG.BULLET.DAMAGE,
+      healthBarTimer: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
+    });
+    expect(alien.get(LinearVelocity)!.x).toBeGreaterThan(0);
+    expect(count(world, Explosion)).toBe(1);
+    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(0);
+  });
+
   it('applies health pickups through server-side handlers', () => {
     const { world } = createTestWorld();
     const session = world.entity().set(PlayerSession, {
