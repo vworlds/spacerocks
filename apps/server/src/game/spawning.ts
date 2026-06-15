@@ -113,17 +113,16 @@ export function installSpawningSystems(
   asteroidMassTotals.set(world, asteroidMassTotal);
   initializeGameWorld(world, rng, Date.now());
 
-  // Running total maintained reactively. enter reads via entity.get (safe for
-  // the first-run catch-up over pre-existing/mid-destroyed entities, like
-  // AssignCells); exit receives the injected component value, which is still
-  // present even as the asteroid is destroyed — so enter/exit stay balanced
-  // with no per-entity bookkeeping.
+  // Running total maintained reactively: enter adds the asteroid's mass, exit
+  // subtracts it. Both inject the component directly; vecs snapshots injected
+  // enter/exit components at routing time, so the values resolve even for an
+  // asteroid spawned and destroyed within one undrained window — keeping the
+  // total balanced with no per-entity bookkeeping.
   world
     .system('TrackAsteroidMass')
     .with(Asteroid)
-    .enter((entity) => {
-      const asteroid = entity.get(Asteroid);
-      if (asteroid) asteroidMassTotal.total += asteroid.mass;
+    .enter([Asteroid], (_entity, [asteroid]) => {
+      asteroidMassTotal.total += asteroid.mass;
     })
     .exit([Asteroid], (_entity, [asteroid]) => {
       asteroidMassTotal.total -= asteroid.mass;
