@@ -1,5 +1,5 @@
 import { ClientWorld } from '@vworlds/vecs-client';
-import type { Entity } from '@vworlds/vecs';
+import type { Entity, Query } from '@vworlds/vecs';
 import {
   PhaserRenderModule,
   phaserInterpolators,
@@ -16,6 +16,10 @@ import { ExplosionEffectModule } from '../render/ExplosionEffectModule';
 const SERVER_PORT = 2567; // port
 const WORLD_NAME = 'main';
 const API_BASE_PATH = '/rtc/v1';
+const localShipByOwnerQueries = new WeakMap<
+  ClientWorld,
+  Query<[typeof Owner]>
+>();
 
 export type ClientWorldConfig = {
   scene: Phaser.Scene;
@@ -97,9 +101,19 @@ export function findLocalShipEntity(
   clientId: string,
 ): Entity | undefined {
   let localShip: Entity | undefined;
-  world.filter([Owner]).forEach([Owner], (entity, [owner]) => {
+  const query = getLocalShipByOwnerQuery(world);
+  query.forEach([Owner], (entity, [owner]) => {
     if (localShip || owner.clientId !== clientId) return;
     localShip = entity;
   });
   return localShip;
+}
+
+function getLocalShipByOwnerQuery(world: ClientWorld): Query<[typeof Owner]> {
+  let query = localShipByOwnerQueries.get(world);
+  if (!query) {
+    query = world.query('LocalShipByOwner').with(Owner).track().build();
+    localShipByOwnerQueries.set(world, query);
+  }
+  return query;
 }

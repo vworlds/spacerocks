@@ -10,18 +10,18 @@ import {
   VIEWPORT_HEIGHT,
   VIEWPORT_WIDTH,
   WORLD_HEIGHT,
-  WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
-  WORLD_MIN_Y,
-  WORLD_SCALE,
   WORLD_WIDTH,
 } from '@spacerocks/common';
 
 const RECONNECT_DELAY_MS = 1_000; // ms
 const STAR_COUNT = 200;
+const STAR_TILE_TEXTURE_KEY = 'spacerocks-starfield-tile';
 const CANVAS_WIDTH = VIEWPORT_WIDTH * PIXELS_PER_METER;
 const CANVAS_HEIGHT = VIEWPORT_HEIGHT * PIXELS_PER_METER;
+const STAR_TILE_WIDTH = CANVAS_WIDTH;
+const STAR_TILE_HEIGHT = CANVAS_HEIGHT;
 
 const GAME_KEYS = new Set([
   'KeyW',
@@ -134,17 +134,42 @@ class GameScene extends Phaser.Scene {
     const coords = this._coords;
     if (!coords) return;
 
-    const graphics = this.add.graphics().setDepth(-10_000);
-    const starCount = STAR_COUNT * WORLD_SCALE * WORLD_SCALE;
+    this.ensureStarfieldTileTexture();
 
-    for (let i = 0; i < starCount; i++) {
-      const worldX = WORLD_MIN_X + Math.random() * (WORLD_MAX_X - WORLD_MIN_X);
-      const worldY = WORLD_MIN_Y + Math.random() * (WORLD_MAX_Y - WORLD_MIN_Y);
+    const left = coords.x(WORLD_MIN_X);
+    const top = coords.y(WORLD_MAX_Y);
+    this.add
+      .tileSprite(
+        left,
+        top,
+        WORLD_WIDTH * PIXELS_PER_METER,
+        WORLD_HEIGHT * PIXELS_PER_METER,
+        STAR_TILE_TEXTURE_KEY,
+      )
+      .setOrigin(0, 0)
+      .setDepth(-10_000);
+  }
+
+  private ensureStarfieldTileTexture(): void {
+    if (this.textures.exists(STAR_TILE_TEXTURE_KEY)) return;
+
+    const graphics = this.add.graphics();
+
+    for (let i = 0; i < STAR_COUNT; i++) {
+      const x = Math.random() * STAR_TILE_WIDTH;
+      const y = Math.random() * STAR_TILE_HEIGHT;
       const radius = Math.max(0.5, Math.random() * 1.5);
       const alpha = 0.25 + Math.random() * 0.75;
       graphics.fillStyle(0xffffff, alpha);
-      graphics.fillCircle(coords.x(worldX), coords.y(worldY), radius);
+      graphics.fillCircle(x, y, radius);
     }
+
+    graphics.generateTexture(
+      STAR_TILE_TEXTURE_KEY,
+      STAR_TILE_WIDTH,
+      STAR_TILE_HEIGHT,
+    );
+    graphics.destroy();
   }
 
   private drawHyperspaceBoundary(): void {
