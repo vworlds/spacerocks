@@ -398,7 +398,7 @@ function createPhysicsCircleSolid(
     .set(Material, {
       density,
       friction: 0,
-      restitution: 0.2,
+      restitution: 0.85,
     })
     .add(Detectable)
     .set(CollisionFilter, {
