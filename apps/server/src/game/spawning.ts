@@ -110,25 +110,32 @@ export function installSpawningSystems(
   rng: Prng = createPrng(readServerSeed()),
 ): void {
   const asteroidMassTotal = { total: 0 };
-  const trackedAsteroidMasses = new Map<number, number>();
   asteroidMassTotals.set(world, asteroidMassTotal);
   initializeGameWorld(world, rng, Date.now());
 
+  // Running total maintained reactively. enter reads via entity.get (safe for
+  // the first-run catch-up over pre-existing/mid-destroyed entities, like
+  // AssignCells); exit receives the injected component value, which is still
+  // present even as the asteroid is destroyed — so enter/exit stay balanced
+  // with no per-entity bookkeeping.
   world
     .system('TrackAsteroidMass')
     .with(Asteroid)
     .enter((entity) => {
       const asteroid = entity.get(Asteroid);
-      if (!asteroid || trackedAsteroidMasses.has(entity.eid)) return;
-      trackedAsteroidMasses.set(entity.eid, asteroid.mass);
-      asteroidMassTotal.total += asteroid.mass;
+      if (asteroid) asteroidMassTotal.total += asteroid.mass;
     })
-    .exit((entity) => {
-      const mass = trackedAsteroidMasses.get(entity.eid);
-      if (mass === undefined) return;
-      trackedAsteroidMasses.delete(entity.eid);
-      asteroidMassTotal.total -= mass;
+    .exit([Asteroid], (_entity, [asteroid]) => {
+      asteroidMassTotal.total -= asteroid.mass;
     });
+
+  // Persistent, reactively-maintained query: the spawner reads current players
+  // without rebuilding a filter (which would re-evaluate matches across the
+  // world) on every tick.
+  const players = world
+    .query('SpawnerPlayers')
+    .with(PlayerShip, RenderPosition)
+    .build();
 
   world
     .system('ServerRandomClockSystem')
@@ -149,7 +156,7 @@ export function installSpawningSystems(
     .with(GameStateView)
     .each([GameStateView], (_entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;
-      spawnAsteroidIfBelowMassCap(world, rng, asteroidMassTotal.total);
+      spawnAsteroidIfBelowMassCap(world, rng, asteroidMassTotal.total, players);
     });
 }
 
@@ -453,10 +460,11 @@ function spawnAsteroidIfBelowMassCap(
   world: ServerWorld,
   rng: Prng,
   totalAsteroidMass: number,
+  players: Iterable<Entity>,
 ): void {
   if (totalAsteroidMass >= MAX_ASTEROIDS_TOTAL_MASS) return;
 
-  const cellIndex = chooseUnseenGridCell(world, rng);
+  const cellIndex = chooseUnseenGridCell(players, rng);
   if (cellIndex === undefined) return;
 
   const { x, y } = randomPointInGridCell(cellIndex, rng);
@@ -464,17 +472,17 @@ function spawnAsteroidIfBelowMassCap(
 }
 
 function chooseUnseenGridCell(
-  world: ServerWorld,
+  players: Iterable<Entity>,
   rng: Prng,
 ): number | undefined {
   const visibleCells = new Set<number>();
-  world
-    .filter([PlayerShip, RenderPosition])
-    .forEach([RenderPosition], (_entity, [position]) => {
-      for (const cellIndex of neighbourIndices(getGridCellIndex(position))) {
-        visibleCells.add(cellIndex);
-      }
-    });
+  for (const player of players) {
+    const position = player.get(RenderPosition);
+    if (!position) continue;
+    for (const cellIndex of neighbourIndices(getGridCellIndex(position))) {
+      visibleCells.add(cellIndex);
+    }
+  }
 
   const candidates: number[] = [];
   for (let cellIndex = 0; cellIndex < GRID_CELL_COUNT; cellIndex += 1) {
