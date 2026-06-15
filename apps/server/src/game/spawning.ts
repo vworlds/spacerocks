@@ -1,4 +1,4 @@
-import type { ComponentClass, Entity } from '@vworlds/vecs';
+import { type ComponentClass, type Entity, Singleton } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
   Arc,
@@ -66,7 +66,6 @@ const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // legacy GameStateView field value
 const ALIEN_SPAWN_MARGIN = 0.5; // meters
 const ASTEROID_OUTLINE_COLOR = 0xcccccc;
-const asteroidMassTotals = new WeakMap<ServerWorld, { total: number }>();
 
 type AsteroidOptions = {
   velocity?: { x: number; y: number };
@@ -92,6 +91,13 @@ class SpawnTimer {
   nextTick = 0; // unix ms
 }
 
+// Running total of live asteroid mass, held as a singleton component so the
+// world owns it (no module-level per-world map). Maintained reactively by the
+// TrackAsteroidMass system; read O(1) via the captured instance in the spawner.
+class AsteroidMassTotal {
+  total = 0; // kg
+}
+
 export function registerSpawningComponents(world: ServerWorld): void {
   world.component(SpawnTimer);
   world.component(Asteroid);
@@ -103,29 +109,31 @@ export function registerSpawningComponents(world: ServerWorld): void {
   world.component(GameStateView);
   world.component(Material);
   world.component(Detectable);
+  world.component(AsteroidMassTotal).add(Singleton);
 }
 
 export function installSpawningSystems(
   world: ServerWorld,
   rng: Prng = createPrng(readServerSeed()),
 ): void {
-  const asteroidMassTotal = { total: 0 };
-  asteroidMassTotals.set(world, asteroidMassTotal);
   initializeGameWorld(world, rng, Date.now());
 
-  // Running total maintained reactively: enter adds the asteroid's mass, exit
-  // subtracts it. Both inject the component directly; vecs snapshots injected
-  // enter/exit components at routing time, so the values resolve even for an
-  // asteroid spawned and destroyed within one undrained window — keeping the
-  // total balanced with no per-entity bookkeeping.
+  // Running total of live asteroid mass, kept on the AsteroidMassTotal singleton
+  // (created by its Singleton trait). enter adds the asteroid's mass, exit
+  // subtracts it; both run in deferred mode, so getMut yields the live instance
+  // for an in-place O(1) update. The injected component is snapshotted at routing
+  // time, so it resolves even for an asteroid spawned and destroyed within one
+  // undrained window — keeping the total balanced with no per-entity bookkeeping.
   world
     .system('TrackAsteroidMass')
     .with(Asteroid)
     .enter([Asteroid], (_entity, [asteroid]) => {
-      asteroidMassTotal.total += asteroid.mass;
+      world.component(AsteroidMassTotal).getMut(AsteroidMassTotal)!.total +=
+        asteroid.mass;
     })
     .exit([Asteroid], (_entity, [asteroid]) => {
-      asteroidMassTotal.total -= asteroid.mass;
+      world.component(AsteroidMassTotal).getMut(AsteroidMassTotal)!.total -=
+        asteroid.mass;
     });
 
   // Persistent, reactively-maintained query: the spawner reads current players
@@ -155,12 +163,17 @@ export function installSpawningSystems(
     .with(GameStateView)
     .each([GameStateView], (_entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;
-      spawnAsteroidIfBelowMassCap(world, rng, asteroidMassTotal.total, players);
+      spawnAsteroidIfBelowMassCap(
+        world,
+        rng,
+        world.get(AsteroidMassTotal)?.total ?? 0,
+        players,
+      );
     });
 }
 
 export function getTrackedAsteroidMass(world: ServerWorld): number {
-  return asteroidMassTotals.get(world)?.total ?? 0;
+  return world.get(AsteroidMassTotal)?.total ?? 0;
 }
 
 export function createAsteroid(
