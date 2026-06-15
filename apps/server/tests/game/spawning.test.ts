@@ -26,10 +26,13 @@ import {
   COLORS,
   ENTITY_CONFIG,
   GameStateView,
+  PlayerShip,
   Pickup,
   PICKUP_COLORS,
   PickupKind,
   TICK_RATE,
+  VIEWPORT_WIDTH,
+  WAVE_ASTEROID_SCALE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -108,6 +111,18 @@ function count(world: World, component: ComponentClass): number {
   return total;
 }
 
+function fixedAngleRng(angle: number): Prng {
+  return {
+    next: () => 0,
+    int: () => 0,
+    bool: () => false,
+    range: (min: number, max: number) => {
+      if (min === 0 && max === Math.PI * 2) return angle;
+      return (min + max) / 2;
+    },
+  };
+}
+
 function firstEntity(
   world: World,
   component: ComponentClass,
@@ -135,7 +150,7 @@ describe('server spawning systems', () => {
       },
     );
     expect(count(world, GameStateView)).toBe(1);
-    expect(count(world, Asteroid)).toBe(5);
+    expect(count(world, Asteroid)).toBe(5 * WAVE_ASTEROID_SCALE);
     expect(
       firstEntity(world, Asteroid)?.get(Polygon)?.points.length,
     ).toBeGreaterThan(0);
@@ -239,6 +254,42 @@ describe('server spawning systems', () => {
     });
   });
 
+  it('spawns aliens just outside an active player viewport', () => {
+    const { world } = createTestWorld();
+    world
+      .entity()
+      .set(PlayerShip, { playerIndex: 0, color: 0xffffff })
+      .set(Position, { x: 1, y: 2 });
+
+    const alien = createAlien(
+      world as unknown as Parameters<typeof createAlien>[0],
+      fixedAngleRng(0),
+    );
+
+    expect(alien.get(Position)).toMatchObject({
+      x: 1 + VIEWPORT_WIDTH * 0.6,
+      y: 2,
+    });
+  });
+
+  it('clamps player-relative alien spawns inside world bounds', () => {
+    const { world } = createTestWorld();
+    world
+      .entity()
+      .set(PlayerShip, { playerIndex: 0, color: 0xffffff })
+      .set(Position, { x: WORLD_MAX_X - 0.1, y: WORLD_MAX_Y - 0.1 });
+
+    const alien = createAlien(
+      world as unknown as Parameters<typeof createAlien>[0],
+      fixedAngleRng(Math.PI / 4),
+    );
+
+    expect(alien.get(Position)).toMatchObject({
+      x: WORLD_MAX_X - 0.5,
+      y: WORLD_MAX_Y - 0.5,
+    });
+  });
+
   it('creates pickup arc and u32 stroke color render components', () => {
     const { world } = createTestWorld();
     const pickup = createPickup(
@@ -274,7 +325,7 @@ describe('server spawning systems', () => {
         wave: 2,
       },
     );
-    expect(count(world, Asteroid)).toBe(7);
+    expect(count(world, Asteroid)).toBe(7 * WAVE_ASTEROID_SCALE);
   });
 
   it('does not progress the GameStateView lifecycle while paused', () => {

@@ -6,6 +6,7 @@ export const VIEWPORT_MAX_X = VIEWPORT_WIDTH / 2; // meters
 export const VIEWPORT_MIN_Y = -VIEWPORT_HEIGHT / 2; // meters
 export const VIEWPORT_MAX_Y = VIEWPORT_HEIGHT / 2; // meters
 export const WORLD_SCALE = 5; // viewports per axis
+export const WAVE_ASTEROID_SCALE = WORLD_SCALE; // linear wave density multiplier
 export const WORLD_WIDTH = VIEWPORT_WIDTH * WORLD_SCALE; // meters
 export const WORLD_HEIGHT = VIEWPORT_HEIGHT * WORLD_SCALE; // meters
 export const WORLD_MIN_X = -WORLD_WIDTH / 2; // meters

@@ -42,8 +42,11 @@ import {
   Pickup,
   PICKUP_COLORS,
   PickupKind,
+  PlayerShip,
   perSecond,
   RandomClockKind,
+  VIEWPORT_WIDTH,
+  WAVE_ASTEROID_SCALE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -54,6 +57,7 @@ import { createPrng, type Prng } from './rng';
 
 const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // wave number
+const ALIEN_SPAWN_MARGIN = 0.5; // meters
 
 type AsteroidOptions = {
   velocity?: { x: number; y: number };
@@ -201,8 +205,7 @@ export function asteroidRadius(mass: number): number {
 }
 
 export function createAlien(world: ServerWorld, rng: Prng): Entity {
-  const x = rng.bool() ? WORLD_MIN_X - 0.2 : WORLD_MAX_X + 0.2;
-  const y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
+  const { x, y } = chooseAlienSpawnPosition(world, rng);
   const vx = rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR;
   const vy = rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR;
   const angle = rng.range(0, Math.PI * 2);
@@ -244,6 +247,42 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
     maskBits,
   );
   return alien;
+}
+
+function chooseAlienSpawnPosition(
+  world: ServerWorld,
+  rng: Prng,
+): { x: number; y: number } {
+  const players: Array<{ x: number; y: number }> = [];
+  world
+    .filter([PlayerShip, RenderPosition])
+    .forEach([RenderPosition], (_entity, [position]) => {
+      players.push({ x: position.x, y: position.y });
+    });
+
+  if (players.length === 0) {
+    return {
+      x: rng.bool() ? WORLD_MIN_X - 0.2 : WORLD_MAX_X + 0.2,
+      y: rng.range(WORLD_MIN_Y, WORLD_MAX_Y),
+    };
+  }
+
+  const player = players[rng.int(players.length)]!;
+  const angle = rng.range(0, Math.PI * 2);
+  const distance = VIEWPORT_WIDTH * 0.6;
+
+  return {
+    x: clamp(
+      player.x + Math.cos(angle) * distance,
+      WORLD_MIN_X + ALIEN_SPAWN_MARGIN,
+      WORLD_MAX_X - ALIEN_SPAWN_MARGIN,
+    ),
+    y: clamp(
+      player.y + Math.sin(angle) * distance,
+      WORLD_MIN_Y + ALIEN_SPAWN_MARGIN,
+      WORLD_MAX_Y - ALIEN_SPAWN_MARGIN,
+    ),
+  };
 }
 
 export function createPickup(
@@ -371,7 +410,7 @@ function initializeGameWorld(world: ServerWorld, rng: Prng, now: number): void {
 }
 
 function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
-  const count = 3 + wave * 2;
+  const count = Math.round((3 + wave * 2) * WAVE_ASTEROID_SCALE);
   for (let i = 0; i < count; i += 1) {
     let x: number;
     let y: number;
@@ -381,6 +420,10 @@ function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
     } while (Math.hypot(x, y) < 2.0);
     createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
   }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }
 
 function createPhysicsCircleSolid(
