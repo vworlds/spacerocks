@@ -31,6 +31,8 @@ import {
   BoomerangWeapon,
   Bullet,
   CAT_ASTEROID,
+  CAT_ENEMY_BULLET,
+  CAT_PLAYER,
   COLORS,
   ENTITY_CONFIG,
   PLAYER_COLORS,
@@ -168,6 +170,54 @@ describe('server shooting systems', () => {
     world.progress((1000 / 60) * 2, 1000 / 60);
 
     expect(count(world, Bullet)).toBe(1);
+  });
+
+  it('creates enemy bullets from alien cooldown targeting the nearest player', () => {
+    const { world, ship } = createStartedWorldWithShip();
+    ship.set(PhysicsPosition, { x: 1, y: 0 });
+    const alien = world
+      .entity()
+      .set(Body, { type: BodyType.Dynamic })
+      .set(PhysicsPosition, { x: 0, y: 0 })
+      .set(Alien, { shootCooldown: 0 });
+
+    world.progress(0, 1000 / 60);
+
+    expect(count(world, Bullet)).toBe(1);
+    const bullet = firstEntity(world, Bullet);
+    const shape = [...bullet.children(ChildOf)].find((child) =>
+      child.get(Circle),
+    );
+    expect(bullet.get(Bullet)).toMatchObject({ ownerType: 'alien' });
+    expect(bullet.get(ChildOf)?.target).toBe(alien);
+    expect(bullet.get(FillStyle)).toMatchObject({ color: COLORS.orange });
+    expect(shape?.get(CollisionFilter)).toMatchObject({
+      categoryBits: CAT_ENEMY_BULLET,
+      maskBits: CAT_ASTEROID | CAT_PLAYER,
+    });
+    expect(bullet.get(LinearVelocity)!.x).toBeGreaterThan(0);
+    expect(Math.abs(bullet.get(LinearVelocity)!.y)).toBeLessThan(1e-9);
+    expect(alien.get(Alien)?.shootCooldown).toBe(
+      ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE,
+    );
+  });
+
+  it('does not fire enemy bullets at players outside alien sight range', () => {
+    const { world, ship } = createStartedWorldWithShip();
+    ship.set(PhysicsPosition, {
+      x: ENTITY_CONFIG.ALIEN.TARGET_DIST_MAX + 0.1,
+      y: 0,
+    });
+    const alien = world
+      .entity()
+      .set(Body, { type: BodyType.Dynamic })
+      .set(PhysicsPosition, { x: 0, y: 0 })
+      .set(Alien, { shootCooldown: 0 });
+
+    world.progress(0, 1000 / 60);
+
+    expect(count(world, Bullet)).toBe(0);
+    expect(alien.get(Alien)?.shootCooldown).toBe(0);
   });
 
   it('creates rockets from server-owned ammo and homes after the straight timer', () => {

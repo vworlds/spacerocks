@@ -69,9 +69,9 @@ export const ENTITY_CONFIG = {
   ALIEN: {
     RADIUS: 0.15, // meters
     SPEED_FACTOR: perFrame(0.02), // meters/frame multiplier
-    SHOOT_COOLDOWN_BASE: toFrames(1_000), // frames
+    SHOOT_COOLDOWN_BASE: toFrames(2_500), // frames
     SHOOT_COOLDOWN_RANGE: toFrames(667), // frames
-    TARGET_DIST_MAX: 4, // meters
+    TARGET_DIST_MAX: 2.5, // meters
     ASTEROID_AVOID_DIST: 0.6, // meters
     MAX_HP: 20, // hp
   },

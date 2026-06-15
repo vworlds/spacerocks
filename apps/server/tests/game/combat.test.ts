@@ -22,6 +22,7 @@ import {
   Bullet,
   CAT_ASTEROID,
   CAT_ENEMY,
+  CAT_ENEMY_BULLET,
   CAT_PICKUP,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
@@ -238,6 +239,76 @@ describe('server combat systems', () => {
     }
 
     expect(count(world, Explosion)).toBe(0);
+  });
+
+  it('damages players with enemy bullets', () => {
+    const { world } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    moveBody(ship, 0, 0);
+    ship.set(Health, { hp: 100, maxHp: 100, healthBarTimer: 0 });
+    const alien = world.entity().add(Alien);
+    const bullet = createBullet(
+      world as unknown as Parameters<typeof createBullet>[0],
+      alien,
+      0,
+      0,
+      0,
+      0xffffff,
+      'alien',
+    );
+    moveBody(bullet, 0, 0);
+
+    runFrame(world);
+
+    expect(ship.get(Health)).toMatchObject({
+      hp: 90,
+      healthBarTimer: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
+    });
+    expect(world.getEntity(bullet.eid)).toBeUndefined();
+  });
+
+  it('destroys asteroids with enemy bullets', () => {
+    const { world } = createTestWorld();
+    createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      createPrng(1),
+      0,
+      0,
+      1,
+    );
+    const alien = world.entity().add(Alien);
+    const bullet = createBullet(
+      world as unknown as Parameters<typeof createBullet>[0],
+      alien,
+      0,
+      0,
+      0,
+      0xffffff,
+      'alien',
+    );
+    const shape = [...bullet.children(ChildOf)].find((child) =>
+      child.get(Circle),
+    );
+
+    expect(shape?.get(CollisionFilter)).toMatchObject({
+      categoryBits: CAT_ENEMY_BULLET,
+      maskBits: CAT_ASTEROID | CAT_PLAYER,
+    });
+
+    runFrame(world);
+
+    expect(count(world, Asteroid)).toBe(0);
+    expect(world.getEntity(bullet.eid)).toBeUndefined();
+    expect(count(world, Explosion)).toBe(1);
+    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(0);
   });
 
   it('applies health pickups through server-side handlers', () => {

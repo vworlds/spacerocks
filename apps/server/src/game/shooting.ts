@@ -31,6 +31,7 @@ import {
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
+  CAT_ENEMY_BULLET,
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
   COLORS,
@@ -139,6 +140,32 @@ export function installShootingSystems(world: ServerWorld): void {
         }
       },
     );
+
+  world
+    .system('AlienShooting')
+    .with(Alien, PhysicsPosition)
+    .each([Alien, PhysicsPosition], (alienEntity, [alien, position]) => {
+      if (alien.shootCooldown > 0) {
+        alien.shootCooldown -= 1;
+        return;
+      }
+
+      const target = findNearestPlayer(world, position);
+      if (!target) return;
+
+      const angle = Math.atan2(target.y - position.y, target.x - position.x);
+      const spawnOffset = ENTITY_CONFIG.ALIEN.RADIUS + 0.04;
+      createBullet(
+        world,
+        alienEntity,
+        position.x + Math.cos(angle) * spawnOffset,
+        position.y + Math.sin(angle) * spawnOffset,
+        angle,
+        COLORS.orange,
+        'alien',
+      );
+      alien.shootCooldown = ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE;
+    });
 
   world
     .system('LaserSystem')
@@ -262,12 +289,18 @@ export function createBullet(
   y: number,
   angle: number,
   color: number,
+  ownerType: 'player' | 'alien' = 'player',
 ): Entity {
   const speed = ENTITY_CONFIG.BULLET.SPEED;
   const vx = Math.cos(angle) * speed;
   const vy = Math.sin(angle) * speed;
   const radius = 0.02;
-  const maskBits = CAT_ASTEROID | CAT_ENEMY;
+  const categoryBits =
+    ownerType === 'alien' ? CAT_ENEMY_BULLET : CAT_PLAYER_BULLET;
+  const maskBits =
+    ownerType === 'alien'
+      ? CAT_ASTEROID | CAT_PLAYER
+      : CAT_ASTEROID | CAT_ENEMY;
   const bullet = world
     .entity()
     .add(Networked)
@@ -278,13 +311,13 @@ export function createBullet(
     .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
     .set(RenderPosition, { x, y })
     .set(RenderRotation, { angle })
-    .set(Bullet, { ownerType: 'player' })
+    .set(Bullet, { ownerType })
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
     .add(Wraps)
     .set(FillStyle, { color, alpha: 1 })
     .set(Arc, { radius });
 
-  createPhysicsCircleSensor(world, bullet, radius, CAT_PLAYER_BULLET, maskBits);
+  createPhysicsCircleSensor(world, bullet, radius, categoryBits, maskBits);
   return bullet;
 }
 
@@ -386,6 +419,26 @@ function findRocketTarget(
 ): { x: number; y: number } | undefined {
   const alienTarget = findNearest(world, position, CAT_ENEMY, Alien);
   return alienTarget ?? findNearest(world, position, CAT_ASTEROID, Asteroid);
+}
+
+function findNearestPlayer(
+  world: ServerWorld,
+  source: PhysicsPosition,
+): { x: number; y: number } | undefined {
+  let target: { x: number; y: number } | undefined;
+  let minDistance = Infinity;
+
+  world
+    .filter([PlayerShip, PhysicsPosition])
+    .forEach([PhysicsPosition], (_player, [position]) => {
+      const distance = Math.hypot(source.x - position.x, source.y - position.y);
+      if (distance > ENTITY_CONFIG.ALIEN.TARGET_DIST_MAX) return;
+      if (distance >= minDistance) return;
+      minDistance = distance;
+      target = { x: position.x, y: position.y };
+    });
+
+  return target;
 }
 
 function findNearest(
