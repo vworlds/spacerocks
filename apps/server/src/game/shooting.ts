@@ -328,7 +328,6 @@ export function createBullet(
     .set(RenderRotation, { angle })
     .set(Bullet, { ownerType })
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
-    .add(Wraps)
     .set(FillStyle, { color, alpha: 1 })
     .set(Arc, { radius });
 
