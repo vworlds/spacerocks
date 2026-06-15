@@ -41,12 +41,10 @@ replication), modelled on `~/src/vecs/apps/server/src/main.ts`.
   masks the world repopulating around the new position.
   - **Grid neighbour lookup clamps at edges (NO modulo wrap).** You cannot see past the
     hyperspace line until you cross it, so edge cells simply have fewer neighbours.
-  - **Wrap smear hazard:** the client interpolates `Position` between frames, so a wrap
-    from +X to −X would smear across the whole world in one step. Mitigation: a small
-    **networked wrap signal** (e.g. `Hyperspace {seq}` counter the server bumps on wrap).
-    When the client sees the owned ship's `seq` change it snaps position (no interp),
-    snaps the camera, and plays the lines+flash effect. Validate against the actual
-    interpolator behaviour during implementation.
+  - **Client-side wrap detection:** `phaserInterpolators()` only interpolates `Rotation`,
+    not `Position`, so wraps are already clean single-frame position jumps with no smear.
+    The client detects the owned ship jumping more than half the world in either axis,
+    snaps the camera from that position as usual, and plays the lines+flash effect.
 - **HUD: removed entirely** (to be redone later). Delete `hud.ts` systems and its
   server-owned Text entities; drop them from world setup. The client's connection-status
   text stays but is screen-fixed (`setScrollFactor(0)`).
@@ -74,9 +72,9 @@ replication), modelled on `~/src/vecs/apps/server/src/main.ts`.
   `NETWORK_COMPONENTS` (order-stable), set on the ship at spawn = session client id.
   Client reads `socket.id`, finds the ship with matching `Owner` → camera target.
 - **Phase 3 — Camera + rendering.** Canvas = viewport (1024×768). Camera follows the
-  owned ship's interpolated position (snap on the wrap signal). World-sized/tiled
-  parallax starfield. Pin connection-status text screen-fixed.
-- **Phase 4 — Hyperspace effect + gameplay tuning.** Networked wrap signal in the `Wrap`
-  system; client lines+flash + camera snap on the owned ship's wrap. Alien spawning near
-  active players; asteroid wave counts/caps scaled to the larger area.
+  owned ship's replicated `Position`. World-sized/tiled parallax starfield. Pin
+  connection-status text screen-fixed.
+- **Phase 4 — Hyperspace effect + gameplay tuning.** Client-side wrap detection from the
+  owned ship's single-frame `Position` jump; client lines+flash + camera snap on wrap.
+  Alien spawning near active players; asteroid wave counts/caps scaled to the larger area.
 - **Phase 5 — Tests & manual verify.** Extend network/soak tests; verify in the real app.

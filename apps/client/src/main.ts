@@ -3,6 +3,7 @@ import { Position } from '@vworlds/vecs-phaser';
 import { CoordSpace } from '@vworlds/vecs-phaser-client';
 import Phaser from 'phaser';
 import { createClientWorld, findLocalShipEntity } from './network/vecsClient';
+import { playHyperspaceEffect } from './render/HyperspaceEffect';
 import {
   PIXELS_PER_METER,
   VIEWPORT_HEIGHT,
@@ -59,6 +60,9 @@ window.addEventListener('keyup', (event) => {
 class GameScene extends Phaser.Scene {
   private _statusText: Phaser.GameObjects.Text | undefined;
   private _coords: CoordSpace | undefined;
+  private _previousLocalShipPosition:
+    | { eid: number; x: number; y: number }
+    | undefined;
 
   constructor() {
     super('GameScene');
@@ -75,8 +79,7 @@ class GameScene extends Phaser.Scene {
 
     this.drawStarfield();
 
-    // Client chrome lives along the BOTTOM edge so it never overlaps the
-    // server-owned Score/Wave HUD Text entities, which render at the top-left.
+    // Client chrome is pinned to the screen so it stays readable as the camera moves.
     this.add
       .text(16, CANVAS_HEIGHT - 28, 'P1: WASD+Space  P2: Arrows+Enter', {
         color: '#e2e8f0',
@@ -107,12 +110,26 @@ class GameScene extends Phaser.Scene {
 
     const ship = findLocalShipEntity(active, localClientId);
     const position = ship?.get(Position);
-    if (position && this._coords) {
-      // TODO(Phase 4): play hyperspace lines+flash effect + snap on wrap signal
+    if (ship && position && this._coords) {
+      const previous = this._previousLocalShipPosition;
+      if (previous?.eid === ship.eid) {
+        const wrapped =
+          Math.abs(position.x - previous.x) > WORLD_WIDTH / 2 ||
+          Math.abs(position.y - previous.y) > WORLD_HEIGHT / 2;
+        if (wrapped) playHyperspaceEffect(this);
+      }
+
+      this._previousLocalShipPosition = {
+        eid: ship.eid,
+        x: position.x,
+        y: position.y,
+      };
       this.cameras.main.centerOn(
         this._coords.x(position.x),
         this._coords.y(position.y),
       );
+    } else {
+      this._previousLocalShipPosition = undefined;
     }
   }
 
