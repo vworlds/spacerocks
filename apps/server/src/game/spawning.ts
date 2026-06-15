@@ -2,6 +2,7 @@ import type { ComponentClass, Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
   Arc,
+  FillStyle,
   Polygon,
   Position as RenderPosition,
   Rotation as RenderRotation,
@@ -24,7 +25,7 @@ import {
   Alien,
   Asteroid,
   AsteroidView,
-  ASTEROID_COLORS,
+  ASTEROID_FILL_COLORS,
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
@@ -58,6 +59,7 @@ import { createPrng, type Prng } from './rng';
 const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // wave number
 const ALIEN_SPAWN_MARGIN = 0.5; // meters
+const ASTEROID_OUTLINE_COLOR = 0xcccccc;
 
 type AsteroidOptions = {
   velocity?: { x: number; y: number };
@@ -148,10 +150,11 @@ export function createAsteroid(
 
   const radius = asteroidRadius(mass);
   const speedFactor = ENTITY_CONFIG.ASTEROID.SPEED_FACTOR;
-  const color =
+  const fillColor =
     options.color ??
-    ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ??
+    ASTEROID_FILL_COLORS[rng.int(ASTEROID_FILL_COLORS.length)] ??
     COLORS.asteroidGrey;
+  const alpha = options.alpha ?? 1;
   const vert = 5 + rng.int(5);
   const velocity = options.velocity ?? {
     x: perSecond(rng.range(-0.5, 0.5) * speedFactor),
@@ -178,13 +181,14 @@ export function createAsteroid(
     .set(PhysicsPosition, { x, y })
     .set(LinearVelocity, velocity)
     .set(RenderPosition, { x, y })
-    .set(AsteroidView, { color, radius, mass })
+    .set(AsteroidView, { color: fillColor, radius, mass })
     .add(Wraps)
-    .set(StrokeStyle, { color, alpha: options.alpha ?? 1, width: 2 })
+    .set(FillStyle, { color: fillColor, alpha })
+    .set(StrokeStyle, { color: ASTEROID_OUTLINE_COLOR, alpha, width: 2 })
     .set(Polygon, { points });
 
   if (collidable) {
-    asteroid.set(Asteroid, { mass, color });
+    asteroid.set(Asteroid, { mass, color: fillColor });
     createPhysicsCircleSolid(
       world,
       asteroid,

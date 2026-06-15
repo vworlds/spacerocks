@@ -6,6 +6,7 @@ import {
 } from '@vworlds/vecs';
 import {
   Arc,
+  FillStyle,
   phaserNetworkComponents,
   Polygon,
   Position,
@@ -21,6 +22,7 @@ import {
 import {
   Alien,
   Asteroid,
+  ASTEROID_FILL_COLORS,
   AsteroidView,
   CAT_ASTEROID,
   COLORS,
@@ -200,6 +202,40 @@ describe('server spawning systems', () => {
         asteroid.get(PhysicsPosition)!.y,
       ),
     ).toBeGreaterThan(0.05);
+  });
+
+  it('renders asteroids with a greyscale fill and visible outline', () => {
+    const { world } = createTestWorld();
+    let intCalls = 0;
+    const rng = {
+      bool: () => false,
+      int: (max: number) => {
+        intCalls += 1;
+        return intCalls === 1 ? max - 1 : 0;
+      },
+      range: () => 1,
+    } as unknown as Prng;
+
+    const asteroid = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      rng,
+      0,
+      0,
+      ENTITY_CONFIG.ASTEROID.MASS,
+    )!;
+    const fillColor = ASTEROID_FILL_COLORS[ASTEROID_FILL_COLORS.length - 1];
+
+    expect(asteroid.get(FillStyle)).toMatchObject({
+      color: fillColor,
+      alpha: 1,
+    });
+    expect(asteroid.get(StrokeStyle)).toMatchObject({
+      color: 0xcccccc,
+      alpha: 1,
+      width: 2,
+    });
+    expect(asteroid.get(AsteroidView)?.color).toBe(fillColor);
+    expect(asteroid.get(Asteroid)?.color).toBe(fillColor);
   });
 
   it('lets asteroids bounce off each other without destroying either body', () => {
