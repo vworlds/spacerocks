@@ -20,10 +20,12 @@ import { createGameWorld } from '../../src/game/world';
 import {
   createCellViewDSL,
   getGridCellIndex,
+  GRID_CELL_HEIGHT,
   GRID_CELL_WIDTH,
   GRID_COLUMNS,
   InCell,
   neighbourIndices,
+  randomPointInGridCell,
 } from '../../src/network/interestGrid';
 
 const DT_MS = 1000 / TICK_RATE;
@@ -145,5 +147,20 @@ describe('server interest grid', () => {
     expect(neighbourIndices(0)).toHaveLength(4);
     expect(neighbourIndices(1)).toHaveLength(6);
     expect(neighbourIndices(GRID_COLUMNS + 1)).toHaveLength(9);
+  });
+
+  it('returns random points within the requested cell bounds', () => {
+    const cellIndex = GRID_COLUMNS + 2;
+    const point = randomPointInGridCell(cellIndex, {
+      range: (min, max) => (min + max) / 2,
+    });
+
+    const minX = WORLD_MIN_X + 2 * GRID_CELL_WIDTH;
+    const minY = WORLD_MIN_Y + GRID_CELL_HEIGHT;
+    expect(point.x).toBeGreaterThan(minX);
+    expect(point.x).toBeLessThan(minX + GRID_CELL_WIDTH);
+    expect(point.y).toBeGreaterThan(minY);
+    expect(point.y).toBeLessThan(minY + GRID_CELL_HEIGHT);
+    expect(getGridCellIndex(point)).toBe(cellIndex);
   });
 });

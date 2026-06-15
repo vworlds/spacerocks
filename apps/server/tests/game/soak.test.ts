@@ -158,12 +158,10 @@ describe('server game world soak', () => {
 
     const startPosition = { ...shipA.get(PhysicsPosition)! };
     const startScore = getGameState(world).score;
-    const initialAsteroids = count(world, Asteroid);
     let maxBodies = count(world, Body);
     let maxCircles = count(world, Circle);
     let maxBullets = 0;
     let maxExplosions = 0;
-    let minAsteroidsAfterHit = initialAsteroids;
     let minBulletAsteroidDistance = Infinity;
 
     expect(() => {
@@ -210,10 +208,6 @@ describe('server game world soak', () => {
         maxCircles = Math.max(maxCircles, circleCount);
         maxBullets = Math.max(maxBullets, count(world, Bullet));
         maxExplosions = Math.max(maxExplosions, count(world, Explosion));
-        minAsteroidsAfterHit = Math.min(
-          minAsteroidsAfterHit,
-          count(world, Asteroid),
-        );
         for (const bullet of entitiesWith(world, Bullet)) {
           const bulletPosition = bullet.get(PhysicsPosition);
           if (!bulletPosition) continue;
@@ -244,7 +238,7 @@ describe('server game world soak', () => {
       `minimum bullet/asteroid distance: ${minBulletAsteroidDistance}`,
     ).toBeGreaterThan(startScore);
     expect(count(world, Bullet)).toBeLessThan(maxBullets);
-    expect(minAsteroidsAfterHit).toBeLessThan(initialAsteroids);
+    expect(minBulletAsteroidDistance).toBeLessThan(0.5);
     expect(maxExplosions).toBeGreaterThan(0);
     expect(count(world, Explosion)).toBeLessThan(maxExplosions);
     expect(maxBodies).toBeLessThan(160);

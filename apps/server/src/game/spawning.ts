@@ -40,6 +40,7 @@ import {
   GameStateView,
   Health,
   HealthPickup,
+  MAX_ASTEROIDS_TOTAL_MASS,
   Pickup,
   PICKUP_COLORS,
   PickupKind,
@@ -47,7 +48,6 @@ import {
   perSecond,
   RandomClockKind,
   VIEWPORT_WIDTH,
-  WAVE_ASTEROID_SCALE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -55,9 +55,15 @@ import {
   Wraps,
 } from '@spacerocks/common';
 import { createPrng, type Prng } from './rng';
+import {
+  getGridCellIndex,
+  GRID_CELL_COUNT,
+  neighbourIndices,
+  randomPointInGridCell,
+} from '../network/interestGrid';
 
 const GAME_STATE_PLAYING = 0; // enum id
-const INITIAL_WAVE = 1; // wave number
+const INITIAL_WAVE = 1; // legacy GameStateView field value
 const ALIEN_SPAWN_MARGIN = 0.5; // meters
 const ASTEROID_OUTLINE_COLOR = 0xcccccc;
 
@@ -118,21 +124,12 @@ export function installSpawningSystems(
     });
 
   world
-    .system('ServerWave')
-    .interval(0.25)
+    .system('ServerAsteroidSpawner')
+    .interval(1)
     .with(GameStateView)
-    .each([GameStateView], (entity, [state]) => {
+    .each([GameStateView], (_entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;
-      if (
-        countEntities(world, Asteroid) > 0 ||
-        countEntities(world, Alien) > 0
-      ) {
-        return;
-      }
-
-      state.wave += 1;
-      entity.modified(GameStateView);
-      spawnWave(world, rng, state.wave);
+      spawnAsteroidIfBelowMassCap(world, rng);
     });
 }
 
@@ -410,12 +407,11 @@ function initializeGameWorld(world: ServerWorld, rng: Prng, now: number): void {
     GAME_CONFIG.HEALTH_SPAWN_MAX_WAIT,
   );
 
-  spawnWave(world, rng, INITIAL_WAVE);
+  fillInitialAsteroids(world, rng);
 }
 
-function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
-  const count = Math.round((3 + wave * 2) * WAVE_ASTEROID_SCALE);
-  for (let i = 0; i < count; i += 1) {
+function fillInitialAsteroids(world: ServerWorld, rng: Prng): void {
+  while (sumAsteroidMass(world) < MAX_ASTEROIDS_TOTAL_MASS) {
     let x: number;
     let y: number;
     do {
@@ -424,6 +420,46 @@ function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
     } while (Math.hypot(x, y) < 2.0);
     createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
   }
+}
+
+function spawnAsteroidIfBelowMassCap(world: ServerWorld, rng: Prng): void {
+  if (sumAsteroidMass(world) >= MAX_ASTEROIDS_TOTAL_MASS) return;
+
+  const cellIndex = chooseUnseenGridCell(world, rng);
+  if (cellIndex === undefined) return;
+
+  const { x, y } = randomPointInGridCell(cellIndex, rng);
+  createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
+}
+
+function chooseUnseenGridCell(
+  world: ServerWorld,
+  rng: Prng,
+): number | undefined {
+  const visibleCells = new Set<number>();
+  world
+    .filter([PlayerShip, RenderPosition])
+    .forEach([RenderPosition], (_entity, [position]) => {
+      for (const cellIndex of neighbourIndices(getGridCellIndex(position))) {
+        visibleCells.add(cellIndex);
+      }
+    });
+
+  const candidates: number[] = [];
+  for (let cellIndex = 0; cellIndex < GRID_CELL_COUNT; cellIndex += 1) {
+    if (!visibleCells.has(cellIndex)) candidates.push(cellIndex);
+  }
+  if (candidates.length === 0) return undefined;
+
+  return candidates[rng.int(candidates.length)];
+}
+
+export function sumAsteroidMass(world: ServerWorld): number {
+  let totalMass = 0;
+  world.filter([Asteroid]).forEach([Asteroid], (_entity, [asteroid]) => {
+    totalMass += asteroid.mass;
+  });
+  return totalMass;
 }
 
 function clamp(value: number, min: number, max: number): number {

@@ -29,6 +29,11 @@ export const GRID_ROWS = Math.round(WORLD_HEIGHT / VIEWPORT_HEIGHT);
 export const GRID_CELL_COUNT = GRID_COLUMNS * GRID_ROWS;
 export const GRID_CELL_WIDTH = WORLD_WIDTH / GRID_COLUMNS;
 export const GRID_CELL_HEIGHT = WORLD_HEIGHT / GRID_ROWS;
+const RANDOM_POINT_CELL_MARGIN = 0.1; // meters
+
+type GridRandom = {
+  range(min: number, max: number): number;
+};
 
 export class InCell extends Relationship {}
 
@@ -126,6 +131,27 @@ export function getGridCellIndex(
   position: Pick<RenderPosition, 'x' | 'y'>,
 ): number {
   return gridRow(position.y) * GRID_COLUMNS + gridColumn(position.x);
+}
+
+export function randomPointInGridCell(
+  cellIndex: number,
+  rng: GridRandom,
+): { x: number; y: number } {
+  const column = cellIndex % GRID_COLUMNS;
+  const row = Math.floor(cellIndex / GRID_COLUMNS);
+  const minX = WORLD_MIN_X + column * GRID_CELL_WIDTH;
+  const minY = WORLD_MIN_Y + row * GRID_CELL_HEIGHT;
+
+  return {
+    x: rng.range(
+      minX + RANDOM_POINT_CELL_MARGIN,
+      minX + GRID_CELL_WIDTH - RANDOM_POINT_CELL_MARGIN,
+    ),
+    y: rng.range(
+      minY + RANDOM_POINT_CELL_MARGIN,
+      minY + GRID_CELL_HEIGHT - RANDOM_POINT_CELL_MARGIN,
+    ),
+  };
 }
 
 export function gridColumn(x: number): number {

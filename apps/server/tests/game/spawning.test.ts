@@ -28,13 +28,13 @@ import {
   COLORS,
   ENTITY_CONFIG,
   GameStateView,
+  MAX_ASTEROIDS_TOTAL_MASS,
   PlayerShip,
   Pickup,
   PICKUP_COLORS,
   PickupKind,
   TICK_RATE,
   VIEWPORT_WIDTH,
-  WAVE_ASTEROID_SCALE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -48,9 +48,14 @@ import {
   createPickup,
   installSpawningSystems,
   registerSpawningComponents,
+  sumAsteroidMass,
 } from '../../src/game/spawning';
 import { registerPlayerSessionComponents } from '../../src/game/playerSessions';
 import type { Prng } from '../../src/game/rng';
+import {
+  getGridCellIndex,
+  neighbourIndices,
+} from '../../src/network/interestGrid';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -141,7 +146,7 @@ describe('server spawning systems', () => {
     vi.useRealTimers();
   });
 
-  it('creates one networked GameStateView and the first asteroid wave in fixed world bounds', () => {
+  it('creates one networked GameStateView and fills initial asteroids to the mass cap in fixed world bounds', () => {
     const { world } = createTestWorld();
 
     expect(firstEntity(world, GameStateView)?.get(GameStateView)).toMatchObject(
@@ -152,7 +157,12 @@ describe('server spawning systems', () => {
       },
     );
     expect(count(world, GameStateView)).toBe(1);
-    expect(count(world, Asteroid)).toBe(5 * WAVE_ASTEROID_SCALE);
+    expect(
+      sumAsteroidMass(world as unknown as ServerWorldLike),
+    ).toBeGreaterThanOrEqual(MAX_ASTEROIDS_TOTAL_MASS);
+    expect(sumAsteroidMass(world as unknown as ServerWorldLike)).toBeLessThan(
+      MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MASS,
+    );
     expect(
       firstEntity(world, Asteroid)?.get(Polygon)?.points.length,
     ).toBeGreaterThan(0);
@@ -342,26 +352,52 @@ describe('server spawning systems', () => {
     });
   });
 
-  it('progresses waves when asteroids and aliens are cleared', () => {
+  it('does not continuously spawn asteroids while total mass is at the cap', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const { world } = createTestWorld();
-    const asteroids: Entity[] = [];
-    const aliens: Entity[] = [];
-    world.filter([Asteroid]).forEach([], (entity) => asteroids.push(entity));
-    world.filter([Alien]).forEach([], (entity) => aliens.push(entity));
-    for (const entity of asteroids) entity.destroy();
-    for (const entity of aliens) entity.destroy();
+    const startingCount = count(world, Asteroid);
+    const startingMass = sumAsteroidMass(world as unknown as ServerWorldLike);
 
     runSimulation(world, 1000);
     runSimulation(world, 2000);
 
     expect(firstEntity(world, GameStateView)?.get(GameStateView)).toMatchObject(
       {
-        wave: 2,
+        wave: 1,
       },
     );
-    expect(count(world, Asteroid)).toBe(7 * WAVE_ASTEROID_SCALE);
+    expect(startingMass).toBeGreaterThanOrEqual(MAX_ASTEROIDS_TOTAL_MASS);
+    expect(count(world, Asteroid)).toBe(startingCount);
+  });
+
+  it('continuously spawns asteroids only in cells unseen by players', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const { world } = createTestWorld();
+    const asteroids: Entity[] = [];
+    world.filter([Asteroid]).forEach([], (entity) => asteroids.push(entity));
+    for (const entity of asteroids) entity.destroy();
+    world.flush();
+
+    const playerPosition = { x: 0, y: 0 };
+    world
+      .entity()
+      .set(PlayerShip, { playerIndex: 0, color: 0xffffff })
+      .set(Position, playerPosition);
+    const visibleCells = new Set(
+      neighbourIndices(getGridCellIndex(playerPosition)),
+    );
+
+    runSimulation(world, 1000);
+    runSimulation(world, 2000);
+
+    expect(count(world, Asteroid)).toBe(1);
+    const asteroid = firstEntity(world, Asteroid);
+    if (!asteroid) throw new Error('Expected spawned asteroid');
+    const asteroidPosition = asteroid.get(Position);
+    if (!asteroidPosition) throw new Error('Expected asteroid position');
+    expect(visibleCells.has(getGridCellIndex(asteroidPosition))).toBe(false);
   });
 
   it('does not progress the GameStateView lifecycle while paused', () => {
