@@ -12,8 +12,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@vworlds/vecs": "1.0.28",
-    "@vworlds/vecs-phaser": "1.0.28",
-    "@vworlds/vecs-wire": "1.0.28"
+    "@vworlds/vecs": "1.0.29",
+    "@vworlds/vecs-phaser": "1.0.29",
+    "@vworlds/vecs-wire": "1.0.29"
   }
 }

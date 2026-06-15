@@ -15,9 +15,9 @@
   "dependencies": {
     "@spacerocks/common": "file:../../packages/common",
     "@vworlds/vecs": "*",
-    "@vworlds/vecs-phaser-server": "1.0.28",
-    "@vworlds/vecs-physics": "1.0.28",
-    "@vworlds/vecs-server": "1.0.28",
+    "@vworlds/vecs-phaser-server": "1.0.29",
+    "@vworlds/vecs-physics": "1.0.29",
+    "@vworlds/vecs-server": "1.0.29",
     "express": "^5.1.0",
     "pino": "^10.3.1",
     "pino-pretty": "^13.1.3"
