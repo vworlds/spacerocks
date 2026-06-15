@@ -154,6 +154,7 @@ export function createAsteroid(
     y: perSecond(rng.range(-0.5, 0.5) * speedFactor),
   };
   const maskBits =
+    CAT_ASTEROID |
     CAT_PLAYER |
     CAT_PLAYER_BULLET |
     CAT_ENEMY_BULLET |

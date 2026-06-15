@@ -1,4 +1,9 @@
-import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
+import {
+  ChildOf,
+  World,
+  type ComponentClass,
+  type Entity,
+} from '@vworlds/vecs';
 import {
   Arc,
   phaserNetworkComponents,
@@ -7,6 +12,8 @@ import {
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
 import {
+  Circle,
+  CollisionFilter,
   LinearVelocity,
   PhysicsModule,
   Position as PhysicsPosition,
@@ -15,6 +22,7 @@ import {
   Alien,
   Asteroid,
   AsteroidView,
+  CAT_ASTEROID,
   COLORS,
   ENTITY_CONFIG,
   GameStateView,
@@ -65,6 +73,21 @@ function createTestWorld(seed = 1234): {
     createPrng(seed),
   );
   return { world };
+}
+
+function createPhysicsSpawnWorld(): World {
+  const world = new World();
+  for (const component of phaserNetworkComponents) world.component(component);
+  registerPlayerSessionComponents(
+    world as unknown as Parameters<typeof registerPlayerSessionComponents>[0],
+  );
+  registerSpawningComponents(world as unknown as ServerWorldLike);
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
+  return world;
 }
 
 function runSimulation(world: World, now: number): void {
@@ -162,6 +185,41 @@ describe('server spawning systems', () => {
         asteroid.get(PhysicsPosition)!.y,
       ),
     ).toBeGreaterThan(0.05);
+  });
+
+  it('lets asteroids bounce off each other without destroying either body', () => {
+    const world = createPhysicsSpawnWorld();
+
+    const rng = createPrng(7);
+    const left = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      rng,
+      -0.35,
+      0,
+      ENTITY_CONFIG.ASTEROID.MASS,
+      { velocity: { x: 1, y: 0 } },
+    )!;
+    const right = createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      rng,
+      0.35,
+      0,
+      ENTITY_CONFIG.ASTEROID.MASS,
+      { velocity: { x: -1, y: 0 } },
+    )!;
+    const leftShape = [...left.children(ChildOf)].find((child) =>
+      child.get(Circle),
+    );
+
+    expect(
+      (leftShape?.get(CollisionFilter)?.maskBits ?? 0) & CAT_ASTEROID,
+    ).toBe(CAT_ASTEROID);
+
+    stepTicks(world, 10);
+
+    expect(count(world, Asteroid)).toBe(2);
+    expect(left.get(LinearVelocity)!.x).toBeLessThan(0);
+    expect(right.get(LinearVelocity)!.x).toBeGreaterThan(0);
   });
 
   it('creates phaser alien render components', () => {
