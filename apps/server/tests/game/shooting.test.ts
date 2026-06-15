@@ -179,6 +179,7 @@ describe('server shooting systems', () => {
       .entity()
       .set(Body, { type: BodyType.Dynamic })
       .set(PhysicsPosition, { x: 0, y: 0 })
+      .set(PhysicsRotation, { angle: 0 })
       .set(Alien, { shootCooldown: 0 });
 
     world.progress(0, 1000 / 60);
@@ -212,12 +213,36 @@ describe('server shooting systems', () => {
       .entity()
       .set(Body, { type: BodyType.Dynamic })
       .set(PhysicsPosition, { x: 0, y: 0 })
+      .set(PhysicsRotation, { angle: 0 })
       .set(Alien, { shootCooldown: 0 });
 
     world.progress(0, 1000 / 60);
 
     expect(count(world, Bullet)).toBe(0);
     expect(alien.get(Alien)?.shootCooldown).toBe(0);
+  });
+
+  it('rotates aliens toward players before firing enemy bullets', () => {
+    const { world, ship } = createStartedWorldWithShip();
+    ship.set(PhysicsPosition, { x: 0, y: 1 });
+    const alien = world
+      .entity()
+      .set(Body, { type: BodyType.Dynamic })
+      .set(PhysicsPosition, { x: 0, y: 0 })
+      .set(PhysicsRotation, { angle: 0 })
+      .set(Alien, { shootCooldown: 0 });
+
+    world.progress(0, 1000 / 60);
+
+    expect(count(world, Bullet)).toBe(0);
+    expect(alien.get(PhysicsRotation)?.angle).toBeGreaterThan(0);
+
+    stepTicks(world, 20);
+
+    expect(count(world, Bullet)).toBe(1);
+    const bullet = firstEntity(world, Bullet);
+    expect(bullet.get(PhysicsRotation)?.angle).toBeCloseTo(Math.PI / 2, 1);
+    expect(bullet.get(LinearVelocity)!.y).toBeGreaterThan(0);
   });
 
   it('creates rockets from server-owned ammo and homes after the straight timer', () => {

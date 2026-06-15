@@ -64,6 +64,11 @@ export function registerShootingComponents(world: ServerWorld): void {
 }
 
 export function installShootingSystems(world: ServerWorld): void {
+  const playerTargetQuery = world
+    .query('AllPlayersWithPosition')
+    .with(PlayerShip, PhysicsPosition)
+    .build();
+
   world
     .system('InitializeWeaponState')
     .with(PlayerShip)
@@ -143,29 +148,39 @@ export function installShootingSystems(world: ServerWorld): void {
 
   world
     .system('AlienShooting')
-    .with(Alien, PhysicsPosition)
-    .each([Alien, PhysicsPosition], (alienEntity, [alien, position]) => {
-      if (alien.shootCooldown > 0) {
-        alien.shootCooldown -= 1;
-        return;
-      }
+    .with(Alien, PhysicsPosition, PhysicsRotation)
+    .each(
+      [Alien, PhysicsPosition, PhysicsRotation],
+      (alienEntity, [alien, position, rotation]) => {
+        const target = findNearestPlayer(playerTargetQuery, position);
+        const targetAngle = target
+          ? Math.atan2(target.y - position.y, target.x - position.x)
+          : undefined;
+        const facingTarget =
+          targetAngle !== undefined
+            ? rotateTowardTarget(alienEntity, rotation, targetAngle)
+            : false;
 
-      const target = findNearestPlayer(world, position);
-      if (!target) return;
+        if (alien.shootCooldown > 0) {
+          alien.shootCooldown -= 1;
+          return;
+        }
 
-      const angle = Math.atan2(target.y - position.y, target.x - position.x);
-      const spawnOffset = ENTITY_CONFIG.ALIEN.RADIUS + 0.04;
-      createBullet(
-        world,
-        alienEntity,
-        position.x + Math.cos(angle) * spawnOffset,
-        position.y + Math.sin(angle) * spawnOffset,
-        angle,
-        COLORS.orange,
-        'alien',
-      );
-      alien.shootCooldown = ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE;
-    });
+        if (!target || !facingTarget) return;
+
+        const spawnOffset = ENTITY_CONFIG.ALIEN.RADIUS + 0.04;
+        createBullet(
+          world,
+          alienEntity,
+          position.x + Math.cos(rotation.angle) * spawnOffset,
+          position.y + Math.sin(rotation.angle) * spawnOffset,
+          rotation.angle,
+          COLORS.orange,
+          'alien',
+        );
+        alien.shootCooldown = ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE;
+      },
+    );
 
   world
     .system('LaserSystem')
@@ -422,23 +437,46 @@ function findRocketTarget(
 }
 
 function findNearestPlayer(
-  world: ServerWorld,
+  players: Iterable<Entity>,
   source: PhysicsPosition,
 ): { x: number; y: number } | undefined {
   let target: { x: number; y: number } | undefined;
   let minDistance = Infinity;
 
-  world
-    .filter([PlayerShip, PhysicsPosition])
-    .forEach([PhysicsPosition], (_player, [position]) => {
-      const distance = Math.hypot(source.x - position.x, source.y - position.y);
-      if (distance > ENTITY_CONFIG.ALIEN.TARGET_DIST_MAX) return;
-      if (distance >= minDistance) return;
-      minDistance = distance;
-      target = { x: position.x, y: position.y };
-    });
+  for (const player of players) {
+    const position = player.get(PhysicsPosition);
+    if (!position) continue;
+
+    const distance = Math.hypot(source.x - position.x, source.y - position.y);
+    if (distance > ENTITY_CONFIG.ALIEN.TARGET_DIST_MAX) continue;
+    if (distance >= minDistance) continue;
+    minDistance = distance;
+    target = { x: position.x, y: position.y };
+  }
 
   return target;
+}
+
+function rotateTowardTarget(
+  entity: Entity,
+  rotation: PhysicsRotation,
+  targetAngle: number,
+): boolean {
+  const diff = wrapAngle(targetAngle - rotation.angle);
+  const turn = Math.max(
+    -ENTITY_CONFIG.ALIEN.ROTATION_SPEED,
+    Math.min(ENTITY_CONFIG.ALIEN.ROTATION_SPEED, diff),
+  );
+
+  if (Math.abs(turn) > 0) {
+    rotation.angle = wrapAngle(rotation.angle + turn);
+    entity.modified(PhysicsRotation);
+  }
+
+  return (
+    Math.abs(wrapAngle(targetAngle - rotation.angle)) <=
+    ENTITY_CONFIG.ALIEN.FIRE_ANGLE
+  );
 }
 
 function findNearest(

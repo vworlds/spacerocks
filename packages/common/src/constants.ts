@@ -71,6 +71,8 @@ export const ENTITY_CONFIG = {
     SPEED_FACTOR: perFrame(0.02), // meters/frame multiplier
     SHOOT_COOLDOWN_BASE: toFrames(2_500), // frames
     SHOOT_COOLDOWN_RANGE: toFrames(667), // frames
+    ROTATION_SPEED: perFrame(0.06), // radians/frame
+    FIRE_ANGLE: 0.08, // radians
     TARGET_DIST_MAX: 2.5, // meters
     ASTEROID_AVOID_DIST: 0.6, // meters
     MAX_HP: 20, // hp
