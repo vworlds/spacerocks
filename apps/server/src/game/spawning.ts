@@ -159,7 +159,7 @@ export function installSpawningSystems(
 
   world
     .system('ServerAsteroidSpawner')
-    .interval(1)
+    .interval(0.5)
     .with(GameStateView)
     .each([GameStateView], (_entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;

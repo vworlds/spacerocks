@@ -12,7 +12,7 @@ export const WORLD_MIN_X = -WORLD_WIDTH / 2; // meters
 export const WORLD_MAX_X = WORLD_WIDTH / 2; // meters
 export const WORLD_MIN_Y = -WORLD_HEIGHT / 2; // meters
 export const WORLD_MAX_Y = WORLD_HEIGHT / 2; // meters
-export const MAX_ASTEROIDS_TOTAL_MASS = 600; // kg
+export const MAX_ASTEROIDS_TOTAL_MASS = 1800; // kg
 export const CLIENT_ENTITY_ID_START = 1_000_000; // entity id
 const BASE_TICK_RATE = 60; // frames/second
 export const TICK_RATE = 30; // frames/second
@@ -36,9 +36,9 @@ export function perFrameMultiplier(multiplierAtBaseTickRate: number): number {
 }
 
 export const GAME_CONFIG = {
-  ALIEN_SPAWN_MIN_WAIT: 10000, // ms
-  ALIEN_SPAWN_MAX_WAIT: 20000, // ms
-  ALIEN_CAP: 3, // entities
+  ALIEN_SPAWN_MIN_WAIT: 5000, // ms
+  ALIEN_SPAWN_MAX_WAIT: 12000, // ms
+  ALIEN_CAP: 8, // entities
 
   SHIELD_SPAWN_MIN_WAIT: 8000, // ms
   SHIELD_SPAWN_MAX_WAIT: 21000, // ms
