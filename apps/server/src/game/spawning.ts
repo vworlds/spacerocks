@@ -66,6 +66,7 @@ const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // legacy GameStateView field value
 const ALIEN_SPAWN_MARGIN = 0.5; // meters
 const ASTEROID_OUTLINE_COLOR = 0xcccccc;
+const asteroidMassTotals = new WeakMap<ServerWorld, { total: number }>();
 
 type AsteroidOptions = {
   velocity?: { x: number; y: number };
@@ -108,7 +109,26 @@ export function installSpawningSystems(
   world: ServerWorld,
   rng: Prng = createPrng(readServerSeed()),
 ): void {
+  const asteroidMassTotal = { total: 0 };
+  const trackedAsteroidMasses = new Map<number, number>();
+  asteroidMassTotals.set(world, asteroidMassTotal);
   initializeGameWorld(world, rng, Date.now());
+
+  world
+    .system('TrackAsteroidMass')
+    .with(Asteroid)
+    .enter((entity) => {
+      const asteroid = entity.get(Asteroid);
+      if (!asteroid || trackedAsteroidMasses.has(entity.eid)) return;
+      trackedAsteroidMasses.set(entity.eid, asteroid.mass);
+      asteroidMassTotal.total += asteroid.mass;
+    })
+    .exit((entity) => {
+      const mass = trackedAsteroidMasses.get(entity.eid);
+      if (mass === undefined) return;
+      trackedAsteroidMasses.delete(entity.eid);
+      asteroidMassTotal.total -= mass;
+    });
 
   world
     .system('ServerRandomClockSystem')
@@ -129,8 +149,12 @@ export function installSpawningSystems(
     .with(GameStateView)
     .each([GameStateView], (_entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;
-      spawnAsteroidIfBelowMassCap(world, rng);
+      spawnAsteroidIfBelowMassCap(world, rng, asteroidMassTotal.total);
     });
+}
+
+export function getTrackedAsteroidMass(world: ServerWorld): number {
+  return asteroidMassTotals.get(world)?.total ?? 0;
 }
 
 export function createAsteroid(
@@ -411,19 +435,26 @@ function initializeGameWorld(world: ServerWorld, rng: Prng, now: number): void {
 }
 
 function fillInitialAsteroids(world: ServerWorld, rng: Prng): void {
-  while (sumAsteroidMass(world) < MAX_ASTEROIDS_TOTAL_MASS) {
+  let filledMass = 0;
+  while (filledMass < MAX_ASTEROIDS_TOTAL_MASS) {
     let x: number;
     let y: number;
+    const mass = ENTITY_CONFIG.ASTEROID.MASS;
     do {
       x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
       y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
     } while (Math.hypot(x, y) < 2.0);
-    createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
+    createAsteroid(world, rng, x, y, mass);
+    filledMass += mass;
   }
 }
 
-function spawnAsteroidIfBelowMassCap(world: ServerWorld, rng: Prng): void {
-  if (sumAsteroidMass(world) >= MAX_ASTEROIDS_TOTAL_MASS) return;
+function spawnAsteroidIfBelowMassCap(
+  world: ServerWorld,
+  rng: Prng,
+  totalAsteroidMass: number,
+): void {
+  if (totalAsteroidMass >= MAX_ASTEROIDS_TOTAL_MASS) return;
 
   const cellIndex = chooseUnseenGridCell(world, rng);
   if (cellIndex === undefined) return;
@@ -452,14 +483,6 @@ function chooseUnseenGridCell(
   if (candidates.length === 0) return undefined;
 
   return candidates[rng.int(candidates.length)];
-}
-
-export function sumAsteroidMass(world: ServerWorld): number {
-  let totalMass = 0;
-  world.filter([Asteroid]).forEach([Asteroid], (_entity, [asteroid]) => {
-    totalMass += asteroid.mass;
-  });
-  return totalMass;
 }
 
 function clamp(value: number, min: number, max: number): number {

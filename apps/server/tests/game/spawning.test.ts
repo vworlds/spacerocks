@@ -46,26 +46,17 @@ import {
   createAlien,
   createAsteroid,
   createPickup,
+  getTrackedAsteroidMass,
   installSpawningSystems,
   registerSpawningComponents,
-  sumAsteroidMass,
 } from '../../src/game/spawning';
 import { registerPlayerSessionComponents } from '../../src/game/playerSessions';
 import type { Prng } from '../../src/game/rng';
+import { createGameWorld } from '../../src/game/world';
 import {
   getGridCellIndex,
   neighbourIndices,
 } from '../../src/network/interestGrid';
-
-vi.mock('@vworlds/vecs-server', () => ({
-  NetworkClient: class NetworkClient {
-    id = '';
-  },
-  NetworkInput: class NetworkInput {
-    input: unknown;
-  },
-  Networked: class Networked {},
-}));
 
 type ServerWorldLike = Parameters<typeof registerSpawningComponents>[0];
 
@@ -118,6 +109,14 @@ function count(world: World, component: ComponentClass): number {
   return total;
 }
 
+function actualAsteroidMass(world: World): number {
+  let total = 0;
+  world.filter([Asteroid]).forEach([Asteroid], (_entity, [asteroid]) => {
+    total += asteroid.mass;
+  });
+  return total;
+}
+
 function fixedAngleRng(angle: number): Prng {
   return {
     next: () => 0,
@@ -157,10 +156,10 @@ describe('server spawning systems', () => {
       },
     );
     expect(count(world, GameStateView)).toBe(1);
-    expect(
-      sumAsteroidMass(world as unknown as ServerWorldLike),
-    ).toBeGreaterThanOrEqual(MAX_ASTEROIDS_TOTAL_MASS);
-    expect(sumAsteroidMass(world as unknown as ServerWorldLike)).toBeLessThan(
+    expect(actualAsteroidMass(world)).toBeGreaterThanOrEqual(
+      MAX_ASTEROIDS_TOTAL_MASS,
+    );
+    expect(actualAsteroidMass(world)).toBeLessThan(
       MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MASS,
     );
     expect(
@@ -357,7 +356,7 @@ describe('server spawning systems', () => {
     vi.setSystemTime(0);
     const { world } = createTestWorld();
     const startingCount = count(world, Asteroid);
-    const startingMass = sumAsteroidMass(world as unknown as ServerWorldLike);
+    const startingMass = actualAsteroidMass(world);
 
     runSimulation(world, 1000);
     runSimulation(world, 2000);
@@ -369,6 +368,75 @@ describe('server spawning systems', () => {
     );
     expect(startingMass).toBeGreaterThanOrEqual(MAX_ASTEROIDS_TOTAL_MASS);
     expect(count(world, Asteroid)).toBe(startingCount);
+  });
+
+  it('keeps reactive asteroid mass tracking consistent across catch-up, exits, and refill', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const world = await createGameWorld();
+    const dt = 1000 / TICK_RATE;
+
+    world.progress(0, dt);
+
+    const initialActualMass = actualAsteroidMass(world as unknown as World);
+    expect(getTrackedAsteroidMass(world)).toBe(initialActualMass);
+    expect(getTrackedAsteroidMass(world)).toBeGreaterThanOrEqual(
+      MAX_ASTEROIDS_TOTAL_MASS,
+    );
+    expect(getTrackedAsteroidMass(world)).toBeLessThan(
+      MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MASS,
+    );
+
+    const gameStateEntity = firstEntity(
+      world as unknown as World,
+      GameStateView,
+    );
+    if (!gameStateEntity) throw new Error('Expected GameStateView entity');
+    gameStateEntity.set(GameStateView, {
+      state: 1,
+      wave: 1,
+      score: 0,
+      status: 'Paused',
+    });
+
+    const destroyedAsteroids: Entity[] = [];
+    world.filter([Asteroid]).forEach([], (entity) => {
+      if (destroyedAsteroids.length < 3) destroyedAsteroids.push(entity);
+    });
+    const destroyedMass = destroyedAsteroids.reduce(
+      (sum, entity) => sum + (entity.get(Asteroid)?.mass ?? 0),
+      0,
+    );
+    for (const asteroid of destroyedAsteroids) asteroid.destroy();
+
+    world.progress(dt, dt);
+
+    expect(getTrackedAsteroidMass(world)).toBe(
+      initialActualMass - destroyedMass,
+    );
+    expect(getTrackedAsteroidMass(world)).toBe(
+      actualAsteroidMass(world as unknown as World),
+    );
+
+    gameStateEntity.set(GameStateView, {
+      state: 0,
+      wave: 1,
+      score: 0,
+      status: '',
+    });
+    for (let tick = 2; tick <= 120; tick += 1) {
+      world.progress(tick * dt, dt);
+    }
+
+    expect(getTrackedAsteroidMass(world)).toBe(
+      actualAsteroidMass(world as unknown as World),
+    );
+    expect(getTrackedAsteroidMass(world)).toBeGreaterThanOrEqual(
+      MAX_ASTEROIDS_TOTAL_MASS,
+    );
+    expect(getTrackedAsteroidMass(world)).toBeLessThan(
+      MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MASS,
+    );
   });
 
   it('continuously spawns asteroids only in cells unseen by players', () => {
