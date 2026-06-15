@@ -38,8 +38,8 @@ import {
   Health,
   PlayerShip,
   Shield,
-  WORLD_HEIGHT,
-  WORLD_WIDTH,
+  VIEWPORT_HEIGHT,
+  VIEWPORT_WIDTH,
   Wraps,
   PLAYER_COLORS,
 } from '@spacerocks/common';
@@ -57,10 +57,10 @@ export class PlayerInputIntent {
 }
 
 const SPAWN_POSITIONS = [
-  { x: -WORLD_WIDTH * 0.2, y: 0 },
-  { x: WORLD_WIDTH * 0.2, y: 0 },
-  { x: 0, y: WORLD_HEIGHT * 0.2 },
-  { x: 0, y: -WORLD_HEIGHT * 0.2 },
+  { x: -VIEWPORT_WIDTH * 0.2, y: 0 },
+  { x: VIEWPORT_WIDTH * 0.2, y: 0 },
+  { x: 0, y: VIEWPORT_HEIGHT * 0.2 },
+  { x: 0, y: -VIEWPORT_HEIGHT * 0.2 },
 ] as const;
 
 export function registerPlayerSessionComponents(world: ServerWorld): void {

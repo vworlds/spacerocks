@@ -1,6 +1,13 @@
 export const PIXELS_PER_METER = 100; // pixels/meter
-export const WORLD_WIDTH = 10.24; // meters
-export const WORLD_HEIGHT = 7.68; // meters
+export const VIEWPORT_WIDTH = 10.24; // meters
+export const VIEWPORT_HEIGHT = 7.68; // meters
+export const VIEWPORT_MIN_X = -VIEWPORT_WIDTH / 2; // meters
+export const VIEWPORT_MAX_X = VIEWPORT_WIDTH / 2; // meters
+export const VIEWPORT_MIN_Y = -VIEWPORT_HEIGHT / 2; // meters
+export const VIEWPORT_MAX_Y = VIEWPORT_HEIGHT / 2; // meters
+export const WORLD_SCALE = 5; // viewports per axis
+export const WORLD_WIDTH = VIEWPORT_WIDTH * WORLD_SCALE; // meters
+export const WORLD_HEIGHT = VIEWPORT_HEIGHT * WORLD_SCALE; // meters
 export const WORLD_MIN_X = -WORLD_WIDTH / 2; // meters
 export const WORLD_MAX_X = WORLD_WIDTH / 2; // meters
 export const WORLD_MIN_Y = -WORLD_HEIGHT / 2; // meters

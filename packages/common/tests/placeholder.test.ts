@@ -11,7 +11,10 @@ import {
   GameStateView,
   NETWORK_COMPONENTS,
   PlayerShip,
+  VIEWPORT_HEIGHT,
+  VIEWPORT_WIDTH,
   WORLD_HEIGHT,
+  WORLD_SCALE,
   WORLD_WIDTH,
 } from '../src/index';
 
@@ -38,9 +41,11 @@ describe('NETWORK_COMPONENTS', () => {
     expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });
 
-  it('exports fixed world dimensions', () => {
-    expect(WORLD_WIDTH).toBe(10.24);
-    expect(WORLD_HEIGHT).toBe(7.68);
+  it('exports viewport dimensions and scaled world dimensions', () => {
+    expect(VIEWPORT_WIDTH).toBe(10.24);
+    expect(VIEWPORT_HEIGHT).toBe(7.68);
+    expect(WORLD_WIDTH).toBe(VIEWPORT_WIDTH * WORLD_SCALE);
+    expect(WORLD_HEIGHT).toBe(VIEWPORT_HEIGHT * WORLD_SCALE);
   });
 
   it('uses vecs-wire encodable network components', () => {

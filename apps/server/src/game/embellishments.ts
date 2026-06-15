@@ -20,7 +20,7 @@ import {
   LaserWeapon,
   PlayerShip,
   Shield,
-  WORLD_WIDTH,
+  VIEWPORT_WIDTH,
 } from '@spacerocks/common';
 
 const HEALTH_BAR_WIDTH = 0.3;
@@ -314,7 +314,7 @@ function ensureLaserBeam(
   return createChild(world, parent)
     .set(RenderPosition, initialChildPosition(parent, 0, 0))
     .set(RenderRotation, parent.get(RenderRotation) ?? { angle: 0 })
-    .set(Line, { x1: 0, y1: 0, x2: WORLD_WIDTH, y2: 0 })
+    .set(Line, { x1: 0, y1: 0, x2: VIEWPORT_WIDTH, y2: 0 })
     .set(StrokeStyle, { color: 0xff0000, alpha: 1, width: LASER_WIDTH })
     .set(Offset, { x: 0, y: 0 })
     .add(FollowParentRotation);
