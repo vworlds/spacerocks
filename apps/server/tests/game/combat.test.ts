@@ -190,7 +190,7 @@ describe('server combat systems', () => {
       createPrng(1),
       100,
       100,
-      3,
+      ENTITY_CONFIG.ASTEROID.MASS,
     );
     createSensorBody(world, {
       x: 100,
@@ -206,7 +206,7 @@ describe('server combat systems', () => {
     expect(count(world, Bullet)).toBe(0);
     expect(count(world, Explosion)).toBe(1);
     expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
-      SCORING.ASTEROID_BASE * 3,
+      SCORING.ASTEROID_BASE,
     );
   });
 
@@ -217,7 +217,7 @@ describe('server combat systems', () => {
       createPrng(1),
       100,
       100,
-      3,
+      ENTITY_CONFIG.ASTEROID.MASS,
     );
     createSensorBody(world, {
       x: 100,
@@ -230,7 +230,12 @@ describe('server combat systems', () => {
     runFrame(world);
     expect(count(world, Explosion)).toBe(1);
     expect(firstEntity(world, Explosion).get(Explosion)).toMatchObject({
-      size: 0.4,
+      size: expect.closeTo(
+        Math.sqrt(
+          ENTITY_CONFIG.ASTEROID.MASS /
+            (Math.PI * ENTITY_CONFIG.ASTEROID.DENSITY),
+        ),
+      ),
       duration: ENTITY_CONFIG.EXPLOSION.LIFE_FRAMES / 30,
     });
 
@@ -275,14 +280,14 @@ describe('server combat systems', () => {
     expect(world.getEntity(bullet.eid)).toBeUndefined();
   });
 
-  it('destroys asteroids with enemy bullets', () => {
+  it('splits asteroids with enemy bullets', () => {
     const { world } = createTestWorld();
     createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
       createPrng(1),
       0,
       0,
-      1,
+      ENTITY_CONFIG.ASTEROID.MASS,
     );
     const alien = world.entity().add(Alien);
     const bullet = createBullet(
@@ -305,10 +310,12 @@ describe('server combat systems', () => {
 
     runFrame(world);
 
-    expect(count(world, Asteroid)).toBe(0);
+    expect(count(world, Asteroid)).toBe(2);
     expect(world.getEntity(bullet.eid)).toBeUndefined();
     expect(count(world, Explosion)).toBe(1);
-    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(0);
+    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
+      SCORING.ASTEROID_BASE,
+    );
   });
 
   it('applies health pickups through server-side handlers', () => {
@@ -410,7 +417,7 @@ describe('server combat systems', () => {
       createPrng(2),
       30,
       30,
-      1,
+      ENTITY_CONFIG.ASTEROID.MASS,
     );
 
     runFrame(world);
@@ -442,7 +449,7 @@ describe('server combat systems', () => {
       [...(respawnedShip?.children(ChildOf) ?? [])].filter((e) =>
         e.get(Circle),
       ),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
   });
 
   it('deletes a ship, its owned projectiles, and every physics shape child without orphans', () => {
@@ -476,7 +483,7 @@ describe('server combat systems', () => {
     runFrame(world);
 
     expect(count(world, Body)).toBe(3);
-    expect(count(world, Circle)).toBe(3);
+    expect(count(world, Circle)).toBe(4);
 
     ship.destroy();
     world.flush();
@@ -516,7 +523,7 @@ describe('server combat systems', () => {
 
     expect(
       [...ship.children(ChildOf)].filter((e) => e.get(Circle)),
-    ).toHaveLength(1);
+    ).toHaveLength(2);
     expect([...ship.children(ChildOf)].filter((e) => e.get(Body))).toHaveLength(
       1,
     );

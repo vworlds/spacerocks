@@ -1,7 +1,13 @@
 import { ChildOf, POST_UPDATE, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import { Position, Rotation } from '@vworlds/vecs-phaser';
-import { CollisionFilter, physics, SensorEvents } from '@vworlds/vecs-physics';
+import {
+  CollisionFilter,
+  LinearVelocity,
+  physics,
+  Position as PhysicsPosition,
+  SensorEvents,
+} from '@vworlds/vecs-physics';
 import {
   Alien,
   Asteroid,
@@ -36,7 +42,7 @@ import {
   TICK_RATE,
   toFrames,
 } from '@spacerocks/common';
-import { createAsteroid } from './spawning';
+import { asteroidRadius, createAsteroid } from './spawning';
 import { createPrng, type Prng } from './rng';
 import { createPlayerShip, PlayerSession } from './playerSessions';
 
@@ -171,7 +177,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
     CAT_PLAYER_BULLET,
     CAT_ASTEROID,
     (bullet, asteroid) => {
-      destroyAsteroid(world, rng, asteroid, true);
+      splitAsteroidFromProjectile(world, rng, asteroid, bullet, true);
       bullet.destroy();
     },
   );
@@ -190,16 +196,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
     CAT_ASTEROID,
     CAT_ENEMY_BULLET,
     (asteroid, bullet) => {
-      const asteroidView = asteroid.get(AsteroidView);
-      const position = asteroid.get(Position);
-      if (position)
-        createExplosion(
-          world,
-          position.x,
-          position.y,
-          asteroidView?.color ?? COLORS.asteroidGrey,
-        );
-      asteroid.destroy();
+      splitAsteroidFromProjectile(world, rng, asteroid, bullet, true);
       bullet.destroy();
     },
   );
@@ -239,7 +236,7 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
     CAT_BOOMERANG,
     CAT_ASTEROID,
     (boomerang, asteroid) => {
-      destroyAsteroid(world, rng, asteroid, true);
+      splitAsteroidFromProjectile(world, rng, asteroid, boomerang, true);
       boomerang.destroy();
     },
   );
@@ -283,7 +280,6 @@ function installHandlers(world: ServerWorld, rng: Prng): void {
         asteroidView?.color ?? COLORS.asteroidGrey,
         0.05,
       );
-    destroyAsteroid(world, rng, asteroid, true, false);
   });
 }
 
@@ -359,7 +355,14 @@ function resolveLaserHits(
     if (!body || !world.getEntity(body.eid)) continue;
 
     if (body.get(Asteroid)) {
-      destroyAsteroid(world, rng, body, true);
+      splitAsteroid(
+        world,
+        rng,
+        body,
+        hit.point,
+        { x: end.x - start.x, y: end.y - start.y },
+        true,
+      );
     } else if (body.get(Alien)) {
       const position = body.get(Position);
       if (position)
@@ -370,34 +373,125 @@ function resolveLaserHits(
   }
 }
 
-function destroyAsteroid(
+function splitAsteroidFromProjectile(
   world: ServerWorld,
   rng: Prng,
   asteroid: Entity,
+  projectile: Entity,
   score: boolean,
-  explode = true,
+): void {
+  const hitPoint = getPosition(projectile) ?? getPosition(asteroid);
+  const projectileVelocity = projectile.get(LinearVelocity);
+  const asteroidPosition = getPosition(asteroid);
+  const shotDirection = projectileVelocity
+    ? { x: projectileVelocity.x, y: projectileVelocity.y }
+    : hitPoint && asteroidPosition
+      ? {
+          x: hitPoint.x - asteroidPosition.x,
+          y: hitPoint.y - asteroidPosition.y,
+        }
+      : { x: 1, y: 0 };
+
+  splitAsteroid(world, rng, asteroid, hitPoint, shotDirection, score);
+}
+
+function splitAsteroid(
+  world: ServerWorld,
+  rng: Prng,
+  asteroid: Entity,
+  hitPoint: { x: number; y: number } | undefined,
+  shotDirection: { x: number; y: number },
+  score: boolean,
 ): void {
   const asteroidData = asteroid.get(Asteroid);
   const asteroidView = asteroid.get(AsteroidView);
-  const position = asteroid.get(Position);
+  const position = getPosition(asteroid);
   if (!asteroidData || !position) return;
 
-  if (explode)
-    createExplosion(
+  createExplosion(
+    world,
+    position.x,
+    position.y,
+    asteroidData.color,
+    asteroidView?.radius ?? 0.2,
+  );
+
+  const fragments = ENTITY_CONFIG.ASTEROID.FRAGMENTS;
+  const retainedMass =
+    asteroidData.mass * (1 - ENTITY_CONFIG.ASTEROID.MASS_LOSS_RATIO);
+  const radius = asteroidView?.radius ?? asteroidRadius(asteroidData.mass);
+  const shot = normalize(shotDirection);
+  const splitAxis = normalize({ x: -shot.y, y: shot.x });
+  const impact = hitPoint
+    ? {
+        x: hitPoint.x - position.x,
+        y: hitPoint.y - position.y,
+      }
+    : { x: 0, y: 0 };
+  const side = Math.sign(dot(impact, splitAxis));
+  const centerHit = Math.abs(dot(impact, splitAxis)) <= radius / fragments;
+  const asteroidVelocity = asteroid.get(LinearVelocity);
+  const parentVelocity = asteroidVelocity
+    ? { x: asteroidVelocity.x, y: asteroidVelocity.y }
+    : { x: 0, y: 0 };
+  const pieces = centerHit
+    ? [
+        { ratio: 0.5, direction: -1 },
+        { ratio: 0.5, direction: 1 },
+      ]
+    : [
+        { ratio: 1 / fragments, direction: side || 1 },
+        { ratio: (fragments - 1) / fragments, direction: -(side || 1) },
+      ];
+
+  for (const piece of pieces) {
+    const mass = retainedMass * piece.ratio;
+    const childRadius = asteroidRadius(mass);
+    const direction = piece.direction;
+    const velocity = {
+      x:
+        parentVelocity.x +
+        (splitAxis.x * direction * ENTITY_CONFIG.ASTEROID.SPLIT_IMPULSE) / mass,
+      y:
+        parentVelocity.y +
+        (splitAxis.y * direction * ENTITY_CONFIG.ASTEROID.SPLIT_IMPULSE) / mass,
+    };
+    const collidable = mass >= ENTITY_CONFIG.ASTEROID.MIN_COLLIDABLE_MASS;
+    createAsteroid(
       world,
-      position.x,
-      position.y,
-      asteroidData.color,
-      asteroidView?.radius ?? 0.2,
+      rng,
+      position.x + splitAxis.x * direction * childRadius,
+      position.y + splitAxis.y * direction * childRadius,
+      mass,
+      {
+        velocity,
+        color: asteroidData.color,
+        collidable,
+        alpha: collidable ? 1 : 0.35,
+        ...(collidable
+          ? {}
+          : { ttlFrames: ENTITY_CONFIG.ASTEROID.DUST_TTL_FRAMES }),
+      },
     );
-  if (asteroidData.level > 1) {
-    const nextLevel = (asteroidData.level - 1) as 1 | 2;
-    createAsteroid(world, rng, position.x, position.y, nextLevel);
-    createAsteroid(world, rng, position.x, position.y, nextLevel);
   }
 
   asteroid.destroy();
-  if (score) addScore(world, SCORING.ASTEROID_BASE * asteroidData.level);
+  if (score) addScore(world, SCORING.ASTEROID_BASE);
+}
+
+function getPosition(entity: Entity): { x: number; y: number } | undefined {
+  const position = entity.get(PhysicsPosition) ?? entity.get(Position);
+  return position ? { x: position.x, y: position.y } : undefined;
+}
+
+function normalize(vector: { x: number; y: number }): { x: number; y: number } {
+  const length = Math.hypot(vector.x, vector.y);
+  if (length <= 0.000001) return { x: 1, y: 0 };
+  return { x: vector.x / length, y: vector.y / length };
+}
+
+function dot(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return a.x * b.x + a.y * b.y;
 }
 
 function damageEnemy(world: ServerWorld, enemy: Entity, damage: number): void {

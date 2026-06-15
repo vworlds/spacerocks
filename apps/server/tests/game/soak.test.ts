@@ -16,6 +16,7 @@ import {
 import {
   Asteroid,
   Bullet,
+  ENTITY_CONFIG,
   Explosion,
   GameStateView,
   PlayerShip,
@@ -109,10 +110,14 @@ function assertFinitePhysicsState(world: GameWorld): void {
 
 function assertShipPhysicsShape(ship: Entity): void {
   expect(ship.get(Body)).toBeTruthy();
-  const shape = [...ship.children(ChildOf)].find((child) => child.get(Circle));
-  expect(shape?.get(Circle)?.radius).toBeGreaterThan(0);
-  expect(shape?.get(Sensor)).toBeTruthy();
-  expect(shape?.get(SensorEvents)).toBeTruthy();
+  const shapes = [...ship.children(ChildOf)].filter((child) =>
+    child.get(Circle),
+  );
+  const sensor = shapes.find((child) => child.get(Sensor));
+  expect(shapes).toHaveLength(2);
+  expect(sensor?.get(Circle)?.radius).toBeGreaterThan(0);
+  expect(sensor?.get(Sensor)).toBeTruthy();
+  expect(sensor?.get(SensorEvents)).toBeTruthy();
 }
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
@@ -128,8 +133,8 @@ function seedDeterministicTarget(world: GameWorld, ship: Entity): void {
     createPrng(0x508a),
     target.x,
     target.y,
-    1,
-  );
+    ENTITY_CONFIG.ASTEROID.MASS,
+  )!;
 
   asteroid.getMut(LinearVelocity, (velocity) => {
     velocity.x = 0;
@@ -224,7 +229,9 @@ describe('server game world soak', () => {
 
         expect(bodyCount).toBeLessThan(160);
         expect(circleCount).toBeLessThan(160);
-        expect(Math.abs(bodyCount - circleCount)).toBeLessThanOrEqual(1);
+        expect(circleCount - bodyCount).toBeLessThanOrEqual(
+          Math.max(1, count(world, PlayerShip)),
+        );
       }
     }).not.toThrow();
 

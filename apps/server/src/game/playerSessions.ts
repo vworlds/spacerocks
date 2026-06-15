@@ -182,6 +182,15 @@ export function createPlayerShip(
     .childOf(ship)
     .set(Circle, { radius: ENTITY_CONFIG.SHIP.RADIUS })
     .set(Material, { density: shapeDensity, friction: 0 })
+    .set(CollisionFilter, {
+      categoryBits,
+      maskBits: CAT_ASTEROID,
+    });
+
+  world
+    .entity()
+    .childOf(ship)
+    .set(Circle, { radius: ENTITY_CONFIG.SHIP.RADIUS })
     .add(Sensor)
     .add(SensorEvents)
     .set(CollisionFilter, {

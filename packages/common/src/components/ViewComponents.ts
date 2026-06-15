@@ -10,13 +10,13 @@ export class PlayerShip {
 
 export class AsteroidView {
   @wireType('u32')
-  level = 1; // tier
-
-  @wireType('u32')
   color = 0x888888; // u32 RGB
 
   @wireType('f64')
   radius = 0.2; // meters
+
+  @wireType('f64')
+  mass = 16; // kg
 }
 
 export class GameStateView {

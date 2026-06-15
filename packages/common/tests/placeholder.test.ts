@@ -46,7 +46,7 @@ describe('NETWORK_COMPONENTS', () => {
   it('uses vecs-wire encodable network components', () => {
     const cases = [
       [PlayerShip, Object.assign(new PlayerShip(), { playerIndex: 7 })],
-      [AsteroidView, Object.assign(new AsteroidView(), { level: 2 })],
+      [AsteroidView, Object.assign(new AsteroidView(), { mass: 4 })],
       [GameStateView, Object.assign(new GameStateView(), { wave: 13 })],
     ] as const;
 

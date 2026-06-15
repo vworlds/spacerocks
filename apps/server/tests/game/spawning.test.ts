@@ -16,6 +16,7 @@ import {
   Asteroid,
   AsteroidView,
   COLORS,
+  ENTITY_CONFIG,
   GameStateView,
   Pickup,
   PICKUP_COLORS,
@@ -143,8 +144,8 @@ describe('server spawning systems', () => {
       rng,
       0,
       0,
-      1,
-    );
+      ENTITY_CONFIG.ASTEROID.MASS,
+    )!;
 
     expect(
       Math.hypot(
@@ -288,15 +289,15 @@ describe('server spawning systems', () => {
       rngA,
       0.1,
       0.2,
-      3,
-    );
+      ENTITY_CONFIG.ASTEROID.MASS,
+    )!;
     const asteroidB = createAsteroid(
       worldB as unknown as Parameters<typeof createAsteroid>[0],
       rngB,
       0.1,
       0.2,
-      3,
-    );
+      ENTITY_CONFIG.ASTEROID.MASS,
+    )!;
     const pickupA = createPickup(
       worldA as unknown as Parameters<typeof createPickup>[0],
       rngA,

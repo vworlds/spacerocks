@@ -12,7 +12,9 @@ import {
   BodyType,
   Circle,
   CollisionFilter,
+  Detectable,
   LinearVelocity,
+  Material,
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
   Sensor,
@@ -40,7 +42,6 @@ import {
   Pickup,
   PICKUP_COLORS,
   PickupKind,
-  PIXELS_PER_METER,
   perSecond,
   RandomClockKind,
   WORLD_MAX_X,
@@ -53,10 +54,13 @@ import { createPrng, type Prng } from './rng';
 
 const GAME_STATE_PLAYING = 0; // enum id
 const INITIAL_WAVE = 1; // wave number
-const ASTEROID_RADII: Record<1 | 2 | 3, number> = {
-  1: 0.1, // meters
-  2: 0.2, // meters
-  3: 0.4, // meters
+
+type AsteroidOptions = {
+  velocity?: { x: number; y: number };
+  color?: number;
+  collidable?: boolean;
+  ttlFrames?: number;
+  alpha?: number;
 };
 
 const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
@@ -84,6 +88,8 @@ export function registerSpawningComponents(world: ServerWorld): void {
   world.component(HealthPickup);
   world.component(Decay);
   world.component(GameStateView);
+  world.component(Material);
+  world.component(Detectable);
 }
 
 export function installSpawningSystems(
@@ -129,16 +135,24 @@ export function createAsteroid(
   rng: Prng,
   x: number,
   y: number,
-  level: 1 | 2 | 3,
-): Entity {
-  const radius = ASTEROID_RADII[level];
-  const speedFactor =
-    ENTITY_CONFIG.ASTEROID.SPEED_FACTOR - level / PIXELS_PER_METER;
+  mass: number = ENTITY_CONFIG.ASTEROID.MASS,
+  options: AsteroidOptions = {},
+): Entity | undefined {
+  const collidable = options.collidable ?? true;
+  if (collidable && mass < ENTITY_CONFIG.ASTEROID.MIN_COLLIDABLE_MASS)
+    return undefined;
+
+  const radius = asteroidRadius(mass);
+  const speedFactor = ENTITY_CONFIG.ASTEROID.SPEED_FACTOR;
   const color =
-    ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ?? COLORS.asteroidGrey;
+    options.color ??
+    ASTEROID_COLORS[rng.int(ASTEROID_COLORS.length)] ??
+    COLORS.asteroidGrey;
   const vert = 5 + rng.int(5);
-  const vx = rng.range(-0.5, 0.5) * speedFactor;
-  const vy = rng.range(-0.5, 0.5) * speedFactor;
+  const velocity = options.velocity ?? {
+    x: perSecond(rng.range(-0.5, 0.5) * speedFactor),
+    y: perSecond(rng.range(-0.5, 0.5) * speedFactor),
+  };
   const maskBits =
     CAT_PLAYER |
     CAT_PLAYER_BULLET |
@@ -157,16 +171,25 @@ export function createAsteroid(
     .add(Networked)
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x, y })
-    .set(LinearVelocity, { x: perSecond(vx), y: perSecond(vy) })
+    .set(LinearVelocity, velocity)
     .set(RenderPosition, { x, y })
-    .set(Asteroid, { level, color })
-    .set(AsteroidView, { level, color, radius })
+    .set(AsteroidView, { color, radius, mass })
     .add(Wraps)
-    .set(StrokeStyle, { color, alpha: 1, width: 2 })
+    .set(StrokeStyle, { color, alpha: options.alpha ?? 1, width: 2 })
     .set(Polygon, { points });
 
-  createPhysicsCircleSensor(world, asteroid, radius, CAT_ASTEROID, maskBits);
+  if (collidable) {
+    asteroid.set(Asteroid, { mass, color });
+    createPhysicsCircleSolid(world, asteroid, radius, CAT_ASTEROID, maskBits);
+  } else if (options.ttlFrames) {
+    asteroid.set(Decay, { life: options.ttlFrames, decay: 1 });
+  }
+
   return asteroid;
+}
+
+export function asteroidRadius(mass: number): number {
+  return Math.sqrt(mass / (Math.PI * ENTITY_CONFIG.ASTEROID.DENSITY));
 }
 
 export function createAlien(world: ServerWorld, rng: Prng): Entity {
@@ -339,8 +362,31 @@ function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
       x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
       y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
     } while (Math.hypot(x, y) < 2.0);
-    createAsteroid(world, rng, x, y, 3);
+    createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
   }
+}
+
+function createPhysicsCircleSolid(
+  world: ServerWorld,
+  body: Entity,
+  radius: number,
+  categoryBits: number,
+  maskBits: number,
+): void {
+  world
+    .entity()
+    .childOf(body)
+    .set(Circle, { radius })
+    .set(Material, {
+      density: ENTITY_CONFIG.ASTEROID.DENSITY,
+      friction: 0,
+      restitution: 0.2,
+    })
+    .add(Detectable)
+    .set(CollisionFilter, {
+      categoryBits,
+      maskBits,
+    });
 }
 
 function createSpawnTimer(

@@ -11,8 +11,8 @@ import {
   Body,
   Circle,
   CollisionFilter,
-  Sensor,
-  SensorEvents,
+  Detectable,
+  Material,
 } from '@vworlds/vecs-physics';
 import {
   Alien,
@@ -73,8 +73,8 @@ describe('server game world pipeline', () => {
       child.get(Circle),
     );
     expect(shape?.get(Circle)?.radius).toBeGreaterThan(0);
-    expect(shape?.get(Sensor)).toBeTruthy();
-    expect(shape?.get(SensorEvents)).toBeTruthy();
+    expect(shape?.get(Material)).toBeTruthy();
+    expect(shape?.get(Detectable)).toBeTruthy();
     expect(shape?.get(CollisionFilter)).toBeTruthy();
 
     createExplosion(world, 0, 0, COLORS.white, 0.2);
@@ -106,8 +106,8 @@ describe('server game world pipeline', () => {
       const shape = Array.from(asteroid.children(ChildOf)).find((child) =>
         child.get(Circle),
       );
-      expect(shape?.get(Sensor)).toBeTruthy();
-      expect(shape?.get(SensorEvents)).toBeTruthy();
+      expect(shape?.get(Material)).toBeTruthy();
+      expect(shape?.get(Detectable)).toBeTruthy();
       expect(shape?.get(CollisionFilter)).toBeTruthy();
     }
   });

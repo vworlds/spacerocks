@@ -87,7 +87,7 @@ export class Rocket {
 }
 
 export class Asteroid {
-  level: 1 | 2 | 3 = 3; // tier
+  mass = 16; // kg
   color = 0xaaaaaa; // u32 RGB
 }
 

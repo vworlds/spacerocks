@@ -167,17 +167,19 @@ describe('server movement systems', () => {
     expect(ship.get(LinearVelocity)!.y).toBeLessThan(-4);
   });
 
-  it('creates ships with physics mass, damping, and a sensor-only contact shape', () => {
+  it('creates ships with physics mass, damping, a solid body, and a sensor shape', () => {
     const world = createTestWorld();
     const ship = createPlayerShip(
       world as unknown as Parameters<typeof createPlayerShip>[0],
       world.entity(),
       0,
     );
-    const shape = [...ship.children(ChildOf)].find((child) =>
+    const shapes = [...ship.children(ChildOf)].filter((child) =>
       child.get(Circle),
     );
-    const material = shape?.get(Material);
+    const solid = shapes.find((child) => child.get(Material));
+    const sensor = shapes.find((child) => child.get(Sensor));
+    const material = solid?.get(Material);
 
     expect(ship.get(Body)?.type).toBe(BodyType.Dynamic);
     expect(ship.get(Damping)).toMatchObject({
@@ -185,8 +187,9 @@ describe('server movement systems', () => {
       angular: ENTITY_CONFIG.SHIP.ANGULAR_DAMPING,
     });
     expect(ship.get(Force)).toMatchObject({ x: 0, y: 0 });
-    expect(shape?.get(Sensor)).toBeTruthy();
-    expect(shape?.get(SensorEvents)).toBeTruthy();
+    expect(shapes).toHaveLength(2);
+    expect(sensor?.get(Sensor)).toBeTruthy();
+    expect(sensor?.get(SensorEvents)).toBeTruthy();
     expect(material?.density).toBeCloseTo(
       ENTITY_CONFIG.SHIP.MASS /
         (Math.PI * ENTITY_CONFIG.SHIP.RADIUS * ENTITY_CONFIG.SHIP.RADIUS),

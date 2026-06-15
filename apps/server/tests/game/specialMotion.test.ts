@@ -267,7 +267,7 @@ describe('special motion under physics', () => {
       createPrng(1),
       1,
       1,
-      1,
+      ENTITY_CONFIG.ASTEROID.MASS,
     );
 
     const targetDirection = { x: 1, y: 1 };
@@ -318,16 +318,16 @@ describe('special motion under physics', () => {
       createPrng(3),
       1,
       -1,
-      1,
-    );
+      ENTITY_CONFIG.ASTEROID.MASS,
+    )!;
     equalDistanceAsteroid.set(LinearVelocity, { x: 0, y: 0 });
     const outsideAsteroid = createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
       createPrng(4),
       0,
       ENTITY_CONFIG.ROCKET.HOME_RANGE + 1,
-      1,
-    );
+      ENTITY_CONFIG.ASTEROID.MASS,
+    )!;
     outsideAsteroid.set(LinearVelocity, { x: 0, y: 0 });
 
     step(world, 5);
@@ -400,7 +400,7 @@ describe('special motion under physics', () => {
     expect(world.getEntity(boomerang.eid)).toBeUndefined();
   });
 
-  it('laser raycasts destroy only asteroids along the beam and score the hit', () => {
+  it('laser raycasts split only asteroids along the beam and score the hit', () => {
     const world = createLaserWorld();
     const ship = world
       .entity()
@@ -415,22 +415,22 @@ describe('special motion under physics', () => {
       createPrng(2),
       1,
       0,
-      1,
+      ENTITY_CONFIG.ASTEROID.MASS,
     );
     const offBeam = createAsteroid(
       world as unknown as Parameters<typeof createAsteroid>[0],
       createPrng(3),
       1,
       1,
-      1,
-    );
+      ENTITY_CONFIG.ASTEROID.MASS,
+    )!;
     step(world);
     ship.set(LaserWeapon, { shots: 1, firing: true, timer: 10 });
 
     step(world);
 
     expect(world.getEntity(offBeam.eid)).toBe(offBeam);
-    expect(count(world, Asteroid)).toBe(1);
+    expect(count(world, Asteroid)).toBe(3);
     expect(score(world)).toBe(SCORING.ASTEROID_BASE);
   });
 
