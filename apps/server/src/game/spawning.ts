@@ -248,6 +248,20 @@ export function asteroidRadius(mass: number): number {
   return Math.sqrt(mass / (Math.PI * ENTITY_CONFIG.ASTEROID.DENSITY));
 }
 
+export function rollAsteroidSpawnMass(rng: Prng): number {
+  if (!rng.bool(ENTITY_CONFIG.ASTEROID.LARGE_MASS_CHANCE)) {
+    return ENTITY_CONFIG.ASTEROID.MASS;
+  }
+
+  return (
+    ENTITY_CONFIG.ASTEROID.MASS *
+    rng.range(
+      ENTITY_CONFIG.ASTEROID.LARGE_MASS_MIN_MULT,
+      ENTITY_CONFIG.ASTEROID.LARGE_MASS_MAX_MULT,
+    )
+  );
+}
+
 export function createAlien(world: ServerWorld, rng: Prng): Entity {
   const { x, y } = chooseAlienSpawnPosition(world, rng);
   const vx = rng.range(-0.5, 0.5) * ENTITY_CONFIG.ALIEN.SPEED_FACTOR;
@@ -458,11 +472,11 @@ function fillInitialAsteroids(world: ServerWorld, rng: Prng): void {
   while (filledMass < MAX_ASTEROIDS_TOTAL_MASS) {
     let x: number;
     let y: number;
-    const mass = ENTITY_CONFIG.ASTEROID.MASS;
     do {
       x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
       y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
     } while (Math.hypot(x, y) < 2.0);
+    const mass = rollAsteroidSpawnMass(rng);
     createAsteroid(world, rng, x, y, mass);
     filledMass += mass;
   }
@@ -480,7 +494,7 @@ function spawnAsteroidIfBelowMassCap(
   if (cellIndex === undefined) return;
 
   const { x, y } = randomPointInGridCell(cellIndex, rng);
-  createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
+  createAsteroid(world, rng, x, y, rollAsteroidSpawnMass(rng));
 }
 
 function chooseUnseenGridCell(
