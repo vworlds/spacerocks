@@ -100,9 +100,11 @@ export const ENTITY_CONFIG = {
   },
   SHIP: {
     RADIUS: 0.12, // meters
-    FRICTION: perFrameMultiplier(0.98), // multiplier/frame
+    MASS: 1, // kg
+    THRUST_FORCE: 3.6, // newtons
+    LINEAR_DAMPING: 1.2, // 1/second
+    ANGULAR_DAMPING: 0, // 1/second
     ROTATION_SPEED: perFrame(0.07), // radians/frame
-    THRUST_POWER: perFrame(0.002), // meters/frame^2
     SHOOT_COOLDOWN: toFrames(250), // frames
     MAX_HP: 100, // hp
     LASER_SHOT_COUNT: 10, // shots

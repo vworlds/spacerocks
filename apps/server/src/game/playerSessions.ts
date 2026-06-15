@@ -16,8 +16,11 @@ import {
   BodyType,
   Circle,
   CollisionFilter,
+  Damping,
+  Force,
   AngularVelocity as PhysicsAngularVelocity,
   LinearVelocity,
+  Material,
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
   Sensor,
@@ -73,11 +76,14 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(Wraps);
   world.component(PlayerShip);
   world.component(Body);
+  world.component(Damping);
+  world.component(Force);
   world.component(PhysicsPosition);
   world.component(PhysicsRotation);
   world.component(LinearVelocity);
   world.component(PhysicsAngularVelocity);
   world.component(Circle);
+  world.component(Material);
   world.component(Sensor);
   world.component(SensorEvents);
   world.component(CollisionFilter);
@@ -133,12 +139,20 @@ export function createPlayerShip(
   const categoryBits = CAT_PLAYER;
   const maskBits =
     CAT_ASTEROID | CAT_ENEMY_BULLET | CAT_ENEMY | CAT_PICKUP | CAT_BOOMERANG;
+  const shapeDensity =
+    ENTITY_CONFIG.SHIP.MASS /
+    (Math.PI * ENTITY_CONFIG.SHIP.RADIUS * ENTITY_CONFIG.SHIP.RADIUS);
 
   const ship = world
     .entity()
     .add(Networked)
     .set(ChildOf, { target: session })
     .set(Body, { type: BodyType.Dynamic })
+    .set(Damping, {
+      linear: ENTITY_CONFIG.SHIP.LINEAR_DAMPING,
+      angular: ENTITY_CONFIG.SHIP.ANGULAR_DAMPING,
+    })
+    .set(Force, { x: 0, y: 0 })
     .set(PhysicsPosition, { x: spawn.x, y: spawn.y })
     .set(PhysicsRotation, { angle: 0 })
     .set(LinearVelocity, { x: 0, y: 0 })
@@ -167,6 +181,7 @@ export function createPlayerShip(
     .entity()
     .childOf(ship)
     .set(Circle, { radius: ENTITY_CONFIG.SHIP.RADIUS })
+    .set(Material, { density: shapeDensity, friction: 0 })
     .add(Sensor)
     .add(SensorEvents)
     .set(CollisionFilter, {

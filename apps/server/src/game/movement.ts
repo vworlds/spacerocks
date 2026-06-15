@@ -1,14 +1,13 @@
 import { POST_UPDATE } from '@vworlds/vecs';
 import type { ServerWorld } from '@vworlds/vecs-server';
 import {
-  LinearVelocity,
+  Force,
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
 } from '@vworlds/vecs-physics';
 import {
   ENTITY_CONFIG,
   PlayerShip,
-  perSecond,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -20,10 +19,10 @@ import { PlayerInputIntent } from './playerSessions';
 export function installMovementSystems(world: ServerWorld): void {
   world
     .system('ShipControl')
-    .with(PlayerShip, PlayerInputIntent, PhysicsRotation, LinearVelocity)
+    .with(PlayerShip, PlayerInputIntent, PhysicsRotation, Force)
     .each(
-      [PlayerInputIntent, PhysicsRotation, LinearVelocity],
-      (entity, [input, rotation, linearVelocity]) => {
+      [PlayerInputIntent, PhysicsRotation, Force],
+      (entity, [input, rotation, force]) => {
         // Server coords are +y-up; CoordSpace.rot negates angles for Phaser,
         // so increasing Rotation.angle renders visual CCW, i.e. Asteroids-left.
         if (input.rotateLeft) {
@@ -35,23 +34,19 @@ export function installMovementSystems(world: ServerWorld): void {
           entity.modified(PhysicsRotation);
         }
 
+        let fx = 0;
+        let fy = 0;
         if (input.thrust) {
-          const thrustPower = perSecond(ENTITY_CONFIG.SHIP.THRUST_POWER);
-          linearVelocity.x += Math.cos(rotation.angle) * thrustPower;
-          linearVelocity.y += Math.sin(rotation.angle) * thrustPower;
-          entity.modified(LinearVelocity);
+          fx = Math.cos(rotation.angle) * ENTITY_CONFIG.SHIP.THRUST_FORCE;
+          fy = Math.sin(rotation.angle) * ENTITY_CONFIG.SHIP.THRUST_FORCE;
+        }
+        if (force.x !== fx || force.y !== fy) {
+          force.x = fx;
+          force.y = fy;
+          entity.modified(Force);
         }
       },
     );
-
-  world
-    .system('ShipFriction')
-    .with(PlayerShip, LinearVelocity)
-    .each([LinearVelocity], (entity, [linearVelocity]) => {
-      linearVelocity.x *= ENTITY_CONFIG.SHIP.FRICTION;
-      linearVelocity.y *= ENTITY_CONFIG.SHIP.FRICTION;
-      entity.modified(LinearVelocity);
-    });
 
   world
     .system('Wrap')

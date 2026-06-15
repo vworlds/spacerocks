@@ -7,7 +7,10 @@ import {
   BodyType,
   Circle,
   CollisionFilter,
+  Damping,
+  Force,
   LinearVelocity,
+  Material,
   PhysicsModule,
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
@@ -17,7 +20,6 @@ import {
 import {
   ENTITY_CONFIG,
   PlayerShip,
-  perSecond,
   TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -84,7 +86,7 @@ function stepTicks(world: World, ticks: number): void {
 }
 
 describe('server movement systems', () => {
-  it('applies owner input to ship rotation and thrust at the original frame step', () => {
+  it('applies owner input to ship rotation and thrust force at the original frame step', () => {
     const world = createTestWorld();
     world
       .entity()
@@ -103,8 +105,11 @@ describe('server movement systems', () => {
     if (!ship) throw new Error('Expected player ship to exist');
     const rotation = ship.get(PhysicsRotation)!;
     const velocity = ship.get(LinearVelocity)!;
+    const force = ship.get(Force)!;
 
     expect(rotation.angle).toBeCloseTo(-ENTITY_CONFIG.SHIP.ROTATION_SPEED * 2);
+    expect(force.x).toBeGreaterThan(0);
+    expect(force.y).toBeLessThan(0);
     expect(velocity.x).toBeGreaterThan(0);
     expect(velocity.y).toBeLessThan(0);
   });
@@ -130,10 +135,12 @@ describe('server movement systems', () => {
     stepTicks(world, Math.round(TICK_RATE / 2));
 
     expect(ship.get(PhysicsPosition)!.x).toBeGreaterThan(1);
-    expect(perSecond(ENTITY_CONFIG.SHIP.THRUST_POWER)).toBeCloseTo(0.12);
+    expect(
+      ENTITY_CONFIG.SHIP.THRUST_FORCE / ENTITY_CONFIG.SHIP.MASS,
+    ).toBeCloseTo(3.6);
   });
 
-  it('integrates physics velocity and applies ship friction', () => {
+  it('integrates physics velocity and applies ship damping', () => {
     const world = createTestWorld();
     const drifting = world
       .entity()
@@ -154,11 +161,35 @@ describe('server movement systems', () => {
 
     expect(drifting.get(PhysicsPosition)!.x).toBeGreaterThan(1);
     expect(drifting.get(PhysicsPosition)!.y).toBeLessThan(2);
-    expect(ship.get(LinearVelocity)!.x).toBeCloseTo(
-      10 * ENTITY_CONFIG.SHIP.FRICTION,
+    expect(ship.get(LinearVelocity)!.x).toBeLessThan(10);
+    expect(ship.get(LinearVelocity)!.x).toBeGreaterThan(9);
+    expect(ship.get(LinearVelocity)!.y).toBeGreaterThan(-5);
+    expect(ship.get(LinearVelocity)!.y).toBeLessThan(-4);
+  });
+
+  it('creates ships with physics mass, damping, and a sensor-only contact shape', () => {
+    const world = createTestWorld();
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      world.entity(),
+      0,
     );
-    expect(ship.get(LinearVelocity)!.y).toBeCloseTo(
-      -5 * ENTITY_CONFIG.SHIP.FRICTION,
+    const shape = [...ship.children(ChildOf)].find((child) =>
+      child.get(Circle),
+    );
+    const material = shape?.get(Material);
+
+    expect(ship.get(Body)?.type).toBe(BodyType.Dynamic);
+    expect(ship.get(Damping)).toMatchObject({
+      linear: ENTITY_CONFIG.SHIP.LINEAR_DAMPING,
+      angular: ENTITY_CONFIG.SHIP.ANGULAR_DAMPING,
+    });
+    expect(ship.get(Force)).toMatchObject({ x: 0, y: 0 });
+    expect(shape?.get(Sensor)).toBeTruthy();
+    expect(shape?.get(SensorEvents)).toBeTruthy();
+    expect(material?.density).toBeCloseTo(
+      ENTITY_CONFIG.SHIP.MASS /
+        (Math.PI * ENTITY_CONFIG.SHIP.RADIUS * ENTITY_CONFIG.SHIP.RADIUS),
     );
   });
 
@@ -210,5 +241,6 @@ describe('server movement systems', () => {
       ENTITY_CONFIG.SHIP.ROTATION_SPEED,
     );
     expect(ship.get(LinearVelocity)).toMatchObject({ x: 0, y: 0 });
+    expect(ship.get(Force)).toMatchObject({ x: 0, y: 0 });
   });
 });
