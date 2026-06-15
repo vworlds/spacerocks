@@ -5,7 +5,6 @@ import {
   Polygon,
   Position,
   StrokeStyle,
-  Text,
 } from '@vworlds/vecs-phaser';
 import {
   Body,
@@ -57,7 +56,6 @@ describe('server game world pipeline', () => {
 
     expect(entitiesWith(Asteroid, world).length).toBeGreaterThan(0);
     expect(entitiesWith(GameStateView, world)).toHaveLength(1);
-    expect(entitiesWith(Text, world)).toHaveLength(3);
 
     const asteroid = entitiesWith(Asteroid, world)[0];
     if (!asteroid) throw new Error('Expected spawned asteroid');

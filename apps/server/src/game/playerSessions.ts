@@ -201,7 +201,7 @@ export function createPlayerShip(
   return ship;
 }
 
-function getOwnedShip(clientEntity: Entity): Entity | undefined {
+export function getOwnedShip(clientEntity: Entity): Entity | undefined {
   for (const session of clientEntity.children(ChildOf)) {
     if (!session.get(PlayerSession)) continue;
 

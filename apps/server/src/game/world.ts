@@ -1,4 +1,4 @@
-import { ServerWorld, View } from '@vworlds/vecs-server';
+import { ServerWorld } from '@vworlds/vecs-server';
 import { PhaserServerModule } from '@vworlds/vecs-phaser-server';
 import { PhysicsModule, preloadPhysics } from '@vworlds/vecs-physics';
 import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
@@ -14,8 +14,10 @@ import {
   installEmbellishmentSystems,
   registerEmbellishmentComponents,
 } from './embellishments';
-import { installHudSystems, registerHudComponents } from './hud';
-import { installClientViewSystem } from '../network/clientViews';
+import {
+  installInterestGrid,
+  registerInterestGridComponents,
+} from '../network/interestGrid';
 
 export async function createGameWorld(): Promise<ServerWorld> {
   const world = new ServerWorld({
@@ -28,14 +30,14 @@ export async function createGameWorld(): Promise<ServerWorld> {
   registerShootingComponents(world);
   registerCombatComponents(world);
   registerEmbellishmentComponents(world);
-  registerHudComponents(world);
+  registerInterestGridComponents(world);
 
   // Physics + render modules MUST be installed BEFORE any system that spawns
   // physics bodies. installSpawningSystems() spawns the wave-1 asteroids at
   // install time; entities created before PhysicsModule never get working Box2D
   // sensor shapes, so their collisions silently never fire (they still drift
   // because velocity integration needs no mass). PhaserServerModule stays ahead
-  // of the embellishment/HUD systems so its PRE_STORE pose-sync runs before the
+  // of the embellishment systems so its PRE_STORE pose-sync runs before the
   // PRE_STORE child-follow systems.
   await preloadPhysics();
   world.module(PhysicsModule, {
@@ -51,8 +53,7 @@ export async function createGameWorld(): Promise<ServerWorld> {
   installMovementSystems(world);
   installCombatSystems(world);
   installEmbellishmentSystems(world);
-  installHudSystems(world);
-  installClientViewSystem(world, View);
+  installInterestGrid(world);
 
   return world;
 }
