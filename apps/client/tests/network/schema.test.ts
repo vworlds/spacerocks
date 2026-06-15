@@ -3,7 +3,12 @@ import {
   Position as PhaserPosition,
   phaserNetworkComponents,
 } from '@vworlds/vecs-phaser';
-import { Explosion, NETWORK_COMPONENTS, Owner } from '@spacerocks/common';
+import {
+  Explosion,
+  Hyperspace,
+  NETWORK_COMPONENTS,
+  Owner,
+} from '@spacerocks/common';
 
 describe('client network schema', () => {
   it('imports the shared schema in protocol order with Position type id 1', () => {
@@ -11,6 +16,7 @@ describe('client network schema', () => {
       ...phaserNetworkComponents,
       Explosion,
       Owner,
+      Hyperspace,
     ]);
     expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });

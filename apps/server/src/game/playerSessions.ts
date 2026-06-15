@@ -36,6 +36,7 @@ import {
   DefaultWeapon,
   ENTITY_CONFIG,
   Health,
+  Hyperspace,
   Owner,
   PlayerShip,
   Shield,
@@ -75,6 +76,7 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(Shield);
   world.component(DefaultWeapon);
   world.component(Owner);
+  world.component(Hyperspace);
   world.component(Wraps);
   world.component(PlayerShip);
   world.component(Body);
@@ -171,6 +173,7 @@ export function createPlayerShip(
     .set(PlayerInputIntent, {})
     .set(PlayerShip, { playerIndex, color })
     .set(Owner, { clientId })
+    .set(Hyperspace, { seq: 0 })
     .add(Wraps)
     .set(StrokeStyle, { color, alpha: 1, width: 2 })
     .set(Triangle, {

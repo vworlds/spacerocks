@@ -19,6 +19,7 @@ import {
 } from '@vworlds/vecs-physics';
 import {
   ENTITY_CONFIG,
+  Hyperspace,
   PlayerShip,
   TICK_RATE,
   WORLD_MAX_X,
@@ -226,6 +227,21 @@ describe('server movement systems', () => {
       y: WORLD_MAX_Y,
     });
     expect(modified).toHaveBeenCalledWith(PhysicsPosition);
+  });
+
+  it('increments hyperspace sequence when a tagged entity wraps', () => {
+    const world = createTestWorld();
+    const entity = world
+      .entity()
+      .set(PhysicsPosition, { x: WORLD_MAX_X + 1, y: 0 })
+      .add(Wraps)
+      .set(Hyperspace, { seq: 2 });
+    const modified = vi.spyOn(entity, 'modified');
+
+    world.progress(0, 1000 / 60);
+
+    expect(entity.get(Hyperspace)?.seq).toBe(3);
+    expect(modified).toHaveBeenCalledWith(Hyperspace);
   });
 
   it('preserves input isolation between owned ships', () => {

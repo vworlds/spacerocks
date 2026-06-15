@@ -7,6 +7,7 @@ import {
 } from '@vworlds/vecs-physics';
 import {
   ENTITY_CONFIG,
+  Hyperspace,
   PlayerShip,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -71,6 +72,13 @@ export function installMovementSystems(world: ServerWorld): void {
         wrapped = true;
       }
 
-      if (wrapped) entity.modified(PhysicsPosition);
+      if (wrapped) {
+        entity.modified(PhysicsPosition);
+        const hyperspace = entity.getMut(Hyperspace);
+        if (hyperspace) {
+          hyperspace.seq += 1;
+          entity.modified(Hyperspace);
+        }
+      }
     });
 }

@@ -9,6 +9,7 @@ import {
   AsteroidView,
   Explosion,
   GameStateView,
+  Hyperspace,
   NETWORK_COMPONENTS,
   Owner,
   PlayerShip,
@@ -42,6 +43,7 @@ describe('NETWORK_COMPONENTS', () => {
       ...phaserNetworkComponents,
       Explosion,
       Owner,
+      Hyperspace,
     ]);
     expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });

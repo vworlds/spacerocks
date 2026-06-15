@@ -7,6 +7,7 @@ import {
 } from '@vworlds/vecs-phaser';
 import {
   PLAYER_COLORS,
+  Hyperspace,
   Owner,
   PlayerShip,
   WORLD_MAX_X,
@@ -78,6 +79,8 @@ describe('player session ownership', () => {
     const playerShipB = shipB.get(PlayerShip)!;
     const ownerA = shipA.get(Owner)!;
     const ownerB = shipB.get(Owner)!;
+    const hyperspaceA = shipA.get(Hyperspace)!;
+    const hyperspaceB = shipB.get(Hyperspace)!;
     const positionA = shipA.get(Position)!;
     const positionB = shipB.get(Position)!;
 
@@ -86,6 +89,8 @@ describe('player session ownership', () => {
     expect(playerShipB.playerIndex).toBe(1);
     expect(ownerA.clientId).toBe('client-a');
     expect(ownerB.clientId).toBe('client-b');
+    expect(hyperspaceA.seq).toBe(0);
+    expect(hyperspaceB.seq).toBe(0);
     expect(playerShipA.color).not.toBe(playerShipB.color);
     expect(positionA).not.toEqual(positionB);
     expect(positionA.x).toBeGreaterThanOrEqual(WORLD_MIN_X);

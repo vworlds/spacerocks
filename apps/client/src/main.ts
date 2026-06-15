@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { createClientWorld, findLocalShipEntity } from './network/vecsClient';
 import { playHyperspaceEffect } from './render/HyperspaceEffect';
 import {
+  Hyperspace,
   PIXELS_PER_METER,
   VIEWPORT_HEIGHT,
   VIEWPORT_WIDTH,
@@ -60,8 +61,8 @@ window.addEventListener('keyup', (event) => {
 class GameScene extends Phaser.Scene {
   private _statusText: Phaser.GameObjects.Text | undefined;
   private _coords: CoordSpace | undefined;
-  private _previousLocalShipPosition:
-    | { eid: number; x: number; y: number }
+  private _previousLocalShipHyperspace:
+    | { eid: number; seq: number }
     | undefined;
 
   constructor() {
@@ -78,6 +79,7 @@ class GameScene extends Phaser.Scene {
     );
 
     this.drawStarfield();
+    this.drawHyperspaceBoundary();
 
     // Client chrome is pinned to the screen so it stays readable as the camera moves.
     this.add
@@ -111,25 +113,20 @@ class GameScene extends Phaser.Scene {
     const ship = findLocalShipEntity(active, localClientId);
     const position = ship?.get(Position);
     if (ship && position && this._coords) {
-      const previous = this._previousLocalShipPosition;
-      if (previous?.eid === ship.eid) {
-        const wrapped =
-          Math.abs(position.x - previous.x) > WORLD_WIDTH / 2 ||
-          Math.abs(position.y - previous.y) > WORLD_HEIGHT / 2;
-        if (wrapped) playHyperspaceEffect(this);
+      const seq = ship.get(Hyperspace)?.seq ?? 0;
+      const previous = this._previousLocalShipHyperspace;
+      if (previous?.eid === ship.eid && seq > previous.seq) {
+        playHyperspaceEffect(this);
       }
 
-      this._previousLocalShipPosition = {
+      this._previousLocalShipHyperspace = {
         eid: ship.eid,
-        x: position.x,
-        y: position.y,
+        seq,
       };
       this.cameras.main.centerOn(
         this._coords.x(position.x),
         this._coords.y(position.y),
       );
-    } else {
-      this._previousLocalShipPosition = undefined;
     }
   }
 
@@ -148,6 +145,30 @@ class GameScene extends Phaser.Scene {
       graphics.fillStyle(0xffffff, alpha);
       graphics.fillCircle(coords.x(worldX), coords.y(worldY), radius);
     }
+  }
+
+  private drawHyperspaceBoundary(): void {
+    const coords = this._coords;
+    if (!coords) return;
+
+    const left = coords.x(WORLD_MIN_X);
+    const top = coords.y(WORLD_MAX_Y);
+    const width = WORLD_WIDTH * PIXELS_PER_METER;
+    const height = WORLD_HEIGHT * PIXELS_PER_METER;
+    const graphics = this.add.graphics().setDepth(-9_000);
+
+    graphics.lineStyle(12, 0x22ddff, 0.12).strokeRect(left, top, width, height);
+    graphics.lineStyle(7, 0x22ddff, 0.28).strokeRect(left, top, width, height);
+    graphics.lineStyle(3, 0xb8f7ff, 0.9).strokeRect(left, top, width, height);
+
+    this.tweens.add({
+      targets: graphics,
+      alpha: 0.45,
+      duration: 1200,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
   }
 }
 
