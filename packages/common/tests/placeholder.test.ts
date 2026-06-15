@@ -10,6 +10,7 @@ import {
   Explosion,
   GameStateView,
   NETWORK_COMPONENTS,
+  Owner,
   PlayerShip,
   VIEWPORT_HEIGHT,
   VIEWPORT_WIDTH,
@@ -37,7 +38,11 @@ function roundTrip<T extends object>(ComponentClass: new () => T, value: T): T {
 
 describe('NETWORK_COMPONENTS', () => {
   it('keeps Position as the first network component', () => {
-    expect(NETWORK_COMPONENTS).toEqual([...phaserNetworkComponents, Explosion]);
+    expect(NETWORK_COMPONENTS).toEqual([
+      ...phaserNetworkComponents,
+      Explosion,
+      Owner,
+    ]);
     expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });
 

@@ -36,6 +36,7 @@ import {
   DefaultWeapon,
   ENTITY_CONFIG,
   Health,
+  Owner,
   PlayerShip,
   Shield,
   VIEWPORT_HEIGHT,
@@ -73,6 +74,7 @@ export function registerPlayerSessionComponents(world: ServerWorld): void {
   world.component(Health);
   world.component(Shield);
   world.component(DefaultWeapon);
+  world.component(Owner);
   world.component(Wraps);
   world.component(PlayerShip);
   world.component(Body);
@@ -105,7 +107,7 @@ export function installPlayerSessionSystems(world: ServerWorld): void {
         .set(PlayerSession, { clientId: client.id, playerIndex })
         .set(ChildOf, { target: clientEntity });
 
-      createPlayerShip(world, session, playerIndex);
+      createPlayerShip(world, session, playerIndex, client.id);
     })
     .exit([NetworkClient], (_clientEntity, [client]) => {
       console.info(`[srv] CreatePlayerSession exit client=${client.id}`);
@@ -133,10 +135,12 @@ export function createPlayerShip(
   world: ServerWorld,
   session: Entity,
   playerIndex: number,
+  ownerClientId?: string,
 ): Entity {
   const spawn = SPAWN_POSITIONS[playerIndex % SPAWN_POSITIONS.length]!;
   const color = PLAYER_COLORS[playerIndex % PLAYER_COLORS.length]!;
   const categoryBits = CAT_PLAYER;
+  const clientId = ownerClientId ?? session.get(PlayerSession)?.clientId ?? '';
   const maskBits =
     CAT_ASTEROID | CAT_ENEMY_BULLET | CAT_ENEMY | CAT_PICKUP | CAT_BOOMERANG;
   const shapeDensity =
@@ -166,6 +170,7 @@ export function createPlayerShip(
     .add(DefaultWeapon)
     .set(PlayerInputIntent, {})
     .set(PlayerShip, { playerIndex, color })
+    .set(Owner, { clientId })
     .add(Wraps)
     .set(StrokeStyle, { color, alpha: 1, width: 2 })
     .set(Triangle, {

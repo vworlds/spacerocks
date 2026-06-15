@@ -1,5 +1,6 @@
 export { Networked } from './Networked';
 export { Explosion } from './Explosion';
+export { Owner } from './Owner';
 export { AsteroidView, GameStateView, PlayerShip } from './ViewComponents';
 export {
   Alien,

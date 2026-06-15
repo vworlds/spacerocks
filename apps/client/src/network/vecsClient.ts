@@ -1,4 +1,5 @@
 import { ClientWorld } from '@vworlds/vecs-client';
+import type { Entity } from '@vworlds/vecs';
 import {
   PhaserRenderModule,
   phaserInterpolators,
@@ -6,6 +7,7 @@ import {
 import {
   CLIENT_ENTITY_ID_START,
   NETWORK_COMPONENTS,
+  Owner,
   PIXELS_PER_METER,
 } from '@spacerocks/common';
 import type Phaser from 'phaser';
@@ -20,6 +22,7 @@ export type ClientWorldConfig = {
 };
 
 type DgramClientSocket = {
+  id: string;
   connect(): Promise<void>;
   on(event: string, handler: (...args: unknown[]) => void): void;
   send(data: Uint8Array): void;
@@ -33,7 +36,7 @@ type DgramClientSocket = {
 // Doing it before the socket connects keeps the first ack well within budget.
 export async function createClientWorld(
   config: ClientWorldConfig,
-): Promise<ClientWorld> {
+): Promise<{ world: ClientWorld; clientId: string }> {
   const t0 = performance.now();
   const dgramModule = await import('@vworlds/dgram-client');
   const tImport = performance.now();
@@ -77,6 +80,7 @@ export async function createClientWorld(
     socket as unknown as Parameters<ClientWorld['attachSocket']>[0],
   );
   await socket.connect();
+  const clientId = socket.id;
   const tConnected = performance.now();
 
   console.info(
@@ -85,5 +89,17 @@ export async function createClientWorld(
       `socket.connect=${(tConnected - tStarted).toFixed(0)}ms ` +
       `(total=${(tConnected - t0).toFixed(0)}ms)`,
   );
-  return world;
+  return { world, clientId };
+}
+
+export function findLocalShipEntity(
+  world: ClientWorld,
+  clientId: string,
+): Entity | undefined {
+  let localShip: Entity | undefined;
+  world.filter([Owner]).forEach([Owner], (entity, [owner]) => {
+    if (localShip || owner.clientId !== clientId) return;
+    localShip = entity;
+  });
+  return localShip;
 }

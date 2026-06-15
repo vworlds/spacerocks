@@ -35,6 +35,7 @@ let active: ClientWorld | undefined;
 let connecting = false;
 let reconnectTimer: number | undefined;
 let statusText = 'Connecting...';
+export let localClientId = '';
 
 window.addEventListener('keydown', (event) => {
   if (GAME_KEYS.has(event.code)) event.preventDefault();
@@ -124,7 +125,7 @@ async function connect(scene: Phaser.Scene): Promise<void> {
   const tStart = performance.now();
 
   try {
-    const world = await createClientWorld({ scene });
+    const { world, clientId } = await createClientWorld({ scene });
     const tReady = performance.now();
     console.info(
       `[main] world ready ${(tReady - tStart).toFixed(1)}ms after connect()`,
@@ -139,10 +140,12 @@ async function connect(scene: Phaser.Scene): Promise<void> {
       keys.clear();
       world.clearAllEntities();
       active = undefined;
+      localClientId = '';
       scheduleReconnect('Disconnected. Reconnecting...', scene);
     });
 
     active = world;
+    localClientId = clientId;
     statusText = '';
   } catch (error) {
     console.warn('vecs client connection failed', error);
@@ -156,6 +159,7 @@ function scheduleReconnect(status: string, scene: Phaser.Scene): void {
   keys.clear();
   statusText = status;
   active = undefined;
+  localClientId = '';
   if (reconnectTimer !== undefined) return;
   reconnectTimer = window.setTimeout(() => {
     reconnectTimer = undefined;
