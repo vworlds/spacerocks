@@ -1,6 +1,7 @@
 import { ChildOf, type ComponentClass, type Entity } from '@vworlds/vecs';
 import { Networked } from '@vworlds/vecs-server';
 import {
+  FillStyle,
   phaserRenderableComponents,
   Polygon,
   Position,
@@ -62,6 +63,7 @@ describe('server game world pipeline', () => {
 
     expect(asteroid.get(Polygon)?.points.length).toBeGreaterThan(0);
     expect(asteroid.get(Body)).toBeTruthy();
+    expect(asteroid.get(FillStyle)).toBeTruthy();
     expect(asteroid.get(StrokeStyle)).toBeTruthy();
     expect(asteroid.get(Position)).toBeTruthy();
     expect(asteroid.get(Networked)).toBeTruthy();

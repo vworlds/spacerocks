@@ -26,6 +26,10 @@ export const ASTEROID_COLORS = [
   0xaaaaaa, 0x888888, 0xbbbbbb, 0x999999, 0x777777,
 ] as const satisfies readonly number[];
 
+export const ASTEROID_FILL_COLORS = [
+  0x161616, 0x555555, 0xb0b0b0,
+] as const satisfies readonly number[];
+
 export const PICKUP_COLORS: Record<PickupKind, number> = {
   [PickupKind.Shield]: 0x00ff00,
   [PickupKind.Laser]: 0xff0000,
