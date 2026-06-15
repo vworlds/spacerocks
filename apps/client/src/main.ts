@@ -1,16 +1,25 @@
 import type { ClientWorld } from '@vworlds/vecs-client';
+import { Position } from '@vworlds/vecs-phaser';
+import { CoordSpace } from '@vworlds/vecs-phaser-client';
 import Phaser from 'phaser';
-import { createClientWorld } from './network/vecsClient';
+import { createClientWorld, findLocalShipEntity } from './network/vecsClient';
 import {
   PIXELS_PER_METER,
+  VIEWPORT_HEIGHT,
+  VIEWPORT_WIDTH,
   WORLD_HEIGHT,
+  WORLD_MAX_X,
+  WORLD_MAX_Y,
+  WORLD_MIN_X,
+  WORLD_MIN_Y,
+  WORLD_SCALE,
   WORLD_WIDTH,
 } from '@spacerocks/common';
 
 const RECONNECT_DELAY_MS = 1_000; // ms
 const STAR_COUNT = 200;
-const CANVAS_WIDTH = WORLD_WIDTH * PIXELS_PER_METER;
-const CANVAS_HEIGHT = WORLD_HEIGHT * PIXELS_PER_METER;
+const CANVAS_WIDTH = VIEWPORT_WIDTH * PIXELS_PER_METER;
+const CANVAS_HEIGHT = VIEWPORT_HEIGHT * PIXELS_PER_METER;
 
 const GAME_KEYS = new Set([
   'KeyW',
@@ -49,12 +58,21 @@ window.addEventListener('keyup', (event) => {
 
 class GameScene extends Phaser.Scene {
   private _statusText: Phaser.GameObjects.Text | undefined;
+  private _coords: CoordSpace | undefined;
 
   constructor() {
     super('GameScene');
   }
 
   create(): void {
+    this._coords = new CoordSpace(this, PIXELS_PER_METER);
+    this.cameras.main.setBounds(
+      this._coords.x(WORLD_MIN_X),
+      this._coords.y(WORLD_MAX_Y),
+      WORLD_WIDTH * PIXELS_PER_METER,
+      WORLD_HEIGHT * PIXELS_PER_METER,
+    );
+
     this.drawStarfield();
 
     // Client chrome lives along the BOTTOM edge so it never overlaps the
@@ -65,6 +83,7 @@ class GameScene extends Phaser.Scene {
         fontFamily: 'Courier New, monospace',
         fontSize: '14px',
       })
+      .setScrollFactor(0)
       .setDepth(10_000);
 
     this._statusText = this.add
@@ -73,6 +92,7 @@ class GameScene extends Phaser.Scene {
         fontFamily: 'Courier New, monospace',
         fontSize: '14px',
       })
+      .setScrollFactor(0)
       .setDepth(10_000);
 
     void connect(this);
@@ -84,18 +104,32 @@ class GameScene extends Phaser.Scene {
 
     active.setInput(readIntent());
     active.progress(time, delta);
+
+    const ship = findLocalShipEntity(active, localClientId);
+    const position = ship?.get(Position);
+    if (position && this._coords) {
+      // TODO(Phase 4): play hyperspace lines+flash effect + snap on wrap signal
+      this.cameras.main.centerOn(
+        this._coords.x(position.x),
+        this._coords.y(position.y),
+      );
+    }
   }
 
   private drawStarfield(): void {
-    const graphics = this.add.graphics().setDepth(-10_000);
+    const coords = this._coords;
+    if (!coords) return;
 
-    for (let i = 0; i < STAR_COUNT; i++) {
-      const x = Math.random() * CANVAS_WIDTH;
-      const y = Math.random() * CANVAS_HEIGHT;
+    const graphics = this.add.graphics().setDepth(-10_000);
+    const starCount = STAR_COUNT * WORLD_SCALE * WORLD_SCALE;
+
+    for (let i = 0; i < starCount; i++) {
+      const worldX = WORLD_MIN_X + Math.random() * (WORLD_MAX_X - WORLD_MIN_X);
+      const worldY = WORLD_MIN_Y + Math.random() * (WORLD_MAX_Y - WORLD_MIN_Y);
       const radius = Math.max(0.5, Math.random() * 1.5);
       const alpha = 0.25 + Math.random() * 0.75;
       graphics.fillStyle(0xffffff, alpha);
-      graphics.fillCircle(x, y, radius);
+      graphics.fillCircle(coords.x(worldX), coords.y(worldY), radius);
     }
   }
 }
