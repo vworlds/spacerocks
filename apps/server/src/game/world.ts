@@ -33,7 +33,7 @@ export async function createGameWorld(): Promise<ServerWorld> {
   registerInterestGridComponents(world);
 
   // Physics + render modules MUST be installed BEFORE any system that spawns
-  // physics bodies. installSpawningSystems() spawns the wave-1 asteroids at
+  // physics bodies. installSpawningSystems() spawns the initial asteroids at
   // install time; entities created before PhysicsModule never get working Box2D
   // sensor shapes, so their collisions silently never fire (they still drift
   // because velocity integration needs no mass). PhaserServerModule stays ahead

@@ -1,4 +1,4 @@
-import type { ComponentClass, Entity } from '@vworlds/vecs';
+import { type ComponentClass, type Entity, Singleton } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
   Arc,
@@ -40,6 +40,7 @@ import {
   GameStateView,
   Health,
   HealthPickup,
+  MAX_ASTEROIDS_TOTAL_MASS,
   Pickup,
   PICKUP_COLORS,
   PickupKind,
@@ -47,7 +48,6 @@ import {
   perSecond,
   RandomClockKind,
   VIEWPORT_WIDTH,
-  WAVE_ASTEROID_SCALE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -55,9 +55,15 @@ import {
   Wraps,
 } from '@spacerocks/common';
 import { createPrng, type Prng } from './rng';
+import {
+  getGridCellIndex,
+  GRID_CELL_COUNT,
+  neighbourIndices,
+  randomPointInGridCell,
+} from '../network/interestGrid';
 
 const GAME_STATE_PLAYING = 0; // enum id
-const INITIAL_WAVE = 1; // wave number
+const INITIAL_WAVE = 1; // legacy GameStateView field value
 const ALIEN_SPAWN_MARGIN = 0.5; // meters
 const ASTEROID_OUTLINE_COLOR = 0xcccccc;
 
@@ -85,6 +91,13 @@ class SpawnTimer {
   nextTick = 0; // unix ms
 }
 
+// Running total of live asteroid mass, held as a singleton component so the
+// world owns it (no module-level per-world map). Maintained reactively by the
+// TrackAsteroidMass system; read O(1) via the captured instance in the spawner.
+class AsteroidMassTotal {
+  total = 0; // kg
+}
+
 export function registerSpawningComponents(world: ServerWorld): void {
   world.component(SpawnTimer);
   world.component(Asteroid);
@@ -96,6 +109,7 @@ export function registerSpawningComponents(world: ServerWorld): void {
   world.component(GameStateView);
   world.component(Material);
   world.component(Detectable);
+  world.component(AsteroidMassTotal).add(Singleton);
 }
 
 export function installSpawningSystems(
@@ -103,6 +117,32 @@ export function installSpawningSystems(
   rng: Prng = createPrng(readServerSeed()),
 ): void {
   initializeGameWorld(world, rng, Date.now());
+
+  // Running total of live asteroid mass, kept on the AsteroidMassTotal singleton
+  // (created by its Singleton trait). enter adds the asteroid's mass, exit
+  // subtracts it; both run in deferred mode, so getMut yields the live instance
+  // for an in-place O(1) update. The injected component is snapshotted at routing
+  // time, so it resolves even for an asteroid spawned and destroyed within one
+  // undrained window — keeping the total balanced with no per-entity bookkeeping.
+  world
+    .system('TrackAsteroidMass')
+    .with(Asteroid)
+    .enter([Asteroid], (_entity, [asteroid]) => {
+      world.component(AsteroidMassTotal).getMut(AsteroidMassTotal)!.total +=
+        asteroid.mass;
+    })
+    .exit([Asteroid], (_entity, [asteroid]) => {
+      world.component(AsteroidMassTotal).getMut(AsteroidMassTotal)!.total -=
+        asteroid.mass;
+    });
+
+  // Persistent, reactively-maintained query: the spawner reads current players
+  // without rebuilding a filter (which would re-evaluate matches across the
+  // world) on every tick.
+  const players = world
+    .query('SpawnerPlayers')
+    .with(PlayerShip, RenderPosition)
+    .build();
 
   world
     .system('ServerRandomClockSystem')
@@ -118,22 +158,22 @@ export function installSpawningSystems(
     });
 
   world
-    .system('ServerWave')
-    .interval(0.25)
+    .system('ServerAsteroidSpawner')
+    .interval(1)
     .with(GameStateView)
-    .each([GameStateView], (entity, [state]) => {
+    .each([GameStateView], (_entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;
-      if (
-        countEntities(world, Asteroid) > 0 ||
-        countEntities(world, Alien) > 0
-      ) {
-        return;
-      }
-
-      state.wave += 1;
-      entity.modified(GameStateView);
-      spawnWave(world, rng, state.wave);
+      spawnAsteroidIfBelowMassCap(
+        world,
+        rng,
+        world.get(AsteroidMassTotal)?.total ?? 0,
+        players,
+      );
     });
+}
+
+export function getTrackedAsteroidMass(world: ServerWorld): number {
+  return world.get(AsteroidMassTotal)?.total ?? 0;
 }
 
 export function createAsteroid(
@@ -410,20 +450,59 @@ function initializeGameWorld(world: ServerWorld, rng: Prng, now: number): void {
     GAME_CONFIG.HEALTH_SPAWN_MAX_WAIT,
   );
 
-  spawnWave(world, rng, INITIAL_WAVE);
+  fillInitialAsteroids(world, rng);
 }
 
-function spawnWave(world: ServerWorld, rng: Prng, wave: number): void {
-  const count = Math.round((3 + wave * 2) * WAVE_ASTEROID_SCALE);
-  for (let i = 0; i < count; i += 1) {
+function fillInitialAsteroids(world: ServerWorld, rng: Prng): void {
+  let filledMass = 0;
+  while (filledMass < MAX_ASTEROIDS_TOTAL_MASS) {
     let x: number;
     let y: number;
+    const mass = ENTITY_CONFIG.ASTEROID.MASS;
     do {
       x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
       y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
     } while (Math.hypot(x, y) < 2.0);
-    createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
+    createAsteroid(world, rng, x, y, mass);
+    filledMass += mass;
   }
+}
+
+function spawnAsteroidIfBelowMassCap(
+  world: ServerWorld,
+  rng: Prng,
+  totalAsteroidMass: number,
+  players: Iterable<Entity>,
+): void {
+  if (totalAsteroidMass >= MAX_ASTEROIDS_TOTAL_MASS) return;
+
+  const cellIndex = chooseUnseenGridCell(players, rng);
+  if (cellIndex === undefined) return;
+
+  const { x, y } = randomPointInGridCell(cellIndex, rng);
+  createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
+}
+
+function chooseUnseenGridCell(
+  players: Iterable<Entity>,
+  rng: Prng,
+): number | undefined {
+  const visibleCells = new Set<number>();
+  for (const player of players) {
+    const position = player.get(RenderPosition);
+    if (!position) continue;
+    for (const cellIndex of neighbourIndices(getGridCellIndex(position))) {
+      visibleCells.add(cellIndex);
+    }
+  }
+
+  const candidates: number[] = [];
+  for (let cellIndex = 0; cellIndex < GRID_CELL_COUNT; cellIndex += 1) {
+    if (!visibleCells.has(cellIndex)) candidates.push(cellIndex);
+  }
+  if (candidates.length === 0) return undefined;
+
+  return candidates[rng.int(candidates.length)];
 }
 
 function clamp(value: number, min: number, max: number): number {

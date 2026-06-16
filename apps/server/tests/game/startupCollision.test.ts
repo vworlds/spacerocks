@@ -7,13 +7,12 @@ import { createPlayerShip, PlayerSession } from '../../src/game/playerSessions';
 
 const DT_MS = 1000 / 30;
 
-// Regression for the wave-1 collision bug: the initial wave was spawned BEFORE
+// Regression for the startup collision bug: the initial asteroids were spawned BEFORE
 // PhysicsModule was installed, so those asteroids never got working Box2D sensor
-// shapes — bullets and the ship passed straight through them while wave 2+
-// (spawned at runtime) collided normally. PhysicsModule is now installed before
-// the spawning systems; this proves a startup asteroid is collidable.
-describe('startup-wave physics collision', () => {
-  it('lets a bullet destroy a wave-1 (startup) asteroid', async () => {
+// shapes. PhysicsModule is now installed before the spawning systems; this
+// proves a startup asteroid is collidable.
+describe('startup asteroid physics collision', () => {
+  it('lets a bullet destroy a startup asteroid', async () => {
     const world = await createGameWorld();
     let now = 0;
     const step = (n: number): void => {

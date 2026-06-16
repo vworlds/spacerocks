@@ -22,7 +22,7 @@ import {
   GameStateView,
   TICK_RATE,
 } from '@spacerocks/common';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createExplosion } from '../../src/game/combat';
 import { createGameWorld } from '../../src/game/world';
 
@@ -82,7 +82,9 @@ describe('server game world pipeline', () => {
     expect(explosion?.get(Networked)).toBeTruthy();
   });
 
-  it('progresses waves in the full physics pipeline and spawns asteroid bodies with shapes', async () => {
+  it('continuously spawns asteroid bodies with shapes without incrementing wave state', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
     const world = await createGameWorld();
     const dt = 1000 / TICK_RATE;
     world.progress(0, dt);
@@ -94,11 +96,11 @@ describe('server game world pipeline', () => {
     for (const alien of entitiesWith(Alien, world)) alien.destroy();
     world.flush();
 
-    for (let i = 0; i < 20; i += 1) {
+    for (let i = 0; i < 40; i += 1) {
       world.progress((i + 1) * dt, dt);
     }
 
-    expect(stateEntity.get(GameStateView)?.wave).toBe(startingWave + 1);
+    expect(stateEntity.get(GameStateView)?.wave).toBe(startingWave);
     const asteroids = entitiesWith(Asteroid, world);
     expect(asteroids.length).toBeGreaterThan(0);
     for (const asteroid of asteroids) {
