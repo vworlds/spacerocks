@@ -48,6 +48,12 @@ function getSession(client: Entity): Entity {
   return sessions[0]!;
 }
 
+function findShip(session: Entity): Entity | undefined {
+  return [...session.children(ChildOf)].find((entity) =>
+    entity.get(PlayerShip),
+  );
+}
+
 function getShip(session: Entity): Entity {
   const ships = [...session.children(ChildOf)].filter((entity) =>
     entity.get(PlayerShip),
@@ -150,8 +156,10 @@ describe('server game world soak', () => {
 
     world.progress(0, DT_MS);
 
-    const shipA = getShip(getSession(clientA));
-    const shipB = getShip(getSession(clientB));
+    const sessionA = getSession(clientA);
+    const sessionB = getSession(clientB);
+    const shipA = getShip(sessionA);
+    const shipB = getShip(sessionB);
     assertShipPhysicsShape(shipA);
     assertShipPhysicsShape(shipB);
     seedDeterministicTarget(world, shipA);
@@ -162,12 +170,20 @@ describe('server game world soak', () => {
     let maxCircles = count(world, Circle);
     let maxBullets = 0;
     let maxExplosions = 0;
+    let maxShipDistance = 0;
     let minBulletAsteroidDistance = Infinity;
 
     expect(() => {
       for (let tick = 1; tick <= 540; tick += 1) {
         const shootingWindow = tick <= 420;
-        const shipPosition = shipA.get(PhysicsPosition);
+        const activeShip = findShip(sessionA);
+        const shipPosition = activeShip?.get(PhysicsPosition);
+        if (shipPosition) {
+          maxShipDistance = Math.max(
+            maxShipDistance,
+            distance(startPosition, shipPosition),
+          );
+        }
         const target = entitiesWith(world, Asteroid)
           .map((asteroid) => asteroid.get(PhysicsPosition))
           .filter((position): position is PhysicsPosition => !!position)
@@ -177,13 +193,13 @@ describe('server game world soak', () => {
               distance(shipPosition ?? startPosition, b),
           )[0];
 
-        if (shipPosition && target) {
+        if (activeShip && shipPosition && target) {
           const aimAngle = Math.atan2(
             target.y - shipPosition.y,
             target.x - shipPosition.x,
           );
-          shipA.set(PhysicsRotation, { angle: aimAngle });
-          shipA.set(RenderRotation, { angle: aimAngle });
+          activeShip.set(PhysicsRotation, { angle: aimAngle });
+          activeShip.set(RenderRotation, { angle: aimAngle });
         }
 
         setClientInput(clientA, {
@@ -229,8 +245,7 @@ describe('server game world soak', () => {
       }
     }).not.toThrow();
 
-    const endPosition = shipA.get(PhysicsPosition)!;
-    expect(distance(startPosition, endPosition)).toBeGreaterThan(0.01);
+    expect(maxShipDistance).toBeGreaterThan(0.01);
     assertFinitePhysicsState(world);
     expect(maxBullets).toBeGreaterThan(0);
     expect(
