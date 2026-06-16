@@ -46,7 +46,7 @@ import {
   createAlien,
   createAsteroid,
   createPickup,
-  getTrackedAsteroidMass,
+  getTotalAsteroidMass,
   installSpawningSystems,
   registerSpawningComponents,
 } from '../../src/game/spawning';
@@ -379,11 +379,11 @@ describe('server spawning systems', () => {
     world.progress(0, dt);
 
     const initialActualMass = actualAsteroidMass(world as unknown as World);
-    expect(getTrackedAsteroidMass(world)).toBe(initialActualMass);
-    expect(getTrackedAsteroidMass(world)).toBeGreaterThanOrEqual(
+    expect(getTotalAsteroidMass(world)).toBe(initialActualMass);
+    expect(getTotalAsteroidMass(world)).toBeGreaterThanOrEqual(
       MAX_ASTEROIDS_TOTAL_MASS,
     );
-    expect(getTrackedAsteroidMass(world)).toBeLessThan(
+    expect(getTotalAsteroidMass(world)).toBeLessThan(
       MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MASS,
     );
 
@@ -411,10 +411,8 @@ describe('server spawning systems', () => {
 
     world.progress(dt, dt);
 
-    expect(getTrackedAsteroidMass(world)).toBe(
-      initialActualMass - destroyedMass,
-    );
-    expect(getTrackedAsteroidMass(world)).toBe(
+    expect(getTotalAsteroidMass(world)).toBe(initialActualMass - destroyedMass);
+    expect(getTotalAsteroidMass(world)).toBe(
       actualAsteroidMass(world as unknown as World),
     );
 
@@ -428,13 +426,13 @@ describe('server spawning systems', () => {
       world.progress(tick * dt, dt);
     }
 
-    expect(getTrackedAsteroidMass(world)).toBe(
+    expect(getTotalAsteroidMass(world)).toBe(
       actualAsteroidMass(world as unknown as World),
     );
-    expect(getTrackedAsteroidMass(world)).toBeGreaterThanOrEqual(
+    expect(getTotalAsteroidMass(world)).toBeGreaterThanOrEqual(
       MAX_ASTEROIDS_TOTAL_MASS,
     );
-    expect(getTrackedAsteroidMass(world)).toBeLessThan(
+    expect(getTotalAsteroidMass(world)).toBeLessThan(
       MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MASS,
     );
   });

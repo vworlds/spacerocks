@@ -163,17 +163,8 @@ export function installSpawningSystems(
     .with(GameStateView)
     .each([GameStateView], (_entity, [state]) => {
       if (state.state !== GAME_STATE_PLAYING) return;
-      spawnAsteroidIfBelowMassCap(
-        world,
-        rng,
-        world.get(AsteroidMassTotal)?.total ?? 0,
-        players,
-      );
+      spawnAsteroidIfBelowMassCap(world, rng, players);
     });
-}
-
-export function getTrackedAsteroidMass(world: ServerWorld): number {
-  return world.get(AsteroidMassTotal)?.total ?? 0;
 }
 
 export function createAsteroid(
@@ -471,16 +462,19 @@ function fillInitialAsteroids(world: ServerWorld, rng: Prng): void {
 function spawnAsteroidIfBelowMassCap(
   world: ServerWorld,
   rng: Prng,
-  totalAsteroidMass: number,
   players: Iterable<Entity>,
 ): void {
-  if (totalAsteroidMass >= MAX_ASTEROIDS_TOTAL_MASS) return;
+  if (getTotalAsteroidMass(world) >= MAX_ASTEROIDS_TOTAL_MASS) return;
 
   const cellIndex = chooseUnseenGridCell(players, rng);
   if (cellIndex === undefined) return;
 
   const { x, y } = randomPointInGridCell(cellIndex, rng);
   createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
+}
+
+export function getTotalAsteroidMass(world: ServerWorld): number {
+  return world.get(AsteroidMassTotal)?.total ?? 0;
 }
 
 function chooseUnseenGridCell(
