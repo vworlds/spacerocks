@@ -48,8 +48,8 @@ import {
   createPickup,
   getTrackedAsteroidMass,
   installSpawningSystems,
+  randomAsteroidMass,
   registerSpawningComponents,
-  rollAsteroidSpawnMass,
 } from '../../src/game/spawning';
 import { registerPlayerSessionComponents } from '../../src/game/playerSessions';
 import type { Prng } from '../../src/game/rng';
@@ -118,14 +118,6 @@ function actualAsteroidMass(world: World): number {
   return total;
 }
 
-function hasLargeAsteroid(world: World): boolean {
-  let found = false;
-  world.filter([Asteroid]).forEach([Asteroid], (_entity, [asteroid]) => {
-    found ||= asteroid.mass > ENTITY_CONFIG.ASTEROID.MASS;
-  });
-  return found;
-}
-
 function fixedAngleRng(angle: number): Prng {
   return {
     next: () => 0,
@@ -133,25 +125,6 @@ function fixedAngleRng(angle: number): Prng {
     bool: () => false,
     range: (min: number, max: number) => {
       if (min === 0 && max === Math.PI * 2) return angle;
-      return (min + max) / 2;
-    },
-  };
-}
-
-function forcedLargeAsteroidSpawnRng(): Prng {
-  return {
-    next: () => 0,
-    int: () => 0,
-    bool: (chance = 0.5) => chance === ENTITY_CONFIG.ASTEROID.LARGE_MASS_CHANCE,
-    range: (min: number, max: number) => {
-      if (
-        min === ENTITY_CONFIG.ASTEROID.LARGE_MASS_MIN_MULT &&
-        max === ENTITY_CONFIG.ASTEROID.LARGE_MASS_MAX_MULT
-      ) {
-        return min;
-      }
-      if (min === WORLD_MIN_X && max === WORLD_MAX_X) return WORLD_MAX_X;
-      if (min === WORLD_MIN_Y && max === WORLD_MAX_Y) return WORLD_MAX_Y;
       return (min + max) / 2;
     },
   };
@@ -173,29 +146,13 @@ describe('server spawning systems', () => {
     vi.useRealTimers();
   });
 
-  it('rolls base asteroid spawn mass most of the time and occasional configured large masses', () => {
+  it('rolls bounded log-normal asteroid spawn masses', () => {
     const rng = createPrng(20240615);
-    const samples = Array.from({ length: 1000 }, () =>
-      rollAsteroidSpawnMass(rng),
-    );
-    const baseMassCount = samples.filter(
-      (mass) => mass === ENTITY_CONFIG.ASTEROID.MASS,
-    ).length;
-    const largeMasses = samples.filter(
-      (mass) => mass > ENTITY_CONFIG.ASTEROID.MASS,
-    );
+    const samples = Array.from({ length: 100 }, () => randomAsteroidMass(rng));
 
-    expect(baseMassCount).toBeGreaterThan(largeMasses.length);
-    expect(largeMasses.length).toBeGreaterThan(0);
-    for (const mass of largeMasses) {
-      expect(mass).toBeGreaterThanOrEqual(
-        ENTITY_CONFIG.ASTEROID.MASS *
-          ENTITY_CONFIG.ASTEROID.LARGE_MASS_MIN_MULT,
-      );
-      expect(mass).toBeLessThan(
-        ENTITY_CONFIG.ASTEROID.MASS *
-          ENTITY_CONFIG.ASTEROID.LARGE_MASS_MAX_MULT,
-      );
+    for (const mass of samples) {
+      expect(mass).toBeGreaterThanOrEqual(ENTITY_CONFIG.ASTEROID.MIN_MASS);
+      expect(mass).toBeLessThanOrEqual(ENTITY_CONFIG.ASTEROID.MAX_MASS);
     }
   });
 
@@ -214,14 +171,11 @@ describe('server spawning systems', () => {
       MAX_ASTEROIDS_TOTAL_MASS,
     );
     expect(actualAsteroidMass(world)).toBeLessThan(
-      MAX_ASTEROIDS_TOTAL_MASS +
-        ENTITY_CONFIG.ASTEROID.MASS *
-          ENTITY_CONFIG.ASTEROID.LARGE_MASS_MAX_MULT,
+      MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MAX_MASS,
     );
     expect(
       firstEntity(world, Asteroid)?.get(Polygon)?.points.length,
     ).toBeGreaterThan(0);
-    expect(hasLargeAsteroid(world)).toBe(true);
 
     world
       .filter([Asteroid, Position])
@@ -441,9 +395,7 @@ describe('server spawning systems', () => {
       MAX_ASTEROIDS_TOTAL_MASS,
     );
     expect(getTrackedAsteroidMass(world)).toBeLessThan(
-      MAX_ASTEROIDS_TOTAL_MASS +
-        ENTITY_CONFIG.ASTEROID.MASS *
-          ENTITY_CONFIG.ASTEROID.LARGE_MASS_MAX_MULT,
+      MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MAX_MASS,
     );
 
     const gameStateEntity = firstEntity(
@@ -470,10 +422,10 @@ describe('server spawning systems', () => {
 
     world.progress(dt, dt);
 
-    expect(getTrackedAsteroidMass(world)).toBe(
+    expect(getTrackedAsteroidMass(world)).toBeCloseTo(
       initialActualMass - destroyedMass,
     );
-    expect(getTrackedAsteroidMass(world)).toBe(
+    expect(getTrackedAsteroidMass(world)).toBeCloseTo(
       actualAsteroidMass(world as unknown as World),
     );
 
@@ -487,16 +439,14 @@ describe('server spawning systems', () => {
       world.progress(tick * dt, dt);
     }
 
-    expect(getTrackedAsteroidMass(world)).toBe(
+    expect(getTrackedAsteroidMass(world)).toBeCloseTo(
       actualAsteroidMass(world as unknown as World),
     );
     expect(getTrackedAsteroidMass(world)).toBeGreaterThanOrEqual(
       MAX_ASTEROIDS_TOTAL_MASS,
     );
     expect(getTrackedAsteroidMass(world)).toBeLessThan(
-      MAX_ASTEROIDS_TOTAL_MASS +
-        ENTITY_CONFIG.ASTEROID.MASS *
-          ENTITY_CONFIG.ASTEROID.LARGE_MASS_MAX_MULT,
+      MAX_ASTEROIDS_TOTAL_MASS + ENTITY_CONFIG.ASTEROID.MAX_MASS,
     );
   });
 
@@ -527,24 +477,6 @@ describe('server spawning systems', () => {
     const asteroidPosition = asteroid.get(Position);
     if (!asteroidPosition) throw new Error('Expected asteroid position');
     expect(visibleCells.has(getGridCellIndex(asteroidPosition))).toBe(false);
-  });
-
-  it('can continuously spawn asteroids larger than the base mass', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    const { world } = createTestWorld(forcedLargeAsteroidSpawnRng());
-    const asteroids: Entity[] = [];
-    world.filter([Asteroid]).forEach([], (entity) => asteroids.push(entity));
-    for (const entity of asteroids) entity.destroy();
-    world.flush();
-
-    runSimulation(world, 1000);
-    runSimulation(world, 2000);
-
-    expect(count(world, Asteroid)).toBe(1);
-    expect(firstEntity(world, Asteroid)?.get(Asteroid)?.mass).toBeGreaterThan(
-      ENTITY_CONFIG.ASTEROID.MASS,
-    );
   });
 
   it('does not progress the GameStateView lifecycle while paused', () => {

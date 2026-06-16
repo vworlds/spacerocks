@@ -26,3 +26,13 @@ export function createPrng(seed: number): Prng {
     },
   };
 }
+
+export function randomNormal(rng: Prng): number {
+  let u = 0;
+  let v = 0;
+
+  while (u === 0) u = rng.next();
+  while (v === 0) v = rng.next();
+
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
