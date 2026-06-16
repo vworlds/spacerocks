@@ -54,7 +54,7 @@ import {
   WORLD_MIN_Y,
   Wraps,
 } from '@spacerocks/common';
-import { createPrng, type Prng } from './rng';
+import { createPrng, randomNormal, type Prng } from './rng';
 import {
   getGridCellIndex,
   GRID_CELL_COUNT,
@@ -172,7 +172,7 @@ export function createAsteroid(
   rng: Prng,
   x: number,
   y: number,
-  mass: number = ENTITY_CONFIG.ASTEROID.MASS,
+  mass: number = randomAsteroidMass(rng),
   options: AsteroidOptions = {},
 ): Entity | undefined {
   const collidable = options.collidable ?? true;
@@ -237,6 +237,22 @@ export function createAsteroid(
 
 export function asteroidRadius(mass: number): number {
   return Math.sqrt(mass / (Math.PI * ENTITY_CONFIG.ASTEROID.DENSITY));
+}
+
+export function randomAsteroidMass(rng: Prng): number {
+  for (;;) {
+    const z = randomNormal(rng);
+    const mass =
+      ENTITY_CONFIG.ASTEROID.MASS *
+      Math.exp(ENTITY_CONFIG.ASTEROID.MASS_SIGMA * z);
+
+    if (
+      mass >= ENTITY_CONFIG.ASTEROID.MIN_MASS &&
+      mass <= ENTITY_CONFIG.ASTEROID.MAX_MASS
+    ) {
+      return mass;
+    }
+  }
 }
 
 export function createAlien(world: ServerWorld, rng: Prng): Entity {
@@ -449,11 +465,11 @@ function fillInitialAsteroids(world: ServerWorld, rng: Prng): void {
   while (filledMass < MAX_ASTEROIDS_TOTAL_MASS) {
     let x: number;
     let y: number;
-    const mass = ENTITY_CONFIG.ASTEROID.MASS;
     do {
       x = rng.range(WORLD_MIN_X, WORLD_MAX_X);
       y = rng.range(WORLD_MIN_Y, WORLD_MAX_Y);
     } while (Math.hypot(x, y) < 2.0);
+    const mass = randomAsteroidMass(rng);
     createAsteroid(world, rng, x, y, mass);
     filledMass += mass;
   }
@@ -470,7 +486,7 @@ function spawnAsteroidIfBelowMassCap(
   if (cellIndex === undefined) return;
 
   const { x, y } = randomPointInGridCell(cellIndex, rng);
-  createAsteroid(world, rng, x, y, ENTITY_CONFIG.ASTEROID.MASS);
+  createAsteroid(world, rng, x, y);
 }
 
 export function getTotalAsteroidMass(world: ServerWorld): number {

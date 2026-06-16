@@ -70,6 +70,9 @@ export const ENTITY_CONFIG = {
   ASTEROID: {
     SPEED_FACTOR: perFrame(0.04), // meters/frame multiplier
     MASS: 16, // kg
+    MASS_SIGMA: 1.553512, // log-normal sigma
+    MIN_MASS: 2 * 1.1, // kg
+    MAX_MASS: 16 * 10, // kg
     DENSITY: 32, // kg/m^2
     MIN_COLLIDABLE_MASS: 2, // kg
     FRAGMENTS: 4, // slices
