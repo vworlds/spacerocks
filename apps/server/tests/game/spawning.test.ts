@@ -458,12 +458,12 @@ describe('server spawning systems', () => {
     runSimulation(world, 1000);
     runSimulation(world, 2000);
 
-    expect(count(world, Asteroid)).toBe(1);
-    const asteroid = firstEntity(world, Asteroid);
-    if (!asteroid) throw new Error('Expected spawned asteroid');
-    const asteroidPosition = asteroid.get(Position);
-    if (!asteroidPosition) throw new Error('Expected asteroid position');
-    expect(visibleCells.has(getGridCellIndex(asteroidPosition))).toBe(false);
+    expect(count(world, Asteroid)).toBe(2);
+    world
+      .filter([Asteroid, Position])
+      .forEach([Position], (_entity, [position]) => {
+        expect(visibleCells.has(getGridCellIndex(position))).toBe(false);
+      });
   });
 
   it('does not progress the GameStateView lifecycle while paused', () => {
