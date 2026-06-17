@@ -61,7 +61,7 @@ export function installEmbellishmentSystems(world: ServerWorld): void {
   world
     .system('ServerHealthBarEmbellishments')
     .with(Health)
-    .update(Health, (entity, health) => {
+    .update({ watch: Health, onEnter: true }, (entity, health) => {
       const refs = ensureEmbellishments(entity);
       const radius = getBodyRadius(entity);
       const offsetY = radius + HEALTH_BAR_OFFSET;
@@ -110,7 +110,7 @@ export function installEmbellishmentSystems(world: ServerWorld): void {
   world
     .system('ServerShieldRingEmbellishments')
     .with(Shield)
-    .update(Shield, (entity, shield) => {
+    .update({ watch: Shield, onEnter: true }, (entity, shield) => {
       const refs = ensureEmbellishments(entity);
       refs.shieldRing = ensureShieldRing(
         world,
@@ -136,7 +136,7 @@ export function installEmbellishmentSystems(world: ServerWorld): void {
   world
     .system('ServerLaserBeamEmbellishments')
     .with(LaserWeapon)
-    .update(LaserWeapon, (entity, laser) => {
+    .update({ watch: LaserWeapon, onEnter: true }, (entity, laser) => {
       const refs = ensureEmbellishments(entity);
       if (laser.firing) {
         refs.laserBeam = ensureLaserBeam(world, entity, refs.laserBeam);

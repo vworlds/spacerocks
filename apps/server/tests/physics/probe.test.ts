@@ -44,7 +44,7 @@ function createProbeWorld(): ProbeWorld {
     .system('ProbeSensorEvents')
     .phase('physics-post')
     .with(SensorEvents)
-    .update(SensorEvents, (self, events) => {
+    .update({ watch: SensorEvents, onEnter: true }, (self, events) => {
       for (const event of events.begin) {
         sensorBegins.push({ self, other: event.other });
       }
@@ -54,7 +54,7 @@ function createProbeWorld(): ProbeWorld {
     .system('ProbeContactEvents')
     .phase('physics-post')
     .with(ContactEvents)
-    .update(ContactEvents, (self, events) => {
+    .update({ watch: ContactEvents, onEnter: true }, (self, events) => {
       for (const event of events.begin) {
         contactBegins.push({ self, other: event.other });
       }
