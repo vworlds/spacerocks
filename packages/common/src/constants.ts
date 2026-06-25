@@ -14,6 +14,7 @@ export const WORLD_MIN_Y = -WORLD_HEIGHT / 2; // meters
 export const WORLD_MAX_Y = WORLD_HEIGHT / 2; // meters
 export const MAX_ASTEROIDS_TOTAL_MASS = 1800; // kg
 export const CLIENT_ENTITY_ID_START = 1_000_000; // entity id
+
 const BASE_TICK_RATE = 60; // frames/second
 export const TICK_RATE = 30; // frames/second
 const FRAME_RATE_SCALE = BASE_TICK_RATE / TICK_RATE;

@@ -3,6 +3,7 @@ import type { Entity, Query } from '@vworlds/vecs';
 import {
   PhaserRenderModule,
   phaserInterpolators,
+  loadAssets,
 } from '@vworlds/vecs-phaser-client';
 import {
   CLIENT_ENTITY_ID_START,
@@ -57,6 +58,19 @@ export async function createClientWorld(
   const url = `${protocol}://${host}:${SERVER_PORT}${API_BASE_PATH}/world/${WORLD_NAME}`;
   const socket = new ClientSocketCtor(url, {});
 
+  // Fetch the asset catalog and queue every spritesheet in Phaser's loader
+  // before the world starts replicating entities. Player ships render via the
+  // Image component, whose texture key is the catalog id; if the spritesheet
+  // is not loaded by the time the first ship snapshot arrives, Phaser logs a
+  // missing-texture warning and the ship renders as a green placeholder.
+  const catalog = await loadAssets(config.scene, {
+    host,
+    port: SERVER_PORT,
+    worldName: WORLD_NAME,
+    protocol,
+    apiBasePath: `${API_BASE_PATH}/world`,
+  });
+
   // IdPool layout (18 network components → localComponentMin = 32,
   // localEntityIdStart = 1_000_000):
   //   network:         1 – 31
@@ -73,6 +87,7 @@ export async function createClientWorld(
   world.module(PhaserRenderModule, {
     scene: config.scene,
     pixelsPerMeter: PIXELS_PER_METER,
+    catalog,
   });
   world.module(ExplosionEffectModule, { scene: config.scene });
 

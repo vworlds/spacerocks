@@ -1,9 +1,10 @@
 import { ChildOf, World, type Entity } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
 import {
+  Image,
   phaserNetworkComponents,
   Position,
-  Triangle,
+  Size,
 } from '@vworlds/vecs-phaser';
 import {
   PLAYER_COLORS,
@@ -22,6 +23,8 @@ import {
   PlayerSession,
   registerPlayerSessionComponents,
 } from '../../src/game/playerSessions';
+import { SHIP_SPRITE_SIZE_METERS } from '../../src/game/shipModule';
+import { WorldAssets } from '../../src/game/assets';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -35,10 +38,24 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 type PlayerSessionWorld = Parameters<typeof registerPlayerSessionComponents>[0];
 
+// Fake AssetManager exposing just the surface pickShipSprite reads: a
+// `getTileset(key)` returning a tileset-like object with `id` + `tileCount`.
+// Lets tests seed ships with a fixed texture id + frame count without loading
+// the real .tsj/.png from disk.
+const SHIP_TEXTURE_ID = 1;
+const SHIP_FRAME_COUNT = 16;
+function fakeAssetManager() {
+  return {
+    getTileset: () => ({ id: SHIP_TEXTURE_ID, tileCount: SHIP_FRAME_COUNT }),
+  };
+}
+
 function createTestWorld(): World {
   const world = new World();
   for (const component of phaserNetworkComponents) world.component(component);
   registerPlayerSessionComponents(world as unknown as PlayerSessionWorld);
+  world.component(WorldAssets);
+  world.set(WorldAssets, { manager: fakeAssetManager() as never });
   installPlayerSessionSystems(
     world as unknown as Parameters<typeof installPlayerSessionSystems>[0],
   );
@@ -98,13 +115,15 @@ describe('player session ownership', () => {
     expect(positionB.y).toBeGreaterThanOrEqual(WORLD_MIN_Y);
     expect(positionB.y).toBeLessThanOrEqual(WORLD_MAX_Y);
     expect(playerShipA.color).toBe(PLAYER_COLORS[0]);
-    expect(shipA.get(Triangle)).toMatchObject({
-      x1: 0.15,
-      y1: 0,
-      x2: -0.1,
-      y2: 0.1,
-      x3: -0.1,
-      y3: -0.1,
+    expect(shipA.get(Image)).toMatchObject({
+      texture: SHIP_TEXTURE_ID,
+      frame: expect.any(Number),
+    });
+    expect(shipA.get(Image)!.frame).toBeGreaterThanOrEqual(0);
+    expect(shipA.get(Image)!.frame).toBeLessThan(SHIP_FRAME_COUNT);
+    expect(shipA.get(Size)).toMatchObject({
+      width: SHIP_SPRITE_SIZE_METERS,
+      height: SHIP_SPRITE_SIZE_METERS,
     });
   });
 

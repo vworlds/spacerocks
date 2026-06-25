@@ -6,10 +6,10 @@ import {
   type ServerWorld,
 } from '@vworlds/vecs-server';
 import {
+  Image,
   Position as RenderPosition,
   Rotation as RenderRotation,
-  StrokeStyle,
-  Triangle,
+  Size,
 } from '@vworlds/vecs-phaser';
 import {
   Body,
@@ -45,6 +45,7 @@ import {
   Wraps,
   PLAYER_COLORS,
 } from '@spacerocks/common';
+import { pickShipSprite, SHIP_SPRITE_SIZE_METERS } from './shipModule';
 
 export class PlayerSession {
   clientId = '';
@@ -175,14 +176,10 @@ export function createPlayerShip(
     .set(Owner, { clientId })
     .set(Hyperspace, { seq: 0 })
     .add(Wraps)
-    .set(StrokeStyle, { color, alpha: 1, width: 2 })
-    .set(Triangle, {
-      x1: 0.15,
-      y1: 0,
-      x2: -0.1,
-      y2: 0.1,
-      x3: -0.1,
-      y3: -0.1,
+    .set(Image, pickShipSprite(world))
+    .set(Size, {
+      width: SHIP_SPRITE_SIZE_METERS,
+      height: SHIP_SPRITE_SIZE_METERS,
     });
 
   world

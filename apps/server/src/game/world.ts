@@ -1,4 +1,5 @@
 import { ServerWorld } from '@vworlds/vecs-server';
+import type { AssetManager } from '@vworlds/vecs-phaser-server';
 import { PhaserServerModule } from '@vworlds/vecs-phaser-server';
 import { PhysicsModule, preloadPhysics } from '@vworlds/vecs-physics';
 import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
@@ -6,6 +7,7 @@ import {
   installPlayerSessionSystems,
   registerPlayerSessionComponents,
 } from './playerSessions';
+import { WorldAssets } from './assets';
 import { installMovementSystems } from './movement';
 import { installSpawningSystems, registerSpawningComponents } from './spawning';
 import { installShootingSystems, registerShootingComponents } from './shooting';
@@ -19,7 +21,9 @@ import {
   registerInterestGridComponents,
 } from '../network/interestGrid';
 
-export async function createGameWorld(): Promise<ServerWorld> {
+export async function createGameWorld(
+  assets?: AssetManager,
+): Promise<ServerWorld> {
   const world = new ServerWorld({
     name: 'main',
     networkComponents: NETWORK_COMPONENTS,
@@ -31,6 +35,14 @@ export async function createGameWorld(): Promise<ServerWorld> {
   registerCombatComponents(world);
   registerEmbellishmentComponents(world);
   registerInterestGridComponents(world);
+
+  // Publish the AssetManager as a server-only singleton so pickShipSprite can
+  // resolve tilesets without createGameWorld knowing any asset specifics.
+  // Omitted in tests → pickShipSprite falls back to a no-op texture.
+  if (assets) {
+    world.component(WorldAssets);
+    world.set(WorldAssets, { manager: assets });
+  }
 
   // Physics + render modules MUST be installed BEFORE any system that spawns
   // physics bodies. installSpawningSystems() spawns the initial asteroids at

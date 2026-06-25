@@ -1,5 +1,5 @@
 import { World } from '@vworlds/vecs';
-import { phaserNetworkComponents, Triangle } from '@vworlds/vecs-phaser';
+import { phaserNetworkComponents } from '@vworlds/vecs-phaser';
 import {
   LinearVelocity,
   Rotation as PhysicsRotation,
@@ -109,12 +109,5 @@ describe('server handedness guards', () => {
     expect(Math.abs(velocityY.x)).toBeLessThan(1e-9);
 
     expect(countBullets(world)).toBe(2);
-  });
-
-  it('keeps the ship triangle nose pointing forward on +x', () => {
-    const world = createTestWorld();
-    const ship = createShip(world);
-
-    expect(ship.get(Triangle)!.x1).toBeGreaterThan(0);
   });
 });

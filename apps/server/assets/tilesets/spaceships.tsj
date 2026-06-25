@@ -1,0 +1,177 @@
+{
+  "columns": 4,
+  "image": "spaceships.png",
+  "imageheight": 256,
+  "imagewidth": 256,
+  "margin": 0,
+  "name": "spaceships",
+  "spacing": 0,
+  "tilecount": 16,
+  "tiledversion": "1.11.0",
+  "tileheight": 64,
+  "tiles": [
+    {
+      "id": 0,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Armored gunship  chunky central hull, twin towers, heavy side blocks"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Arrowhead ship  simple triangular arrow silhouette with rear twin engines."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Block bomber  thick body, straight wings, twin lower engine blocks"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Cargo shuttle  boxy rounded main hull with two vertical side tanks."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Compact pod fighter  narrow nose with two heavy side engine pods."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Delta dart  broad triangular wings with a narrow central fuselage."
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Heavy pod fighter  tall central body with large detached side engine pods."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Light assault fighter  compact wings, long nose, two vertical wingtip cannons."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Long-arm scout  slim core with extended angled arms and small tip guns"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Mini interceptor  small agile fighter with short wings and wingtip masts."
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Multi-turret cruiser  wide complex silhouette with several vertical towers."
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Needle-wing interceptor  long spear nose, swept wings, twin side antennae"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Stealth delta fighter  sharp swept triangular wings and tall central spine."
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Twin-fork bomber  bulky body, split rear prongs, large side pods."
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "V-wing fighter  sharp central body with angled V-shaped wings."
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "properties": [
+        {
+          "name": "description",
+          "type": "string",
+          "value": "Wide rail fighter  thin horizontal wings with tall vertical tips. like x-wing"
+        }
+      ]
+    }
+  ],
+  "tilewidth": 64,
+  "type": "tileset",
+  "version": "1.10"
+}
