@@ -607,4 +607,115 @@ describe('server combat systems', () => {
 
     expect(driftingAlien.get(PhysicsPosition)!.x).toBeGreaterThan(-1);
   });
+
+  it('splits an asteroid once when two bullets strike it in the same tick', () => {
+    const { world } = createTestWorld();
+    createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      createPrng(1),
+      0,
+      0,
+      ENTITY_CONFIG.ASTEROID.MASS,
+    );
+    for (let i = 0; i < 2; i += 1) {
+      createSensorBody(world, {
+        x: 0,
+        y: 0,
+        radius: 0.02,
+        categoryBits: CAT_PLAYER_BULLET,
+        maskBits: CAT_ASTEROID,
+      }).add(Bullet);
+    }
+
+    runFrame(world);
+
+    // One split yields two fragments; a double-split would yield four and
+    // score twice. The consumed-set guard must collapse the second hit.
+    expect(count(world, Asteroid)).toBe(2);
+    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
+      SCORING.ASTEROID_BASE,
+    );
+  });
+
+  it('scores a bullet-killed alien once even if a player rams it the same tick', () => {
+    const { world } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    moveBody(ship, 0, 0);
+    ship.set(Health, { hp: 100, maxHp: 100, healthBarTimer: 0 });
+
+    const alien = createAlien(
+      world as unknown as Parameters<typeof createAlien>[0],
+      createPrng(3),
+    );
+    moveBody(alien, 0, 0);
+    alien.set(LinearVelocity, { x: 0, y: 0 });
+    // One player bullet is lethal so ProjectileImpact destroys the alien.
+    alien.set(Health, {
+      hp: ENTITY_CONFIG.BULLET.DAMAGE,
+      maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
+      healthBarTimer: 0,
+    });
+
+    const bullet = createBullet(
+      world as unknown as Parameters<typeof createBullet>[0],
+      ship,
+      0,
+      0,
+      0,
+      0xffffff,
+      'player',
+    );
+    moveBody(bullet, 0, 0);
+
+    runFrame(world);
+
+    expect(world.getEntity(alien.eid)).toBeUndefined();
+    expect(world.getEntity(bullet.eid)).toBeUndefined();
+    // The kill scores ALIEN exactly once: ProjectileImpact consumes the alien,
+    // so the later PlayerContact must skip the already-dead body.
+    expect(firstEntity(world, GameStateView).get(GameStateView)?.score).toBe(
+      SCORING.ALIEN,
+    );
+    // The alien died to the bullet before the ram resolved, so the player is
+    // untouched (no double-handling across systems).
+    expect(ship.get(Health)?.hp).toBe(100);
+  });
+
+  it('resolves a sensor contact once per tick despite the enter+modify double fire', () => {
+    const { world } = createTestWorld();
+    const session = world.entity().set(PlayerSession, {
+      clientId: 'client-a',
+      playerIndex: 0,
+    });
+    const ship = createPlayerShip(
+      world as unknown as Parameters<typeof createPlayerShip>[0],
+      session,
+      0,
+    );
+    moveBody(ship, 0, 0);
+    ship.set(Health, { hp: 100, maxHp: 100, healthBarTimer: 0 });
+    createAsteroid(
+      world as unknown as Parameters<typeof createAsteroid>[0],
+      createPrng(5),
+      0,
+      0,
+      ENTITY_CONFIG.ASTEROID.MASS,
+    );
+
+    runFrame(world);
+
+    // The ship sensor entered the query and got events on the same tick, so
+    // .update(SensorEvents) fires twice; processedShapes must drain begin once.
+    // Two hits would read hp 80 / two explosions.
+    expect(ship.get(Health)?.hp).toBe(90);
+    expect(count(world, Explosion)).toBe(1);
+  });
 });

@@ -2,7 +2,6 @@ import { ChildOf, POST_UPDATE, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import { Position, Rotation } from '@vworlds/vecs-phaser';
 import {
-  CollisionFilter,
   LinearVelocity,
   physics,
   Position as PhysicsPosition,
@@ -15,13 +14,9 @@ import {
   AuraWeapon,
   Boomerang,
   BoomerangWeapon,
+  Bullet,
   CAT_ASTEROID,
-  CAT_BOOMERANG,
   CAT_ENEMY,
-  CAT_ENEMY_BULLET,
-  CAT_PICKUP,
-  CAT_PLAYER,
-  CAT_PLAYER_BULLET,
   COLORS,
   Decay,
   DefaultWeapon,
@@ -46,12 +41,9 @@ import { asteroidRadius, createAsteroid } from './spawning';
 import { createPrng, type Prng } from './rng';
 import { createPlayerShip, PlayerSession } from './playerSessions';
 
-type CollisionHandler = (a: Entity, b: Entity) => void;
-
 const GAME_STATE_PLAYING = 0; // enum id
 const LASER_LENGTH = 10; // meters
 const RESPAWN_DELAY_FRAMES = toFrames(3_000); // frames
-const registry = new Map<number, CollisionHandler[]>();
 
 export class RespawnTimer {
   sessionId = 0; // entity id
@@ -73,8 +65,24 @@ export function installCombatSystems(
   world: ServerWorld,
   rng: Prng = createPrng(readServerSeed()),
 ): void {
-  registry.clear();
-  installHandlers(world, rng);
+  // Bodies destroyed / single-collision-resolved this tick. Guards same-tick
+  // multi-hit on a consumed body (e.g. two bullets splitting one asteroid).
+  const consumed = new Set<number>();
+  // Sensor shapes whose `begin` buffer has already been drained this tick. A
+  // `.update(SensorEvents)` callback fires BOTH when the shape enters the query
+  // and when physics marks the buffer modified; when a sensor is spawned and
+  // collides on the same tick, both fire and read the same `begin`, so without
+  // this guard the contact would be processed twice (e.g. an alien taking an
+  // asteroid hit twice and dying). Cleared each tick by ResetCollisionFrame.
+  const processedShapes = new Set<number>();
+  let playing = true;
+
+  function bodyOf(shape: Entity | undefined): Entity | undefined {
+    if (!shape || shape.destroyed) return undefined;
+    const body = shape.target(ChildOf);
+    if (!body || body.destroyed || !world.getEntity(body.eid)) return undefined;
+    return body;
+  }
 
   world
     .system('ServerShieldSystem')
@@ -121,213 +129,185 @@ export function installCombatSystems(
     });
 
   world
-    .system('ServerCollision')
+    .system('ResetCollisionFrame')
     .phase(POST_UPDATE)
     .run(() => {
-      if (!isPlaying(world)) return;
-      const handled = new Set<string>();
-      const consumed = new Set<number>();
-
-      world
-        .filter([SensorEvents, CollisionFilter])
-        .forEach(
-          [SensorEvents, CollisionFilter],
-          (shapeA, [eventsA, filterA]) => {
-            for (const event of eventsA.begin) {
-              const shapeB = event.other;
-              const filterB = shapeB.get(CollisionFilter);
-              const bodyA = shapeA.target(ChildOf);
-              const bodyB = shapeB.target(ChildOf);
-              if (!filterB || !bodyA || !bodyB || bodyA === bodyB) continue;
-              if (consumed.has(bodyA.eid) || consumed.has(bodyB.eid)) continue;
-              if (!world.getEntity(bodyA.eid) || !world.getEntity(bodyB.eid))
-                continue;
-
-              const pairKey = `${Math.min(bodyA.eid, bodyB.eid)}:${Math.max(
-                bodyA.eid,
-                bodyB.eid,
-              )}`;
-              if (handled.has(pairKey)) continue;
-              handled.add(pairKey);
-
-              dispatchCollision(
-                bodyA,
-                bodyB,
-                filterA.categoryBits,
-                filterB.categoryBits,
-              );
-              if (!world.getEntity(bodyA.eid)) consumed.add(bodyA.eid);
-              if (!world.getEntity(bodyB.eid)) consumed.add(bodyB.eid);
-            }
-          },
-        );
+      consumed.clear();
+      processedShapes.clear();
+      playing = isPlaying(world);
     });
-}
 
-function installHandlers(world: ServerWorld, rng: Prng): void {
-  registerCollisionEffect(CAT_PLAYER, CAT_PICKUP, (player, pickup) => {
-    applyPickupEffect(world, player, pickup);
-    const position = player.get(Position);
-    if (position)
-      createExplosion(world, position.x, position.y, COLORS.white, 0.2);
-    pickup.destroy();
-  });
+  world
+    .system('ProjectileImpact')
+    .with({ parent: { any: [Bullet, Rocket, Boomerang] } })
+    .phase(POST_UPDATE)
+    .update(SensorEvents, (shape, events) => {
+      if (!playing || processedShapes.has(shape.eid)) return;
+      processedShapes.add(shape.eid);
+      const self = bodyOf(shape);
+      if (!self || consumed.has(self.eid)) return;
 
-  registerCollisionEffect(
-    CAT_PLAYER_BULLET,
-    CAT_ASTEROID,
-    (bullet, asteroid) => {
-      splitAsteroidFromProjectile(world, rng, asteroid, bullet, true);
-      bullet.destroy();
-    },
-  );
+      for (const event of events.begin) {
+        const other = bodyOf(event.other);
+        if (!other || other === self || consumed.has(other.eid)) continue;
 
-  registerCollisionEffect(CAT_PLAYER_BULLET, CAT_ENEMY, (bullet, alien) => {
-    damageEnemy(world, alien, projectileDamage(bullet));
-    bullet.destroy();
-  });
+        if (other.get(Asteroid)) {
+          splitAsteroidFromProjectile(world, rng, other, self, true);
+          consumed.add(other.eid);
+          self.destroy();
+          consumed.add(self.eid);
+          break;
+        }
 
-  registerCollisionEffect(CAT_PLAYER, CAT_ENEMY_BULLET, (player, bullet) => {
-    damagePlayer(world, player, SHIELD_DAMAGE.BULLET);
-    bullet.destroy();
-  });
+        if (other.get(Alien)) {
+          const killed = damageEnemy(world, other, projectileDamage(self));
+          if (killed) consumed.add(other.eid);
+          self.destroy();
+          consumed.add(self.eid);
+          break;
+        }
 
-  registerCollisionEffect(
-    CAT_ASTEROID,
-    CAT_ENEMY_BULLET,
-    (asteroid, bullet) => {
-      splitAsteroidFromProjectile(world, rng, asteroid, bullet, true);
-      bullet.destroy();
-    },
-  );
+        if (other.get(PlayerShip)) {
+          const bullet = self.get(Bullet);
+          if (bullet?.ownerType === 'alien') {
+            const killed = damagePlayer(world, other, SHIELD_DAMAGE.BULLET);
+            if (killed) consumed.add(other.eid);
+            self.destroy();
+            consumed.add(self.eid);
+            break;
+          }
 
-  registerCollisionEffect(CAT_ASTEROID, CAT_ENEMY, (asteroid, alien) => {
-    const asteroidView = asteroid.get(AsteroidView);
-    const position = asteroid.get(Position);
-    damageEnemy(world, alien, ENTITY_CONFIG.BULLET.DAMAGE);
-    if (position)
-      createExplosion(
-        world,
-        position.x,
-        position.y,
-        asteroidView?.color ?? COLORS.orange,
-        0.05,
-      );
-  });
-
-  registerCollisionEffect(CAT_PLAYER, CAT_ENEMY, (player, alien) => {
-    const playerPosition = player.get(Position);
-    damagePlayer(world, player, SHIELD_DAMAGE.ALIEN_BODY);
-    if (playerPosition)
-      createExplosion(
-        world,
-        playerPosition.x,
-        playerPosition.y,
-        COLORS.orange,
-        player.get(Shield) ? 0.2 : 0.05,
-      );
-    alien.destroy();
-    addScore(world, SCORING.ALIEN);
-  });
-
-  registerCollisionEffect(
-    CAT_BOOMERANG,
-    CAT_ASTEROID,
-    (boomerang, asteroid) => {
-      splitAsteroidFromProjectile(world, rng, asteroid, boomerang, true);
-      boomerang.destroy();
-    },
-  );
-
-  registerCollisionEffect(CAT_BOOMERANG, CAT_ENEMY, (boomerang, alien) => {
-    damageEnemy(world, alien, ENTITY_CONFIG.BOOMERANG.DAMAGE);
-    boomerang.destroy();
-  });
-
-  registerCollisionEffect(
-    CAT_PLAYER,
-    CAT_BOOMERANG,
-    (player, boomerangEntity) => {
-      const boomerang = boomerangEntity.get(Boomerang);
-      if (!boomerang || boomerang.ownerId !== player.eid || !boomerang.armed)
-        return;
-      const weapon = player.getMut(BoomerangWeapon);
-      if (weapon) {
-        weapon.shots = Math.min(
-          weapon.shots + 1,
-          ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
-        );
+          const boomerang = self.get(Boomerang);
+          if (boomerang && boomerang.ownerId === other.eid && boomerang.armed) {
+            const weapon = other.getMut(BoomerangWeapon);
+            if (weapon) {
+              weapon.shots = Math.min(
+                weapon.shots + 1,
+                ENTITY_CONFIG.BOOMERANG.MAX_SHOTS,
+              );
+            }
+            self.destroy();
+            consumed.add(self.eid);
+            break;
+          }
+        }
       }
-      boomerangEntity.destroy();
-    },
-  );
+    });
 
-  registerCollisionEffect(CAT_PLAYER, CAT_ASTEROID, (player, asteroid) => {
-    const asteroidView = asteroid.get(AsteroidView);
-    const asteroidPosition = asteroid.get(Position);
-    const playerPosition = player.get(Position);
-    damagePlayer(world, player, SHIELD_DAMAGE.ASTEROID);
-    const explosionPosition = player.get(Shield)
-      ? asteroidPosition
-      : playerPosition;
-    if (explosionPosition)
-      createExplosion(
-        world,
-        explosionPosition.x,
-        explosionPosition.y,
-        asteroidView?.color ?? COLORS.asteroidGrey,
-        0.05,
-      );
-  });
-}
+  world
+    .system('AlienContact')
+    .with({ parent: Alien })
+    .phase(POST_UPDATE)
+    .update(SensorEvents, (shape, events) => {
+      if (!playing || processedShapes.has(shape.eid)) return;
+      processedShapes.add(shape.eid);
+      const self = bodyOf(shape);
+      if (!self || consumed.has(self.eid)) return;
 
-function registerCollisionEffect(
-  categoryA: number,
-  categoryB: number,
-  handler: CollisionHandler,
-): void {
-  const low = Math.min(categoryA, categoryB);
-  const high = Math.max(categoryA, categoryB);
-  const handlers = registry.get(regKey(low, high)) ?? [];
-  handlers.push(categoryA <= categoryB ? handler : (a, b) => handler(b, a));
-  registry.set(regKey(low, high), handlers);
-}
+      for (const event of events.begin) {
+        const other = bodyOf(event.other);
+        if (!other || other === self || consumed.has(other.eid)) continue;
 
-function dispatchCollision(
-  a: Entity,
-  b: Entity,
-  categoryMaskA: number,
-  categoryMaskB: number,
-): void {
-  const catAList = getCategoryBits(categoryMaskA);
-  const catBList = getCategoryBits(categoryMaskB);
-  for (const categoryA of catAList) {
-    for (const categoryB of catBList) {
-      const low = Math.min(categoryA, categoryB);
-      const high = Math.max(categoryA, categoryB);
-      const handlers = registry.get(regKey(low, high));
-      if (!handlers) continue;
-      for (const handler of handlers) {
-        if (categoryA <= categoryB) handler(a, b);
-        else handler(b, a);
+        if (other.get(Asteroid)) {
+          const view = other.get(AsteroidView);
+          const pos = other.get(Position);
+          const killed = damageEnemy(world, self, ENTITY_CONFIG.BULLET.DAMAGE);
+          if (pos)
+            createExplosion(
+              world,
+              pos.x,
+              pos.y,
+              view?.color ?? COLORS.orange,
+              0.05,
+            );
+          if (killed) {
+            consumed.add(self.eid);
+            break;
+          }
+        }
       }
-    }
-  }
-}
+    });
 
-function getCategoryBits(mask: number): number[] {
-  const bits: number[] = [];
-  let value = mask;
-  while (value) {
-    const bit = value & -value;
-    bits.push(bit);
-    value &= value - 1;
-  }
-  return bits;
-}
+  world
+    .system('PlayerContact')
+    .with({ parent: PlayerShip })
+    .phase(POST_UPDATE)
+    .update(SensorEvents, (shape, events) => {
+      if (!playing || processedShapes.has(shape.eid)) return;
+      processedShapes.add(shape.eid);
+      const self = bodyOf(shape);
+      if (!self || consumed.has(self.eid)) return;
 
-function regKey(categoryA: number, categoryB: number): number {
-  return Math.min(categoryA, categoryB) * 1000 + Math.max(categoryA, categoryB);
+      for (const event of events.begin) {
+        const other = bodyOf(event.other);
+        if (!other || other === self || consumed.has(other.eid)) continue;
+
+        if (other.get(Asteroid)) {
+          const view = other.get(AsteroidView);
+          const asteroidPos = other.get(Position);
+          const playerPos = self.get(Position);
+          const shielded = self.get(Shield) !== undefined;
+          const killed = damagePlayer(world, self, SHIELD_DAMAGE.ASTEROID);
+          const explosionPos = shielded ? asteroidPos : playerPos;
+          if (explosionPos)
+            createExplosion(
+              world,
+              explosionPos.x,
+              explosionPos.y,
+              view?.color ?? COLORS.asteroidGrey,
+              0.05,
+            );
+          if (killed) {
+            consumed.add(self.eid);
+            break;
+          }
+        } else if (other.get(Alien)) {
+          const playerPos = self.get(Position);
+          const shielded = self.get(Shield) !== undefined;
+          const killed = damagePlayer(world, self, SHIELD_DAMAGE.ALIEN_BODY);
+          if (playerPos)
+            createExplosion(
+              world,
+              playerPos.x,
+              playerPos.y,
+              COLORS.orange,
+              shielded ? 0.2 : 0.05,
+            );
+          other.destroy();
+          consumed.add(other.eid);
+          addScore(world, SCORING.ALIEN);
+          if (killed) {
+            consumed.add(self.eid);
+            break;
+          }
+        }
+      }
+    });
+
+  world
+    .system('PickupCollect')
+    .with({ parent: Pickup })
+    .phase(POST_UPDATE)
+    .update(SensorEvents, (shape, events) => {
+      if (!playing || processedShapes.has(shape.eid)) return;
+      processedShapes.add(shape.eid);
+      const self = bodyOf(shape);
+      if (!self || consumed.has(self.eid)) return;
+
+      for (const event of events.begin) {
+        const other = bodyOf(event.other);
+        if (!other || other === self || consumed.has(other.eid)) continue;
+
+        if (other.get(PlayerShip)) {
+          applyPickupEffect(world, other, self);
+          const pos = other.get(Position);
+          if (pos) createExplosion(world, pos.x, pos.y, COLORS.white, 0.2);
+          self.destroy();
+          consumed.add(self.eid);
+          break;
+        }
+      }
+    });
 }
 
 function resolveLaserHits(
@@ -492,13 +472,17 @@ function dot(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return a.x * b.x + a.y * b.y;
 }
 
-function damageEnemy(world: ServerWorld, enemy: Entity, damage: number): void {
+function damageEnemy(
+  world: ServerWorld,
+  enemy: Entity,
+  damage: number,
+): boolean {
   const health = enemy.getMut(Health);
   if (health) {
     health.hp -= damage;
     health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
     enemy.modified(Health);
-    if (health.hp > 0) return;
+    if (health.hp > 0) return false;
   }
 
   const position = enemy.get(Position);
@@ -506,27 +490,32 @@ function damageEnemy(world: ServerWorld, enemy: Entity, damage: number): void {
     createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
   enemy.destroy();
   addScore(world, SCORING.ALIEN);
+  return true;
 }
 
 function damagePlayer(
   world: ServerWorld,
   player: Entity,
   shieldDamage: number,
-): void {
+): boolean {
   const shield = player.getMut(Shield);
   if (shield) {
     shield.shieldTime = Math.max(0, shield.shieldTime - shieldDamage);
     player.modified(Shield);
     if (shield.shieldTime <= 0) clearShield(player);
-    return;
+    return false;
   }
 
   const health = player.getMut(Health);
-  if (!health) return;
+  if (!health) return false;
   health.hp -= 10;
   health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
   player.modified(Health);
-  if (health.hp <= 0) killPlayer(world, player);
+  if (health.hp <= 0) {
+    killPlayer(world, player);
+    return true;
+  }
+  return false;
 }
 
 function killPlayer(world: ServerWorld, player: Entity): void {
