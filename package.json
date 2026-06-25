@@ -36,12 +36,15 @@
     "vitest": "^4.1.9"
   },
   "overrides": {
-    "@vworlds/vecs": "1.0.36"
+    "@vworlds/vecs": "1.0.37"
   },
   "lint-staged": {
     "*.ts": [
       "prettier --write",
       "eslint --fix"
     ]
+  },
+  "dependencies": {
+    "box2d3-wasm": "^5.2.0"
   }
 }
