@@ -1,11 +1,12 @@
 import { ChildOf, type Entity } from '@vworlds/vecs';
 import { Networked, type ServerWorld } from '@vworlds/vecs-server';
 import {
-  Arc,
   FillStyle,
+  Line,
   Polygon,
   Position as RenderPosition,
   Rotation as RenderRotation,
+  StrokeStyle,
   Triangle,
 } from '@vworlds/vecs-phaser';
 import {
@@ -297,6 +298,13 @@ export function installShootingSystems(world: ServerWorld): void {
     });
 }
 
+// On-screen length of a bullet bolt in meters. The line is laid out along the
+// bullet's local -x: the head (entity Position, where the physics sensor sits)
+// leads and the tail trails behind, so it reads as a streaking laser ray
+// whose collision point is the bright nose.
+const BULLET_LENGTH = 0.12;
+const BULLET_STROKE_WIDTH = 2;
+
 export function createBullet(
   world: ServerWorld,
   owner: Entity,
@@ -328,8 +336,17 @@ export function createBullet(
     .set(RenderRotation, { angle })
     .set(Bullet, { ownerType })
     .set(Decay, { life: ENTITY_CONFIG.BULLET.LIFE, decay: 1 })
-    .set(FillStyle, { color, alpha: 1 })
-    .set(Arc, { radius });
+    .set(StrokeStyle, {
+      color,
+      alpha: 1,
+      width: BULLET_STROKE_WIDTH,
+    })
+    .set(Line, {
+      x1: 0,
+      y1: 0,
+      x2: -BULLET_LENGTH,
+      y2: 0,
+    });
 
   createPhysicsCircleSensor(world, bullet, radius, categoryBits, maskBits);
   return bullet;

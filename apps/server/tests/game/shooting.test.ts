@@ -5,11 +5,12 @@ import {
   type Entity,
 } from '@vworlds/vecs';
 import {
-  Arc,
   FillStyle,
+  Line,
   phaserNetworkComponents,
   Polygon,
   Rotation as RenderRotation,
+  StrokeStyle,
   Triangle,
 } from '@vworlds/vecs-phaser';
 import {
@@ -158,10 +159,16 @@ describe('server shooting systems', () => {
 
     expect(count(world, Bullet)).toBe(1);
     const bullet = firstEntity(world, Bullet);
-    expect(bullet.get(Arc)).toMatchObject({ radius: 0.02 });
-    expect(bullet.get(FillStyle)).toMatchObject({
+    expect(bullet.get(Line)).toMatchObject({
+      x1: 0,
+      y1: 0,
+      x2: -0.12,
+      y2: 0,
+    });
+    expect(bullet.get(StrokeStyle)).toMatchObject({
       color: PLAYER_COLORS[0],
       alpha: 1,
+      width: 2,
     });
     expect(bullet.get(ChildOf)?.target).toBe(ship);
     expect(bullet.get(PhysicsPosition)!.x).toBeGreaterThan(startX);
@@ -191,7 +198,7 @@ describe('server shooting systems', () => {
     );
     expect(bullet.get(Bullet)).toMatchObject({ ownerType: 'alien' });
     expect(bullet.get(ChildOf)?.target).toBe(alien);
-    expect(bullet.get(FillStyle)).toMatchObject({ color: COLORS.orange });
+    expect(bullet.get(StrokeStyle)).toMatchObject({ color: COLORS.orange });
     expect(shape?.get(CollisionFilter)).toMatchObject({
       categoryBits: CAT_ENEMY_BULLET,
       maskBits: CAT_ASTEROID | CAT_PLAYER,
