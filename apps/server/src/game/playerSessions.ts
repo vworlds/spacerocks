@@ -10,6 +10,7 @@ import {
   Position as RenderPosition,
   Rotation as RenderRotation,
   Size,
+  Tint,
 } from '@vworlds/vecs-phaser';
 import {
   Body,
@@ -180,7 +181,8 @@ export function createPlayerShip(
     .set(Size, {
       width: SHIP_SPRITE_SIZE_METERS,
       height: SHIP_SPRITE_SIZE_METERS,
-    });
+    })
+    .set(Tint, { value: color } as Tint);
 
   world
     .entity()

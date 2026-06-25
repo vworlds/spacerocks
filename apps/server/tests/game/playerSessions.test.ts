@@ -5,6 +5,7 @@ import {
   phaserNetworkComponents,
   Position,
   Size,
+  Tint,
 } from '@vworlds/vecs-phaser';
 import {
   PLAYER_COLORS,
@@ -124,6 +125,16 @@ describe('player session ownership', () => {
     expect(shipA.get(Size)).toMatchObject({
       width: SHIP_SPRITE_SIZE_METERS,
       height: SHIP_SPRITE_SIZE_METERS,
+    });
+    // Player color is reapplied via the new Tint component (multiplicative tint
+    // over the spritesheet frame); restores the colored-ship feel the old
+    // StrokeStyle triangle carried, now on the Image renderable.
+    expect(shipA.get(Tint)).toMatchObject({
+      topLeft: PLAYER_COLORS[0],
+      topRight: PLAYER_COLORS[0],
+      bottomLeft: PLAYER_COLORS[0],
+      bottomRight: PLAYER_COLORS[0],
+      monochromatic: true,
     });
   });
 
