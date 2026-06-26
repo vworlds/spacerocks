@@ -293,7 +293,7 @@ export function createAlien(world: ServerWorld, rng: Prng): Entity {
   createPhysicsCircleSensor(
     world,
     alien,
-    ENTITY_CONFIG.ALIEN.RADIUS,
+    ENTITY_CONFIG.ALIEN.RADIUS + 0.01,
     CAT_ENEMY,
     maskBits,
   );

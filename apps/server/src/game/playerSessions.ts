@@ -197,7 +197,7 @@ export function createPlayerShip(
   world
     .entity()
     .childOf(ship)
-    .set(Circle, { radius: ENTITY_CONFIG.SHIP.RADIUS })
+    .set(Circle, { radius: ENTITY_CONFIG.SHIP.RADIUS + 0.01 })
     .add(Sensor)
     .add(SensorEvents)
     .set(CollisionFilter, {
