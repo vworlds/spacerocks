@@ -13,10 +13,10 @@ import {
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
 import {
-  Circle,
   CollisionFilter,
   LinearVelocity,
   PhysicsModule,
+  Polygon as PhysicsPolygon,
   Position as PhysicsPosition,
 } from '@vworlds/vecs-physics';
 import {
@@ -279,7 +279,7 @@ describe('server spawning systems', () => {
       { velocity: { x: -1, y: 0 } },
     )!;
     const leftShape = [...left.children(ChildOf)].find((child) =>
-      child.get(Circle),
+      child.get(PhysicsPolygon),
     );
 
     expect(

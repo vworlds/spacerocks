@@ -9,10 +9,10 @@ import {
 } from '@vworlds/vecs-phaser';
 import {
   Body,
-  Circle,
   CollisionFilter,
   Detectable,
   Material,
+  Polygon as PhysicsPolygon,
 } from '@vworlds/vecs-physics';
 import {
   Alien,
@@ -70,9 +70,9 @@ describe('server game world pipeline', () => {
     expect(countRenderableComponents(asteroid)).toBe(1);
 
     const shape = Array.from(asteroid.children(ChildOf)).find((child) =>
-      child.get(Circle),
+      child.get(PhysicsPolygon),
     );
-    expect(shape?.get(Circle)?.radius).toBeGreaterThan(0);
+    expect(shape?.get(PhysicsPolygon)?.vertices.length).toBeGreaterThan(0);
     expect(shape?.get(Material)).toBeTruthy();
     expect(shape?.get(Detectable)).toBeTruthy();
     expect(shape?.get(CollisionFilter)).toBeTruthy();
@@ -106,7 +106,7 @@ describe('server game world pipeline', () => {
     for (const asteroid of asteroids) {
       expect(asteroid.get(Body)).toBeTruthy();
       const shape = Array.from(asteroid.children(ChildOf)).find((child) =>
-        child.get(Circle),
+        child.get(PhysicsPolygon),
       );
       expect(shape?.get(Material)).toBeTruthy();
       expect(shape?.get(Detectable)).toBeTruthy();

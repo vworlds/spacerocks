@@ -80,6 +80,8 @@ export const ENTITY_CONFIG = {
     MASS_LOSS_RATIO: 0.15, // ratio
     SPLIT_IMPULSE: 1.2, // kg*m/s
     DUST_TTL_FRAMES: toFrames(700), // frames
+    VERTICES: 3, // base vertex count (3..6 → 3..6 vertices)
+    SPIN: perFrame(0.03), // radians/frame magnitude
   },
   POWERUP: {
     SPEED_FACTOR: perFrame(0.01), // meters/frame multiplier

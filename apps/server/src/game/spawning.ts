@@ -9,6 +9,8 @@ import {
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
 import {
+  type Vec2,
+  AngularVelocity as PhysicsAngularVelocity,
   Body,
   BodyType,
   Circle,
@@ -16,6 +18,7 @@ import {
   Detectable,
   LinearVelocity,
   Material,
+  Polygon as PhysicsPolygon,
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
   Sensor,
@@ -109,6 +112,7 @@ export function registerSpawningComponents(world: ServerWorld): void {
   world.component(GameStateView);
   world.component(Material);
   world.component(Detectable);
+  world.component(PhysicsPolygon);
   world.component(AsteroidMassTotal).add(Singleton);
 }
 
@@ -186,11 +190,13 @@ export function createAsteroid(
     ASTEROID_FILL_COLORS[rng.int(ASTEROID_FILL_COLORS.length)] ??
     COLORS.asteroidGrey;
   const alpha = options.alpha ?? 1;
-  const vert = 5 + rng.int(5);
+  const vertCount = ENTITY_CONFIG.ASTEROID.VERTICES + rng.int(4); // 3..6
   const velocity = options.velocity ?? {
     x: perSecond(rng.range(-0.5, 0.5) * speedFactor),
     y: perSecond(rng.range(-0.5, 0.5) * speedFactor),
   };
+  const spin = perSecond(rng.range(-1, 1) * ENTITY_CONFIG.ASTEROID.SPIN);
+  const angle = rng.range(0, Math.PI * 2);
   const maskBits =
     CAT_ASTEROID |
     CAT_PLAYER |
@@ -198,11 +204,13 @@ export function createAsteroid(
     CAT_ENEMY_BULLET |
     CAT_ENEMY |
     CAT_BOOMERANG;
+  // Single convex polygon shared by render + physics. Vertices are spread on a
+  // circle with per-vertex radius jitter; convexity is guaranteed by limiting
+  // the jitter so each vertex sits outside the chord between its neighbours.
+  const vertices = generateAsteroidPolygon(rng, radius, vertCount);
   const points: number[] = [];
-  for (let i = 0; i < vert; i += 1) {
-    const r = radius * rng.range(0.8, 1.2);
-    const a = (i / vert) * Math.PI * 2;
-    points.push(Math.cos(a) * r, Math.sin(a) * r);
+  for (const v of vertices) {
+    points.push(v.x, v.y);
   }
 
   const asteroid = world
@@ -210,8 +218,11 @@ export function createAsteroid(
     .add(Networked)
     .set(Body, { type: BodyType.Dynamic })
     .set(PhysicsPosition, { x, y })
+    .set(PhysicsRotation, { angle })
+    .set(PhysicsAngularVelocity, { value: spin })
     .set(LinearVelocity, velocity)
     .set(RenderPosition, { x, y })
+    .set(RenderRotation, { angle })
     .set(AsteroidView, { color: fillColor, radius, mass })
     .add(Wraps)
     .set(FillStyle, { color: fillColor, alpha })
@@ -220,13 +231,17 @@ export function createAsteroid(
 
   if (collidable) {
     asteroid.set(Asteroid, { mass, color: fillColor });
-    createPhysicsCircleSolid(
+    // Derive density from the polygon's actual area so the physics body mass
+    // matches the authored mass (the circle did this implicitly via πr²).
+    const area = polygonArea(vertices);
+    const density = area > 0 ? mass / area : ENTITY_CONFIG.ASTEROID.DENSITY;
+    createPhysicsPolygonSolid(
       world,
       asteroid,
-      radius,
+      vertices,
       CAT_ASTEROID,
       maskBits,
-      ENTITY_CONFIG.ASTEROID.DENSITY,
+      density,
     );
   } else if (options.ttlFrames) {
     asteroid.set(Decay, { life: options.ttlFrames, decay: 1 });
@@ -237,6 +252,60 @@ export function createAsteroid(
 
 export function asteroidRadius(mass: number): number {
   return Math.sqrt(mass / (Math.PI * ENTITY_CONFIG.ASTEROID.DENSITY));
+}
+
+/**
+ * Generates a convex polygon for an asteroid, shared by render and physics.
+ * Vertices are placed on a circle with per-vertex radius jitter. Convexity is
+ * enforced by checking the cross product at each vertex and nudging any vertex
+ * that violates it outward.
+ *
+ * Returns at most 6 vertices (well under the Box2D limit of 8).
+ */
+function generateAsteroidPolygon(
+  rng: Prng,
+  radius: number,
+  count: number,
+): Vec2[] {
+  const n = Math.max(3, Math.min(6, count));
+  const vertices: Vec2[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const a = (i / n) * Math.PI * 2;
+    const r = radius * rng.range(0.85, 1.15);
+    vertices.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+  }
+  // Enforce convexity: ensure each vertex turns CCW. Any vertex that violates
+  // this is pushed radially outward until the polygon is convex.
+  for (let pass = 0; pass < 2; pass += 1) {
+    for (let i = 0; i < n; i += 1) {
+      const prev = vertices[(i - 1 + n) % n]!;
+      const curr = vertices[i]!;
+      const next = vertices[(i + 1) % n]!;
+      const cross =
+        (curr.x - prev.x) * (next.y - curr.y) -
+        (curr.y - prev.y) * (next.x - curr.x);
+      if (cross <= 0) {
+        const len = Math.hypot(curr.x, curr.y) || 1;
+        vertices[i] = {
+          x: (curr.x / len) * radius * 1.15,
+          y: (curr.y / len) * radius * 1.15,
+        };
+      }
+    }
+  }
+  return vertices;
+}
+
+/** Signed shoelace area of a simple polygon (assumes CCW vertex order). */
+function polygonArea(vertices: Vec2[]): number {
+  let sum = 0;
+  const n = vertices.length;
+  for (let i = 0; i < n; i += 1) {
+    const curr = vertices[i]!;
+    const next = vertices[(i + 1) % n]!;
+    sum += curr.x * next.y - next.x * curr.y;
+  }
+  return Math.abs(sum) / 2;
 }
 
 export function randomAsteroidMass(rng: Prng): number {
@@ -531,6 +600,35 @@ function createPhysicsCircleSolid(
     .entity()
     .childOf(body)
     .set(Circle, { radius })
+    .set(Material, {
+      density,
+      friction: 0,
+      restitution: 0.85,
+    })
+    .add(Detectable)
+    .set(CollisionFilter, {
+      categoryBits,
+      maskBits,
+    });
+}
+
+/**
+ * Solid physics polygon for an asteroid body. Density is derived from the
+ * target mass and the polygon's actual area so the resulting body has roughly
+ * the intended mass (matching the radius/mass relationship used elsewhere).
+ */
+function createPhysicsPolygonSolid(
+  world: ServerWorld,
+  body: Entity,
+  vertices: Vec2[],
+  categoryBits: number,
+  maskBits: number,
+  density: number,
+): void {
+  world
+    .entity()
+    .childOf(body)
+    .set(PhysicsPolygon, { vertices })
     .set(Material, {
       density,
       friction: 0,
