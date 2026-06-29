@@ -1,14 +1,15 @@
 import express from 'express';
-import { VecsListener } from '@vworlds/vecs-server';
-import { AssetManager } from '@vworlds/vecs-phaser-server';
-import { TICK_RATE } from '@spacerocks/common';
+import { ServerWorld, VecsListener } from '@vworlds/vecs-server';
+import { AssetManager, PhaserServerModule } from '@vworlds/vecs-phaser-server';
+import { PhysicsModule, preloadPhysics } from '@vworlds/vecs-physics';
+import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
 import { logger } from './logger';
 import { corsMiddleware } from './cors';
 import { listenWithRetry } from './serverLifecycle';
-import { createGameWorld } from './game/world';
+import { WorldModule } from './game/world';
 
 export { stopServer } from './serverLifecycle';
-export { createGameWorld } from './game/world';
+export { WorldModule } from './game/world';
 
 const DT_MS = 1000 / TICK_RATE; // ms/frame
 const MAX_FRAME_TIME_MS = 250;
@@ -16,6 +17,33 @@ const ASSETS_PATH = 'assets';
 // Matches the client's `${API_BASE_PATH}/world/${WORLD_NAME}` URL shape, i.e.
 // the `worldPath` base the AssetManager routes mount under.
 const ASSET_API_BASE_PATH = '/rtc/v1/world';
+
+export async function createGameWorld(
+  assets?: AssetManager,
+): Promise<ServerWorld> {
+  const world = new ServerWorld({
+    name: 'main',
+    networkComponents: NETWORK_COMPONENTS,
+  });
+
+  // Physics + render modules MUST be installed BEFORE any system that spawns
+  // physics bodies. AsteroidsModule spawns the initial field at install time;
+  // entities created before PhysicsModule never get working Box2D sensor
+  // shapes, so their collisions silently never fire. PhaserServerModule stays
+  // ahead of the embellishment systems so its PRE_STORE pose-sync runs before
+  // the PRE_STORE child-follow systems.
+  await preloadPhysics();
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
+  world.module(PhaserServerModule);
+
+  world.module(WorldModule, assets ? { manager: assets } : {});
+
+  return world;
+}
 
 export async function startServer(port = Number(process.env.PORT ?? 2567)) {
   const app = express();
