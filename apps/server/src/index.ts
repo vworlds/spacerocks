@@ -18,6 +18,30 @@ const ASSETS_PATH = 'assets';
 // the `worldPath` base the AssetManager routes mount under.
 const ASSET_API_BASE_PATH = '/rtc/v1/world';
 
+// Optional WebRTC UDP advertisement. When the server runs behind a port
+// mapping (e.g. vrunner's per-branch Docker Compose), browsers can't reach
+// the container's internal UDP port; advertise the externally-exposed host
+// and port instead so ICE candidates point at the reachable address.
+const WEBRTC_UDP_HOST = process.env.SPACEROCKS_WEBRTC_UDP_HOST;
+const WEBRTC_UDP_PORT = process.env.SPACEROCKS_WEBRTC_UDP_PORT
+  ? Number(process.env.SPACEROCKS_WEBRTC_UDP_PORT)
+  : undefined;
+
+function createDgramOptions(): Record<string, unknown> {
+  return {
+    ordered: false,
+    maxRetransmits: 2,
+    ...(WEBRTC_UDP_PORT === undefined
+      ? {}
+      : {
+          enableIceUdpMux: true,
+          advertisedUdpHost: WEBRTC_UDP_HOST,
+          advertisedUdpPort: WEBRTC_UDP_PORT,
+          portRange: { min: WEBRTC_UDP_PORT, max: WEBRTC_UDP_PORT },
+        }),
+  };
+}
+
 export async function createGameWorld(
   assets?: AssetManager,
 ): Promise<ServerWorld> {
@@ -91,7 +115,7 @@ export async function startServer(port = Number(process.env.PORT ?? 2567)) {
 
   const vecsListener = new VecsListener();
   vecsListener.registerWorld(world);
-  await vecsListener.listen(app, { ordered: false, maxRetransmits: 2 });
+  await vecsListener.listen(app, createDgramOptions());
 
   const server = await listenWithRetry(app, port);
 

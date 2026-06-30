@@ -14,9 +14,38 @@ import {
 import type Phaser from 'phaser';
 import { ExplosionEffectModule } from '../render/ExplosionEffectModule';
 
-const SERVER_PORT = 2567; // port
-const WORLD_NAME = 'main';
-const API_BASE_PATH = '/rtc/v1';
+const DEFAULT_SERVER_PORT = 2567;
+const DEFAULT_WORLD_NAME = 'main';
+const DEFAULT_API_BASE_PATH = '/rtc/v1';
+
+interface SpacerocksConnectionOptions {
+  readonly host: string;
+  readonly port: number;
+  readonly protocol: 'http' | 'https';
+  readonly worldName: string;
+  readonly apiBasePath: string;
+}
+
+declare global {
+  interface Window {
+    spacerocksConnectionOptions?: Partial<SpacerocksConnectionOptions>;
+  }
+}
+
+function readConnectionOptions(): SpacerocksConnectionOptions {
+  const overrides = window.spacerocksConnectionOptions ?? {};
+  const protocol =
+    overrides.protocol ??
+    (window.location.protocol === 'https:' ? 'https' : 'http');
+  return {
+    host: overrides.host ?? window.location.hostname,
+    port: overrides.port ?? DEFAULT_SERVER_PORT,
+    protocol,
+    worldName: overrides.worldName ?? DEFAULT_WORLD_NAME,
+    apiBasePath: overrides.apiBasePath ?? DEFAULT_API_BASE_PATH,
+  };
+}
+
 const localShipByOwnerQueries = new WeakMap<
   ClientWorld,
   Query<[typeof Owner]>
@@ -53,9 +82,9 @@ export async function createClientWorld(
     rtcConfig: RTCConfiguration,
   ) => DgramClientSocket;
 
-  const protocol = window.location.protocol === 'https:' ? 'https' : 'http';
-  const host = window.location.hostname;
-  const url = `${protocol}://${host}:${SERVER_PORT}${API_BASE_PATH}/world/${WORLD_NAME}`;
+  const { host, port, protocol, worldName, apiBasePath } =
+    readConnectionOptions();
+  const url = `${protocol}://${host}:${port}${apiBasePath}/world/${worldName}`;
   const socket = new ClientSocketCtor(url, {});
 
   // Fetch the asset catalog and queue every spritesheet in Phaser's loader
@@ -65,10 +94,10 @@ export async function createClientWorld(
   // missing-texture warning and the ship renders as a green placeholder.
   const catalog = await loadAssets(config.scene, {
     host,
-    port: SERVER_PORT,
-    worldName: WORLD_NAME,
+    port,
+    worldName,
     protocol,
-    apiBasePath: `${API_BASE_PATH}/world`,
+    apiBasePath: `${apiBasePath}/world`,
   });
 
   // IdPool layout (18 network components → localComponentMin = 32,

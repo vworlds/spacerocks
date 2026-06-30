@@ -1,0 +1,29 @@
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: apps/server/docker/Dockerfile
+    environment:
+      PORT: 2567
+      SPACEROCKS_WEBRTC_UDP_HOST: ${SPACEROCKS_WEBRTC_UDP_HOST:-localhost}
+      SPACEROCKS_WEBRTC_UDP_PORT: ${SPACEROCKS_WEBRTC_UDP_PORT:-2568}
+    image: spacerocks-demo-server
+    ports:
+      - "${SPACEROCKS_PORT:-2567}:2567"
+      - "${SPACEROCKS_WEBRTC_UDP_PORT:-2568}:${SPACEROCKS_WEBRTC_UDP_PORT:-2568}/udp"
+
+  client:
+    build:
+      context: ..
+      dockerfile: apps/client/docker/Dockerfile
+    image: spacerocks-demo-client
+    depends_on:
+      - server
+    environment:
+      SPACEROCKS_HOST: ${SPACEROCKS_HOST:-localhost}
+      SPACEROCKS_PORT: ${SPACEROCKS_PORT:-2567}
+      SPACEROCKS_PROTOCOL: ${SPACEROCKS_PROTOCOL:-http}
+      SPACEROCKS_WORLD_NAME: ${SPACEROCKS_WORLD_NAME:-main}
+      SPACEROCKS_API_BASE_PATH: ${SPACEROCKS_API_BASE_PATH:-/rtc/v1}
+    ports:
+      - "${SPACEROCKS_CLIENT_PORT:-8080}:80"
