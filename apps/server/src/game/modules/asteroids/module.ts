@@ -4,6 +4,7 @@ import {
   Asteroid,
   GameStateView,
   MAX_ASTEROIDS_TOTAL_MASS,
+  NetworkComponentsModule,
   PlayerShip,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -13,6 +14,7 @@ import {
 import { Components, AsteroidMassTotal } from './components';
 import { createAsteroid, randomAsteroidMass } from './factories';
 import { WorldRng, type Prng } from '../rng/components';
+import { RngModule } from '../rng/module';
 import { isPlaying } from '../gameState/helpers';
 import {
   getGridCellIndex,
@@ -90,11 +92,10 @@ function chooseUnseenGridCell(
 export class AsteroidsModule extends Module {
   override init(): void {
     const world = this.world;
-    const rng = world.get(WorldRng)?.prng;
-    if (!rng) {
-      throw new Error('AsteroidsModule requires RngModule to be loaded first');
-    }
+    this.world.module(RngModule);
+    this.world.module(NetworkComponentsModule);
     this.world.module(Components);
+    const rng = world.get(WorldRng)!.prng!;
 
     fillInitialAsteroids(world, rng);
 

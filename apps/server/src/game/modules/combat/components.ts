@@ -1,5 +1,5 @@
 import { Module } from '@vworlds/vecs';
-import { Shield, toFrames } from '@spacerocks/common';
+import { toFrames } from '@spacerocks/common';
 
 const RESPAWN_DELAY_FRAMES = toFrames(3_000);
 
@@ -14,13 +14,11 @@ export class RespawnTimer {
 }
 
 /**
- * Registers the combat components: `Shield` (common) and `RespawnTimer`.
- * `Health` is registered by `playerSessions` (the player-ship components
- * module); combat only uses it.
+ * Registers the `RespawnTimer` component. `Shield`/`Health` (common) are
+ * registered by `NetworkComponentsModule`.
  */
 export class Components extends Module {
   override init(): void {
-    this.world.component(Shield);
     this.world.component(RespawnTimer);
   }
 }

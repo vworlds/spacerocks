@@ -41,7 +41,7 @@ import {
   Shield,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
+import { registerNetworkFoundation } from '../helpers';
 import { CombatModule } from '../../../src/game/modules/combat/module';
 import {
   Components as CombatComponents,
@@ -71,12 +71,15 @@ vi.mock('@vworlds/vecs-server', () => ({
     input: unknown;
   },
   Networked: class Networked {},
+  View: class View {
+    dsl: unknown;
+  },
 }));
 
 function createTestWorld(): { world: World } {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.component(Explosion);
   world.module(RngModule);
   world.module(CombatComponents);

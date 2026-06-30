@@ -1,41 +1,34 @@
 import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
 import { PhysicsModule } from '@vworlds/vecs-physics';
 import { NetworkComponentsModule, TICK_RATE } from '@spacerocks/common';
-import { vi } from 'vitest';
+import {
+  NetworkClient,
+  NetworkInput,
+  Networked,
+  View,
+} from '@vworlds/vecs-server';
 
 /**
- * Mocks `@vworlds/vecs-server` so tests using the base `World` (not a real
- * `ServerWorld`) can import modules that reference `Networked` /
- * `NetworkClient` / `NetworkInput` without pulling in the server network
- * machinery. Call once at the top of a test file that loads gameplay modules.
+ * Registers the vecs-server network foundation components
+ * (`Networked`, `NetworkClient`, `NetworkInput`, `View`) on a base `World`.
+ * `ServerWorld` does this automatically; test worlds using a mocked
+ * `@vworlds/vecs-server` must call this explicitly.
  */
-export function mockVecsServer(): void {
-  vi.mock('@vworlds/vecs-server', () => ({
-    NetworkClient: class NetworkClient {
-      id = '';
-    },
-    NetworkInput: class NetworkInput {
-      input: unknown;
-    },
-    Networked: class Networked {},
-    View: class View {
-      dsl: unknown;
-    },
-    ServerWorld: World,
-    VecsListener: class VecsListener {
-      registerWorld() {}
-      async listen() {}
-    },
-  }));
+export function registerNetworkFoundation(world: World): void {
+  world.component(Networked);
+  world.component(NetworkClient);
+  world.component(NetworkInput);
+  world.component(View);
 }
 
 /**
- * Builds a base `World` with the network components registered via
- * `NetworkComponentsModule`. Gameplay modules are loaded by the caller via
+ * Builds a base `World` with the network foundation + common network
+ * components registered. Gameplay modules are loaded by the caller via
  * `world.module(...)`.
  */
 export function createBaseWorld(): World {
   const world = new World();
+  registerNetworkFoundation(world);
   world.module(NetworkComponentsModule);
   return world;
 }

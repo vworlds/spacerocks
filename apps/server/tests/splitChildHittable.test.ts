@@ -20,7 +20,7 @@ import {
   NetworkComponentsModule,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
+import { registerNetworkFoundation } from './modules/helpers';
 import { CombatModule } from '../src/game/modules/combat/module';
 import { Components as CombatComponents } from '../src/game/modules/combat/components';
 import { Components as PlayerSessionsComponents } from '../src/game/modules/playerSessions/components';
@@ -44,12 +44,15 @@ vi.mock('@vworlds/vecs-server', () => ({
     input: unknown;
   },
   Networked: class Networked {},
+  View: class View {
+    dsl: unknown;
+  },
 }));
 
 function createTestWorld(): World {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.component(Explosion);
   world.module(RngModule);
   world.module(PlayerSessionsComponents);

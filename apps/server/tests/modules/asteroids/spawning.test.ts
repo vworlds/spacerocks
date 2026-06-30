@@ -41,7 +41,7 @@ import {
   WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
+import { registerNetworkFoundation } from '../helpers';
 import { createPrng } from '../../../src/game/modules/rng/components';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import type { Prng } from '../../../src/game/modules/rng/components';
@@ -57,10 +57,8 @@ import {
 import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
 import { AsteroidsModule } from '../../../src/game/modules/asteroids/module';
 import { createAlien } from '../../../src/game/modules/aliens/factories';
-import { Components as AliensComponents } from '../../../src/game/modules/aliens/components';
 import { AliensModule } from '../../../src/game/modules/aliens/module';
 import { createPickup } from '../../../src/game/modules/pickups/factories';
-import { Components as PickupsComponents } from '../../../src/game/modules/pickups/components';
 import { PickupsModule } from '../../../src/game/modules/pickups/module';
 import { Components as WeaponsComponents } from '../../../src/game/modules/weapons/components';
 import { createGameWorld } from '../../../src/index';
@@ -74,7 +72,7 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
 } {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   if (typeof seedOrRng === 'number') {
     world.module(RngModule, { seed: seedOrRng });
   } else {
@@ -89,8 +87,6 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
   world.module(PlayerSessionsComponents);
   world.module(SpawningComponents);
   world.module(AsteroidsComponents);
-  world.module(AliensComponents);
-  world.module(PickupsComponents);
   world.module(WeaponsComponents);
   world.module(SpawningModule);
   world.module(AsteroidsModule);
@@ -102,7 +98,7 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
 function createPhysicsSpawnWorld(): World {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.module(RngModule);
   world.module(PlayerSessionsComponents);
   world.module(SpawningComponents);

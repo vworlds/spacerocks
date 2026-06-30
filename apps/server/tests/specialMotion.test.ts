@@ -42,7 +42,7 @@ import {
   Wraps,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
+import { registerNetworkFoundation } from './modules/helpers';
 import { CombatModule } from '../src/game/modules/combat/module';
 import { Components as CombatComponents } from '../src/game/modules/combat/components';
 import { MovementModule } from '../src/game/modules/movement/module';
@@ -54,7 +54,6 @@ import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
 import { Components as SpawningComponents } from '../src/game/modules/spawning/components';
 import { createAlien } from '../src/game/modules/aliens/factories';
-import { Components as AliensComponents } from '../src/game/modules/aliens/components';
 import { createAsteroid } from '../src/game/modules/asteroids/factories';
 import { Components as AsteroidsComponents } from '../src/game/modules/asteroids/components';
 import {
@@ -75,6 +74,9 @@ vi.mock('@vworlds/vecs-server', () => ({
     input: unknown;
   },
   Networked: class Networked {},
+  View: class View {
+    dsl: unknown;
+  },
 }));
 
 function createSpecialMotionWorld(
@@ -82,7 +84,7 @@ function createSpecialMotionWorld(
 ): World {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.component(Explosion);
   world.module(RngModule);
   world.module(PhysicsModule, {
@@ -93,7 +95,6 @@ function createSpecialMotionWorld(
   world.module(CombatComponents);
   world.module(SpawningComponents);
   world.module(AsteroidsComponents);
-  world.module(AliensComponents);
   world.module(WeaponsComponents);
   if (options.installShooting ?? true) {
     world.module(GameStateModule);
@@ -117,13 +118,12 @@ function createSpecialMotionWorld(
 function createLaserWorld(): World {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.component(Explosion);
   world.module(RngModule);
   world.module(CombatComponents);
   world.module(SpawningComponents);
   world.module(AsteroidsComponents);
-  world.module(AliensComponents);
   world.module(WeaponsComponents);
   world.module(PhysicsModule, {
     gravity: { x: 0, y: 0 },

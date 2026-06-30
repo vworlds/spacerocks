@@ -1,16 +1,16 @@
 import { Module } from '@vworlds/vecs';
-import { Components } from './components';
+import { NetworkComponentsModule } from '@spacerocks/common';
 import { createGameStateEntity } from './helpers';
 
 /**
- * Registers the `GameStateView` component as a singleton and creates the
- * singleton game-state entity that tracks play state, wave, score, and status.
- * Other gameplay modules depend on this for `isPlaying` / `addScore` /
- * `createExplosion`.
+ * Creates the singleton game-state entity that tracks play state, wave,
+ * score, and status. Other gameplay modules depend on this for `isPlaying` /
+ * `addScore` / `createExplosion`. The `GameStateView` component is registered
+ * by `NetworkComponentsModule`.
  */
 export class GameStateModule extends Module {
   override init(): void {
-    this.world.module(Components);
+    this.world.module(NetworkComponentsModule);
     createGameStateEntity(this.world);
   }
 }

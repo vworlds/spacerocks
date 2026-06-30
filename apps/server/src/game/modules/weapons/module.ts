@@ -24,6 +24,7 @@ import {
   DefaultWeapon,
   ENTITY_CONFIG,
   LaserWeapon,
+  NetworkComponentsModule,
   PlayerShip,
   Rocket,
   RocketWeapon,
@@ -32,6 +33,7 @@ import {
 } from '@spacerocks/common';
 import { PlayerInputIntent } from '../playerSessions/components';
 import { WorldRng } from '../rng/components';
+import { RngModule } from '../rng/module';
 import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
 import {
   splitAsteroid,
@@ -63,11 +65,10 @@ const LASER_LENGTH = 10;
 export class WeaponsModule extends Module {
   override init(): void {
     const world = this.world;
-    const rng = world.get(WorldRng)?.prng;
-    if (!rng) {
-      throw new Error('WeaponsModule requires RngModule to be loaded first');
-    }
+    this.world.module(RngModule);
+    this.world.module(NetworkComponentsModule);
     this.world.module(Components);
+    const rng = world.get(WorldRng)!.prng!;
 
     world
       .system('InitializeWeaponState')

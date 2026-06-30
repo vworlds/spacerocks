@@ -43,7 +43,7 @@ import {
   TICK_RATE,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
+import { registerNetworkFoundation } from '../helpers';
 import { MovementModule } from '../../../src/game/modules/movement/module';
 import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
 import {
@@ -66,7 +66,6 @@ import { SpawningModule } from '../../../src/game/modules/spawning/module';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
 import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
-import { Components as AliensComponents } from '../../../src/game/modules/aliens/components';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -76,12 +75,15 @@ vi.mock('@vworlds/vecs-server', () => ({
     input: unknown;
   },
   Networked: class Networked {},
+  View: class View {
+    dsl: unknown;
+  },
 }));
 
 function createTestWorld(): { world: World } {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.module(RngModule);
   world.module(GameStateModule);
   world.module(PhysicsModule, {
@@ -92,7 +94,6 @@ function createTestWorld(): { world: World } {
   world.module(PlayerSessionsComponents);
   world.module(WeaponsComponents);
   world.module(AsteroidsComponents);
-  world.module(AliensComponents);
   world.module(PlayerSessionsModule);
   world.module(WeaponsModule);
   world.module(SpawningModule);

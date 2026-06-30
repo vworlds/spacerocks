@@ -1,5 +1,5 @@
 import { ChildOf, World, type Entity } from '@vworlds/vecs';
-import { NetworkClient, NetworkInput, Networked } from '@vworlds/vecs-server';
+import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
 import { Image, Position, Size, Tint } from '@vworlds/vecs-phaser';
 import { PhysicsModule } from '@vworlds/vecs-physics';
 import {
@@ -15,6 +15,7 @@ import {
   WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
+import { registerNetworkFoundation } from '../helpers';
 import {
   Components as PlayerSessionsComponents,
   PlayerInputIntent,
@@ -37,6 +38,9 @@ vi.mock('@vworlds/vecs-server', () => ({
     input: unknown;
   },
   Networked: class Networked {},
+  View: class View {
+    dsl: unknown;
+  },
 }));
 
 // Fake AssetManager exposing just the surface pickShipSprite reads: a
@@ -52,7 +56,7 @@ function fakeAssetManager() {
 function createTestWorld(): World {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.module(RngModule);
   world.module(GameStateModule);
   world.module(PhysicsModule, {

@@ -11,7 +11,7 @@ import {
   TICK_RATE,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
+import { registerNetworkFoundation } from './modules/helpers';
 import { MovementModule } from '../src/game/modules/movement/module';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
 import { PlayerInputIntent } from '../src/game/modules/playerSessions/components';
@@ -29,12 +29,15 @@ vi.mock('@vworlds/vecs-server', () => ({
     input: unknown;
   },
   Networked: class Networked {},
+  View: class View {
+    dsl: unknown;
+  },
 }));
 
 function createTestWorld(): World {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.module(RngModule);
   world.module(GameStateModule);
   world.module(WeaponsComponents);

@@ -11,6 +11,7 @@ import {
   Health,
   HealthPickup,
   LaserWeapon,
+  NetworkComponentsModule,
   Pickup,
   PickupKind,
   PlayerShip,
@@ -19,9 +20,9 @@ import {
   SCORING,
   Shield,
 } from '@spacerocks/common';
-import { Components } from './components';
 import { createPickup } from './factories';
 import { WorldRng } from '../rng/components';
+import { RngModule } from '../rng/module';
 import { createSpawnTimer, SpawnTimer } from '../spawning/components';
 import { SpawningModule } from '../spawning/module';
 import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
@@ -162,12 +163,10 @@ function applyPickupEffect(
 export class PickupsModule extends Module {
   override init(): void {
     const world = this.world;
-    const rng = world.get(WorldRng)?.prng;
-    if (!rng) {
-      throw new Error('PickupsModule requires RngModule to be loaded first');
-    }
-    this.world.module(Components);
+    this.world.module(RngModule);
+    this.world.module(NetworkComponentsModule);
     this.world.module(SpawningModule);
+    const rng = world.get(WorldRng)!.prng!;
 
     const now = Date.now();
     for (const { clockKind, min, max } of PICKUP_SPAWNS) {

@@ -1,4 +1,11 @@
-import { ChildOf, POST_UPDATE, Module, type Entity } from '@vworlds/vecs';
+import {
+  ChildOf,
+  POST_UPDATE,
+  Module,
+  type ComponentClass,
+  type Entity,
+  type World,
+} from '@vworlds/vecs';
 import {
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
@@ -11,11 +18,11 @@ import {
   COLORS,
   ENTITY_CONFIG,
   GAME_CONFIG,
+  NetworkComponentsModule,
   PlayerShip,
   RandomClockKind,
 } from '@spacerocks/common';
 import { Position } from '@vworlds/vecs-phaser';
-import { Components } from './components';
 import { createAlien } from './factories';
 import { damageEnemy } from './damage';
 import { createBullet } from '../weapons/factories';
@@ -24,11 +31,9 @@ import { WorldRng } from '../rng/components';
 import { createSpawnTimer, SpawnTimer } from '../spawning/components';
 import { createExplosion, isPlaying } from '../gameState/helpers';
 import { SpawningModule } from '../spawning/module';
+import { RngModule } from '../rng/module';
 
-function countEntities(
-  world: import('@vworlds/vecs').World,
-  component: import('@vworlds/vecs').ComponentClass,
-): number {
+function countEntities(world: World, component: ComponentClass): number {
   let count = 0;
   world.filter([component]).forEach([], () => {
     count += 1;
@@ -36,10 +41,7 @@ function countEntities(
   return count;
 }
 
-function bodyOf(
-  world: import('@vworlds/vecs').World,
-  shape: Entity | undefined,
-): Entity | undefined {
+function bodyOf(world: World, shape: Entity | undefined): Entity | undefined {
   if (!shape || shape.destroyed) return undefined;
   const body = shape.target(ChildOf);
   if (!body || body.destroyed || !world.getEntity(body.eid)) return undefined;
@@ -58,12 +60,10 @@ function bodyOf(
 export class AliensModule extends Module {
   override init(): void {
     const world = this.world;
-    const rng = world.get(WorldRng)?.prng;
-    if (!rng) {
-      throw new Error('AliensModule requires RngModule to be loaded first');
-    }
-    this.world.module(Components);
+    this.world.module(RngModule);
+    this.world.module(NetworkComponentsModule);
     this.world.module(SpawningModule);
+    const rng = world.get(WorldRng)!.prng!;
 
     createSpawnTimer(
       world,

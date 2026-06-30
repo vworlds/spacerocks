@@ -19,7 +19,7 @@ import {
   Shield,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
+import { registerNetworkFoundation } from '../helpers';
 import {
   Components as EmbellishmentsComponents,
   Embellishments,
@@ -34,7 +34,6 @@ import {
 import { Components as PlayerSessionsComponents } from '../../../src/game/modules/playerSessions/components';
 import { Components as WeaponsComponents } from '../../../src/game/modules/weapons/components';
 import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
-import { Components as AliensComponents } from '../../../src/game/modules/aliens/components';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -44,16 +43,18 @@ vi.mock('@vworlds/vecs-server', () => ({
     input: unknown;
   },
   Networked: class Networked {},
+  View: class View {
+    dsl: unknown;
+  },
 }));
 
 function createTestWorld(): World {
   const world = new World();
   world.module(NetworkComponentsModule);
-  world.component(Networked);
+  registerNetworkFoundation(world);
   world.module(PlayerSessionsComponents);
   world.module(WeaponsComponents);
   world.module(AsteroidsComponents);
-  world.module(AliensComponents);
   world.module(EmbellishmentsComponents);
   world.module(EmbellishmentsModule);
   return world;

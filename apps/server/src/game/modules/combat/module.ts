@@ -17,6 +17,7 @@ import {
   COLORS,
   ENTITY_CONFIG,
   Health,
+  NetworkComponentsModule,
   PlayerShip,
   SCORING,
   SHIELD_DAMAGE,
@@ -100,6 +101,7 @@ function bodyOf(world: World, shape: Entity | undefined): Entity | undefined {
 export class CombatModule extends Module {
   override init(): void {
     const world = this.world;
+    world.module(NetworkComponentsModule);
     world.module(Components);
 
     world
