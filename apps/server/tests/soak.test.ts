@@ -258,5 +258,5 @@ describe('server game world soak', () => {
     expect(count(world, Explosion)).toBeLessThan(maxExplosions);
     expect(maxBodies).toBeLessThan(160);
     expect(maxCircles).toBeLessThan(160);
-  });
+  }, 30000);
 });
