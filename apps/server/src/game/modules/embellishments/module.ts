@@ -29,11 +29,11 @@ import {
   VIEWPORT_WIDTH,
 } from '@spacerocks/common';
 import {
+  Components,
   Embellishments,
   FollowParent,
   FollowParentRotation,
   Offset,
-  registerEmbellishmentComponents,
 } from './components';
 
 const HEALTH_BAR_WIDTH = 0.3;
@@ -258,7 +258,7 @@ function ensureLaserBeam(
 export class EmbellishmentsModule extends Module {
   override init(): void {
     const world = this.world;
-    registerEmbellishmentComponents(world);
+    world.module(Components);
 
     world
       .system('ServerHealthBarEmbellishments')

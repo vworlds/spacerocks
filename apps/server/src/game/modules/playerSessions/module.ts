@@ -1,15 +1,7 @@
 import { ChildOf, Module } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
-import {
-  PlayerInputIntent,
-  PlayerSession,
-  registerPlayerSessionComponents,
-} from './components';
-import {
-  createPlayerShip,
-  getOwnedShip,
-  parseInputIntent,
-} from './shipFactory';
+import { Components, PlayerInputIntent, PlayerSession } from './components';
+import { createPlayerShip, getOwnedShip, parseInputIntent } from './factories';
 
 /**
  * Owns player session lifecycle: creates a `PlayerSession` + player ship when
@@ -21,7 +13,7 @@ import {
  */
 export class PlayerSessionsModule extends Module {
   override init(): void {
-    registerPlayerSessionComponents(this.world);
+    this.world.module(Components);
 
     let nextPlayerIndex = 0;
 

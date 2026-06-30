@@ -7,7 +7,6 @@ import {
 import {
   Arc,
   FillStyle,
-  phaserNetworkComponents,
   Polygon,
   Position,
   StrokeStyle,
@@ -29,6 +28,7 @@ import {
   ENTITY_CONFIG,
   GameStateView,
   MAX_ASTEROIDS_TOTAL_MASS,
+  NetworkComponentsModule,
   PlayerShip,
   Pickup,
   PICKUP_COLORS,
@@ -47,22 +47,22 @@ import { RngModule } from '../../../src/game/modules/rng/module';
 import type { Prng } from '../../../src/game/modules/rng/components';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
 import { SpawningModule } from '../../../src/game/modules/spawning/module';
-import { registerSpawningComponents } from '../../../src/game/modules/spawning/components';
-import { registerPlayerSessionComponents } from '../../../src/game/modules/playerSessions/components';
+import { Components as SpawningComponents } from '../../../src/game/modules/spawning/components';
+import { Components as PlayerSessionsComponents } from '../../../src/game/modules/playerSessions/components';
 import {
   createAsteroid,
   getTotalAsteroidMass,
   randomAsteroidMass,
-} from '../../../src/game/modules/asteroids/factory';
-import { registerAsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+} from '../../../src/game/modules/asteroids/factories';
+import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
 import { AsteroidsModule } from '../../../src/game/modules/asteroids/module';
-import { createAlien } from '../../../src/game/modules/aliens/factory';
-import { registerAliensComponents } from '../../../src/game/modules/aliens/components';
+import { createAlien } from '../../../src/game/modules/aliens/factories';
+import { Components as AliensComponents } from '../../../src/game/modules/aliens/components';
 import { AliensModule } from '../../../src/game/modules/aliens/module';
-import { createPickup } from '../../../src/game/modules/pickups/factory';
-import { registerPickupsComponents } from '../../../src/game/modules/pickups/components';
+import { createPickup } from '../../../src/game/modules/pickups/factories';
+import { Components as PickupsComponents } from '../../../src/game/modules/pickups/components';
 import { PickupsModule } from '../../../src/game/modules/pickups/module';
-import { registerWeaponsComponents } from '../../../src/game/modules/weapons/components';
+import { Components as WeaponsComponents } from '../../../src/game/modules/weapons/components';
 import { createGameWorld } from '../../../src/index';
 import {
   getGridCellIndex,
@@ -73,7 +73,7 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
   world: World;
 } {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
   if (typeof seedOrRng === 'number') {
     world.module(RngModule, { seed: seedOrRng });
@@ -81,12 +81,17 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
     world.module(RngModule);
   }
   world.module(GameStateModule);
-  registerPlayerSessionComponents(world);
-  registerSpawningComponents(world);
-  registerAsteroidsComponents(world);
-  registerAliensComponents(world);
-  registerPickupsComponents(world);
-  registerWeaponsComponents(world);
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
+  world.module(PlayerSessionsComponents);
+  world.module(SpawningComponents);
+  world.module(AsteroidsComponents);
+  world.module(AliensComponents);
+  world.module(PickupsComponents);
+  world.module(WeaponsComponents);
   world.module(SpawningModule);
   world.module(AsteroidsModule);
   world.module(AliensModule);
@@ -96,12 +101,12 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
 
 function createPhysicsSpawnWorld(): World {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
   world.module(RngModule);
-  registerPlayerSessionComponents(world);
-  registerSpawningComponents(world);
-  registerAsteroidsComponents(world);
+  world.module(PlayerSessionsComponents);
+  world.module(SpawningComponents);
+  world.module(AsteroidsComponents);
   world.module(PhysicsModule, {
     gravity: { x: 0, y: 0 },
     fixedTimeStep: 1 / TICK_RATE,
@@ -207,11 +212,6 @@ describe('server spawning systems', () => {
 
   it('spawns asteroids with measurable per-second physics drift', () => {
     const { world } = createTestWorld();
-    world.module(PhysicsModule, {
-      gravity: { x: 0, y: 0 },
-      fixedTimeStep: 1 / TICK_RATE,
-      subSteps: 4,
-    });
     const rng = {
       bool: () => false,
       int: () => 0,

@@ -15,14 +15,15 @@ import {
   RandomClockKind,
 } from '@spacerocks/common';
 import { Position } from '@vworlds/vecs-phaser';
-import { registerAliensComponents } from './components';
-import { createAlien } from './factory';
+import { Components } from './components';
+import { createAlien } from './factories';
 import { damageEnemy } from './damage';
 import { createBullet } from '../weapons/factories';
 import { findNearestPlayer, rotateTowardTarget } from '../weapons/targeting';
 import { WorldRng } from '../rng/components';
 import { createSpawnTimer, SpawnTimer } from '../spawning/components';
 import { createExplosion, isPlaying } from '../gameState/helpers';
+import { SpawningModule } from '../spawning/module';
 
 function countEntities(
   world: import('@vworlds/vecs').World,
@@ -61,7 +62,8 @@ export class AliensModule extends Module {
     if (!rng) {
       throw new Error('AliensModule requires RngModule to be loaded first');
     }
-    registerAliensComponents(world);
+    this.world.module(Components);
+    this.world.module(SpawningModule);
 
     createSpawnTimer(
       world,

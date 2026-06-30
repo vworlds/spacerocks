@@ -25,7 +25,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { PlayerSession } from '../src/game/modules/playerSessions/components';
 import { createPrng } from '../src/game/modules/rng/components';
-import { createAsteroid } from '../src/game/modules/asteroids/factory';
+import { createAsteroid } from '../src/game/modules/asteroids/factories';
 import { createGameWorld } from '../src/index';
 
 const DT_MS = 1000 / TICK_RATE;

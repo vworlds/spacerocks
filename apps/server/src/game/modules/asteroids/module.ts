@@ -10,8 +10,8 @@ import {
   WORLD_MIN_X,
   WORLD_MIN_Y,
 } from '@spacerocks/common';
-import { registerAsteroidsComponents, AsteroidMassTotal } from './components';
-import { createAsteroid, randomAsteroidMass } from './factory';
+import { Components, AsteroidMassTotal } from './components';
+import { createAsteroid, randomAsteroidMass } from './factories';
 import { WorldRng, type Prng } from '../rng/components';
 import { isPlaying } from '../gameState/helpers';
 import {
@@ -94,7 +94,7 @@ export class AsteroidsModule extends Module {
     if (!rng) {
       throw new Error('AsteroidsModule requires RngModule to be loaded first');
     }
-    registerAsteroidsComponents(world);
+    this.world.module(Components);
 
     fillInitialAsteroids(world, rng);
 

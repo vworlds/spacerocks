@@ -3,7 +3,7 @@ import { Position as PhysicsPosition } from '@vworlds/vecs-physics';
 import { Asteroid } from '@spacerocks/common';
 import { createGameWorld } from '../src/index';
 import { createBullet } from '../src/game/modules/weapons/factories';
-import { createPlayerShip } from '../src/game/modules/playerSessions/shipFactory';
+import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
 import { PlayerSession } from '../src/game/modules/playerSessions/components';
 
 const DT_MS = 1000 / 30;

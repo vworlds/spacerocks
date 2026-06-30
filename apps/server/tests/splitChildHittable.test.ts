@@ -1,5 +1,5 @@
 import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
-import { phaserNetworkComponents, Position } from '@vworlds/vecs-phaser';
+import { Position } from '@vworlds/vecs-phaser';
 import {
   Body,
   BodyType,
@@ -17,22 +17,21 @@ import {
   CAT_PLAYER_BULLET,
   ENTITY_CONFIG,
   Explosion,
+  NetworkComponentsModule,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { Networked } from '@vworlds/vecs-server';
-import {
-  CombatModule,
-  registerCombatComponents,
-} from '../src/game/modules/combat/module';
-import { registerPlayerSessionComponents } from '../src/game/modules/playerSessions/components';
+import { CombatModule } from '../src/game/modules/combat/module';
+import { Components as CombatComponents } from '../src/game/modules/combat/components';
+import { Components as PlayerSessionsComponents } from '../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
 import { createPrng } from '../src/game/modules/rng/components';
 import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
-import { registerSpawningComponents } from '../src/game/modules/spawning/components';
-import { createAsteroid } from '../src/game/modules/asteroids/factory';
-import { registerAsteroidsComponents } from '../src/game/modules/asteroids/components';
-import { registerWeaponsComponents } from '../src/game/modules/weapons/components';
+import { Components as SpawningComponents } from '../src/game/modules/spawning/components';
+import { createAsteroid } from '../src/game/modules/asteroids/factories';
+import { Components as AsteroidsComponents } from '../src/game/modules/asteroids/components';
+import { Components as WeaponsComponents } from '../src/game/modules/weapons/components';
 import { WeaponsModule } from '../src/game/modules/weapons/module';
 
 const DT_MS = 1000 / 60;
@@ -49,15 +48,15 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): World {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
-  world.component(Explosion);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
+  world.component(Explosion);
   world.module(RngModule);
-  registerPlayerSessionComponents(world);
-  registerSpawningComponents(world);
-  registerAsteroidsComponents(world);
-  registerWeaponsComponents(world);
-  registerCombatComponents(world);
+  world.module(PlayerSessionsComponents);
+  world.module(SpawningComponents);
+  world.module(AsteroidsComponents);
+  world.module(WeaponsComponents);
+  world.module(CombatComponents);
   world.module(PhysicsModule, {
     gravity: { x: 0, y: 0 },
     fixedTimeStep: 1 / 60,

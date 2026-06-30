@@ -1,32 +1,31 @@
 import { ChildOf, World, type Entity } from '@vworlds/vecs';
-import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
-import {
-  Image,
-  phaserNetworkComponents,
-  Position,
-  Size,
-  Tint,
-} from '@vworlds/vecs-phaser';
+import { NetworkClient, NetworkInput, Networked } from '@vworlds/vecs-server';
+import { Image, Position, Size, Tint } from '@vworlds/vecs-phaser';
+import { PhysicsModule } from '@vworlds/vecs-physics';
 import {
   PLAYER_COLORS,
   Hyperspace,
+  NetworkComponentsModule,
   Owner,
   PlayerShip,
+  TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
   WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Networked } from '@vworlds/vecs-server';
 import {
+  Components as PlayerSessionsComponents,
   PlayerInputIntent,
   PlayerSession,
-  registerPlayerSessionComponents,
 } from '../../../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/module';
 import { SHIP_SPRITE_SIZE_METERS } from '../../../src/game/modules/assets/sprite';
-import { WorldAssets } from '../../../src/game/modules/assets/components';
+import {
+  Components as AssetsComponents,
+  WorldAssets,
+} from '../../../src/game/modules/assets/components';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
 
@@ -52,12 +51,17 @@ function fakeAssetManager() {
 
 function createTestWorld(): World {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
   world.module(RngModule);
   world.module(GameStateModule);
-  registerPlayerSessionComponents(world);
-  world.component(WorldAssets);
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
+  world.module(PlayerSessionsComponents);
+  world.module(AssetsComponents);
   world.set(WorldAssets, { manager: fakeAssetManager() as never });
   world.module(PlayerSessionsModule);
   return world;

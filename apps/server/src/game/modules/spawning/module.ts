@@ -1,5 +1,5 @@
 import { Module } from '@vworlds/vecs';
-import { registerSpawningComponents } from './components';
+import { Components } from './components';
 
 /**
  * Registers the shared `SpawnTimer` component used by feature modules
@@ -8,6 +8,6 @@ import { registerSpawningComponents } from './components';
  */
 export class SpawningModule extends Module {
   override init(): void {
-    registerSpawningComponents(this.world);
+    this.world.module(Components);
   }
 }

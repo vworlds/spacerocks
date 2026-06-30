@@ -1,7 +1,12 @@
-import { type World } from '@vworlds/vecs';
-import { Alien, Health } from '@spacerocks/common';
+import { Module } from '@vworlds/vecs';
+import { Alien } from '@spacerocks/common';
 
-export function registerAliensComponents(world: World): void {
-  world.component(Alien);
-  world.component(Health);
+/**
+ * Registers the `Alien` component. `Health` (which aliens also carry) is
+ * registered by the `playerSessions` Components module.
+ */
+export class Components extends Module {
+  override init(): void {
+    this.world.component(Alien);
+  }
 }

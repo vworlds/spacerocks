@@ -1,3 +1,4 @@
+import { Module, Singleton } from '@vworlds/vecs';
 import type { AssetManager } from '@vworlds/vecs-phaser-server';
 
 /**
@@ -8,4 +9,13 @@ import type { AssetManager } from '@vworlds/vecs-phaser-server';
  */
 export class WorldAssets {
   manager: AssetManager | undefined;
+}
+
+/**
+ * Registers the `WorldAssets` component as a singleton.
+ */
+export class Components extends Module {
+  override init(): void {
+    this.world.component(WorldAssets).add(Singleton);
+  }
 }

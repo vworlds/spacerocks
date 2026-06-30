@@ -1,10 +1,5 @@
-import { Singleton, type World } from '@vworlds/vecs';
+import { Module, Singleton } from '@vworlds/vecs';
 import { Asteroid, AsteroidView } from '@spacerocks/common';
-import {
-  Detectable,
-  Material,
-  Polygon as PhysicsPolygon,
-} from '@vworlds/vecs-physics';
 
 /**
  * Running total of live asteroid mass, held as a singleton so the world owns
@@ -15,11 +10,16 @@ export class AsteroidMassTotal {
   total = 0;
 }
 
-export function registerAsteroidsComponents(world: World): void {
-  world.component(Asteroid);
-  world.component(AsteroidView);
-  world.component(AsteroidMassTotal).add(Singleton);
-  world.component(Material);
-  world.component(Detectable);
-  world.component(PhysicsPolygon);
+/**
+ * Registers the asteroid components: `Asteroid`/`AsteroidView` (common) and
+ * the `AsteroidMassTotal` singleton. Physics shape components
+ * (`Material`, `Detectable`, `PhysicsPolygon`) are registered by
+ * `PhysicsModule`, which must be loaded before the asteroids factory runs.
+ */
+export class Components extends Module {
+  override init(): void {
+    this.world.component(Asteroid);
+    this.world.component(AsteroidView);
+    this.world.component(AsteroidMassTotal).add(Singleton);
+  }
 }

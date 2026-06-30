@@ -21,28 +21,11 @@ import {
   SCORING,
   SHIELD_DAMAGE,
   Shield,
-  toFrames,
 } from '@spacerocks/common';
 import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
+import { Components, RespawnTimer } from './components';
 import { PlayerSession } from '../playerSessions/components';
-import { createPlayerShip } from '../playerSessions/shipFactory';
-
-const RESPAWN_DELAY_FRAMES = toFrames(3_000);
-
-/**
- * Per-player respawn countdown. Created by {@link killPlayer}; the
- * `ServerRespawnSystem` decrements it and respawns the ship when it hits zero.
- */
-export class RespawnTimer {
-  sessionId = 0;
-  playerIndex = 0;
-  frames = RESPAWN_DELAY_FRAMES;
-}
-
-export function registerCombatComponents(world: World): void {
-  world.component(Shield);
-  world.component(RespawnTimer);
-}
+import { createPlayerShip } from '../playerSessions/factories';
 
 /**
  * Applies shield or health damage to a player. While shielded, damage drains
@@ -89,7 +72,6 @@ function killPlayer(world: World, player: Entity): void {
     world.entity().set(RespawnTimer, {
       sessionId: session.eid,
       playerIndex: playerShip.playerIndex,
-      frames: RESPAWN_DELAY_FRAMES,
     });
   }
   player.destroy();
@@ -110,16 +92,15 @@ function bodyOf(world: World, shape: Entity | undefined): Entity | undefined {
 /**
  * Player-body collision system: handles a player ship bumping into an
  * asteroid (shields absorb; otherwise the player takes asteroid-collision
- * damage and the asteroid splits) or an alien (mutual destruction, player
- * takes alien-body damage, alien is destroyed and scored).
+ * damage) or an alien (mutual destruction, player takes alien-body damage,
+ * alien is destroyed and scored).
  *
- * Depends on `PlayerSessionsModule` (respawn uses `createPlayerShip`) and
- * `AsteroidsModule` (`splitAsteroid`).
+ * Depends on `PlayerSessionsModule` (respawn uses `createPlayerShip`).
  */
 export class CombatModule extends Module {
   override init(): void {
     const world = this.world;
-    registerCombatComponents(world);
+    world.module(Components);
 
     world
       .system('ServerShieldSystem')

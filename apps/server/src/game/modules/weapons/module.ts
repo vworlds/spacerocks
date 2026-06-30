@@ -39,7 +39,7 @@ import {
 } from '../asteroids/splitting';
 import { damageEnemy } from '../aliens/damage';
 import { damagePlayer } from '../combat/module';
-import { registerWeaponsComponents, ShootingCooldown } from './components';
+import { Components, ShootingCooldown } from './components';
 import {
   createBoomerang,
   createBullet,
@@ -67,7 +67,7 @@ export class WeaponsModule extends Module {
     if (!rng) {
       throw new Error('WeaponsModule requires RngModule to be loaded first');
     }
-    registerWeaponsComponents(world);
+    this.world.module(Components);
 
     world
       .system('InitializeWeaponState')

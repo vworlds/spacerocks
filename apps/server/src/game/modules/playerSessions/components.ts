@@ -1,19 +1,5 @@
-import { ChildOf, CleanupPolicy, type World } from '@vworlds/vecs';
-import { NetworkClient, NetworkInput, Networked } from '@vworlds/vecs-server';
-import {
-  Body,
-  Circle,
-  CollisionFilter,
-  Damping,
-  Force,
-  AngularVelocity as PhysicsAngularVelocity,
-  LinearVelocity,
-  Material,
-  Position as PhysicsPosition,
-  Rotation as PhysicsRotation,
-  Sensor,
-  SensorEvents,
-} from '@vworlds/vecs-physics';
+import { ChildOf, CleanupPolicy, Module } from '@vworlds/vecs';
+import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
 import {
   DefaultWeapon,
   Health,
@@ -44,36 +30,26 @@ export class PlayerInputIntent {
 }
 
 /**
- * Registers every component a player ship + its physics body needs. This
- * includes shared gameplay components (Health, Shield, weapons markers) so
- * that a player-session world is self-contained for tests; other modules
- * re-register idempotently. Physics shape components are registered here
- * because the ship spawns a Circle/Material/Sensor at creation time.
+ * Registers the player-session components and the common ship gameplay
+ * components a player ship needs (Health, Shield, DefaultWeapon, etc.).
+ * Physics body/shape components are registered by `PhysicsModule`; network
+ * components by the network world / `NetworkComponentsModule`.
  */
-export function registerPlayerSessionComponents(world: World): void {
-  world.component(NetworkClient);
-  world.component(NetworkInput);
-  world.component(PlayerSession);
-  world.component(PlayerInputIntent);
-  world.component(ChildOf).meta.onDeleteTarget = CleanupPolicy.Delete;
-  world.component(Networked);
-  world.component(Health);
-  world.component(Shield);
-  world.component(DefaultWeapon);
-  world.component(Owner);
-  world.component(Hyperspace);
-  world.component(Wraps);
-  world.component(PlayerShip);
-  world.component(Body);
-  world.component(Damping);
-  world.component(Force);
-  world.component(PhysicsPosition);
-  world.component(PhysicsRotation);
-  world.component(LinearVelocity);
-  world.component(PhysicsAngularVelocity);
-  world.component(Circle);
-  world.component(Material);
-  world.component(Sensor);
-  world.component(SensorEvents);
-  world.component(CollisionFilter);
+export class Components extends Module {
+  override init(): void {
+    this.world.component(NetworkClient);
+    this.world.component(NetworkInput);
+    this.world.component(PlayerSession);
+    this.world.component(PlayerInputIntent);
+    this.world.component(PlayerShip);
+    this.world.component(Health);
+    this.world.component(Shield);
+    this.world.component(DefaultWeapon);
+    this.world.component(Wraps);
+    this.world.component(Owner);
+    this.world.component(Hyperspace);
+    // ChildOf is the built-in parent relationship; configure cascade-delete so
+    // destroying a parent (session/client) removes its children (ship/shapes).
+    this.world.component(ChildOf).meta.onDeleteTarget = CleanupPolicy.Delete;
+  }
 }

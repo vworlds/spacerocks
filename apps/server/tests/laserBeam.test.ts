@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LaserWeapon } from '@spacerocks/common';
 import { createGameWorld } from '../src/index';
-import { createPlayerShip } from '../src/game/modules/playerSessions/shipFactory';
+import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
 import { PlayerSession } from '../src/game/modules/playerSessions/components';
 import { Embellishments } from '../src/game/modules/embellishments/components';
 

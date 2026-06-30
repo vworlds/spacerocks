@@ -1,6 +1,6 @@
-import { Module, Singleton } from '@vworlds/vecs';
+import { Module } from '@vworlds/vecs';
 import type { AssetManager } from '@vworlds/vecs-phaser-server';
-import { WorldAssets } from './components';
+import { Components, WorldAssets } from './components';
 
 export type AssetsModuleConfig = {
   manager: AssetManager;
@@ -14,7 +14,7 @@ export type AssetsModuleConfig = {
  */
 export class AssetsModule extends Module<AssetsModuleConfig> {
   override init(config: AssetsModuleConfig): void {
-    this.world.component(WorldAssets).add(Singleton);
+    this.world.module(Components);
     this.world.set(WorldAssets, { manager: config.manager } as WorldAssets);
   }
 }

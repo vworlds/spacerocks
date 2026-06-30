@@ -7,7 +7,6 @@ import {
 import {
   FillStyle,
   Line,
-  phaserNetworkComponents,
   Polygon,
   Rotation as RenderRotation,
   StrokeStyle,
@@ -36,6 +35,7 @@ import {
   CAT_PLAYER,
   COLORS,
   ENTITY_CONFIG,
+  NetworkComponentsModule,
   PLAYER_COLORS,
   perSecond,
   Rocket,
@@ -45,10 +45,10 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { Networked } from '@vworlds/vecs-server';
 import { MovementModule } from '../../../src/game/modules/movement/module';
-import { createPlayerShip } from '../../../src/game/modules/playerSessions/shipFactory';
+import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
 import {
+  Components as PlayerSessionsComponents,
   PlayerInputIntent,
-  registerPlayerSessionComponents,
 } from '../../../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/module';
 import {
@@ -57,7 +57,7 @@ import {
   createRocket,
 } from '../../../src/game/modules/weapons/factories';
 import {
-  registerWeaponsComponents,
+  Components as WeaponsComponents,
   ShootingCooldown,
 } from '../../../src/game/modules/weapons/components';
 import { WeaponsModule } from '../../../src/game/modules/weapons/module';
@@ -65,8 +65,8 @@ import { AliensModule } from '../../../src/game/modules/aliens/module';
 import { SpawningModule } from '../../../src/game/modules/spawning/module';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
-import { registerAsteroidsComponents } from '../../../src/game/modules/asteroids/components';
-import { registerAliensComponents } from '../../../src/game/modules/aliens/components';
+import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+import { Components as AliensComponents } from '../../../src/game/modules/aliens/components';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -80,24 +80,24 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): { world: World } {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
   world.module(RngModule);
   world.module(GameStateModule);
-  registerPlayerSessionComponents(world);
-  registerWeaponsComponents(world);
-  registerAsteroidsComponents(world);
-  registerAliensComponents(world);
-  world.module(PlayerSessionsModule);
-  world.module(WeaponsModule);
-  world.module(SpawningModule);
-  world.module(AliensModule);
-  world.module(MovementModule);
   world.module(PhysicsModule, {
     gravity: { x: 0, y: 0 },
     fixedTimeStep: 1 / TICK_RATE,
     subSteps: 4,
   });
+  world.module(PlayerSessionsComponents);
+  world.module(WeaponsComponents);
+  world.module(AsteroidsComponents);
+  world.module(AliensComponents);
+  world.module(PlayerSessionsModule);
+  world.module(WeaponsModule);
+  world.module(SpawningModule);
+  world.module(AliensModule);
+  world.module(MovementModule);
   return { world };
 }
 

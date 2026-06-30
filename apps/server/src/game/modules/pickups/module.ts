@@ -19,10 +19,11 @@ import {
   SCORING,
   Shield,
 } from '@spacerocks/common';
-import { registerPickupsComponents } from './components';
-import { createPickup } from './factory';
+import { Components } from './components';
+import { createPickup } from './factories';
 import { WorldRng } from '../rng/components';
 import { createSpawnTimer, SpawnTimer } from '../spawning/components';
+import { SpawningModule } from '../spawning/module';
 import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
 
 type PickupSpawnSpec = {
@@ -165,7 +166,8 @@ export class PickupsModule extends Module {
     if (!rng) {
       throw new Error('PickupsModule requires RngModule to be loaded first');
     }
-    registerPickupsComponents(world);
+    this.world.module(Components);
+    this.world.module(SpawningModule);
 
     const now = Date.now();
     for (const { clockKind, min, max } of PICKUP_SPAWNS) {

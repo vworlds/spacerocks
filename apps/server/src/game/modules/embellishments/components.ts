@@ -1,4 +1,4 @@
-import { type World } from '@vworlds/vecs';
+import { Module, type Entity } from '@vworlds/vecs';
 
 /**
  * Local offset (meters) of a child embellishment from its parent's render
@@ -22,15 +22,21 @@ export class FollowParentRotation {}
  * entities reactively as Health/Shield/LaserWeapon change.
  */
 export class Embellishments {
-  healthBar: import('@vworlds/vecs').Entity | undefined = undefined;
-  healthBarFill: import('@vworlds/vecs').Entity | undefined = undefined;
-  shieldRing: import('@vworlds/vecs').Entity | undefined = undefined;
-  laserBeam: import('@vworlds/vecs').Entity | undefined = undefined;
+  healthBar: Entity | undefined = undefined;
+  healthBarFill: Entity | undefined = undefined;
+  shieldRing: Entity | undefined = undefined;
+  laserBeam: Entity | undefined = undefined;
 }
 
-export function registerEmbellishmentComponents(world: World): void {
-  world.component(Offset);
-  world.component(FollowParent);
-  world.component(FollowParentRotation);
-  world.component(Embellishments);
+/**
+ * Registers the embellishment components: `Offset`, `FollowParent`,
+ * `FollowParentRotation`, `Embellishments`.
+ */
+export class Components extends Module {
+  override init(): void {
+    this.world.component(Offset);
+    this.world.component(FollowParent);
+    this.world.component(FollowParentRotation);
+    this.world.component(Embellishments);
+  }
 }

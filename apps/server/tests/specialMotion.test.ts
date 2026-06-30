@@ -1,7 +1,6 @@
 import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
 import { PhaserServerModule } from '@vworlds/vecs-phaser-server';
 import {
-  phaserNetworkComponents,
   Position as RenderPosition,
   Rotation as RenderRotation,
 } from '@vworlds/vecs-phaser';
@@ -30,6 +29,7 @@ import {
   Explosion,
   GameStateView,
   LaserWeapon,
+  NetworkComponentsModule,
   PlayerShip,
   perSecond,
   Rocket,
@@ -44,28 +44,25 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { Networked } from '@vworlds/vecs-server';
 import { CombatModule } from '../src/game/modules/combat/module';
-import { registerCombatComponents } from '../src/game/modules/combat/module';
+import { Components as CombatComponents } from '../src/game/modules/combat/components';
 import { MovementModule } from '../src/game/modules/movement/module';
-import { createPlayerShip } from '../src/game/modules/playerSessions/shipFactory';
-import {
-  PlayerSession,
-  registerPlayerSessionComponents,
-} from '../src/game/modules/playerSessions/components';
+import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
+import { PlayerSession } from '../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
 import { createPrng } from '../src/game/modules/rng/components';
 import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
-import { registerSpawningComponents } from '../src/game/modules/spawning/components';
-import { createAlien } from '../src/game/modules/aliens/factory';
-import { registerAliensComponents } from '../src/game/modules/aliens/components';
-import { createAsteroid } from '../src/game/modules/asteroids/factory';
-import { registerAsteroidsComponents } from '../src/game/modules/asteroids/components';
+import { Components as SpawningComponents } from '../src/game/modules/spawning/components';
+import { createAlien } from '../src/game/modules/aliens/factories';
+import { Components as AliensComponents } from '../src/game/modules/aliens/components';
+import { createAsteroid } from '../src/game/modules/asteroids/factories';
+import { Components as AsteroidsComponents } from '../src/game/modules/asteroids/components';
 import {
   createBoomerang,
   createBullet,
   createRocket,
 } from '../src/game/modules/weapons/factories';
-import { registerWeaponsComponents } from '../src/game/modules/weapons/components';
+import { Components as WeaponsComponents } from '../src/game/modules/weapons/components';
 import { WeaponsModule } from '../src/game/modules/weapons/module';
 
 const DT_MS = 1000 / TICK_RATE;
@@ -84,16 +81,20 @@ function createSpecialMotionWorld(
   options: { installShooting?: boolean } = {},
 ): World {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
-  world.component(Explosion);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
+  world.component(Explosion);
   world.module(RngModule);
-  registerPlayerSessionComponents(world);
-  registerSpawningComponents(world);
-  registerAsteroidsComponents(world);
-  registerAliensComponents(world);
-  registerWeaponsComponents(world);
-  registerCombatComponents(world);
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
+  world.module(CombatComponents);
+  world.module(SpawningComponents);
+  world.module(AsteroidsComponents);
+  world.module(AliensComponents);
+  world.module(WeaponsComponents);
   if (options.installShooting ?? true) {
     world.module(GameStateModule);
     world.module(PlayerSessionsModule);
@@ -101,11 +102,6 @@ function createSpecialMotionWorld(
   }
   world.module(MovementModule);
   world.module(CombatModule);
-  world.module(PhysicsModule, {
-    gravity: { x: 0, y: 0 },
-    fixedTimeStep: 1 / TICK_RATE,
-    subSteps: 4,
-  });
   world.module(PhaserServerModule);
   if (!(options.installShooting ?? true)) {
     world.entity().set(GameStateView, {
@@ -120,16 +116,15 @@ function createSpecialMotionWorld(
 
 function createLaserWorld(): World {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
-  world.component(Explosion);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
+  world.component(Explosion);
   world.module(RngModule);
-  registerPlayerSessionComponents(world);
-  registerSpawningComponents(world);
-  registerAsteroidsComponents(world);
-  registerAliensComponents(world);
-  registerWeaponsComponents(world);
-  registerCombatComponents(world);
+  world.module(CombatComponents);
+  world.module(SpawningComponents);
+  world.module(AsteroidsComponents);
+  world.module(AliensComponents);
+  world.module(WeaponsComponents);
   world.module(PhysicsModule, {
     gravity: { x: 0, y: 0 },
     fixedTimeStep: 1 / TICK_RATE,

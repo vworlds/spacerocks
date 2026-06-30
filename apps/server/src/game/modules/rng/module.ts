@@ -1,5 +1,5 @@
-import { Module, Singleton } from '@vworlds/vecs';
-import { createPrng, WorldRng } from './components';
+import { Module } from '@vworlds/vecs';
+import { Components, createPrng, WorldRng } from './components';
 
 export type RngModuleConfig = {
   seed?: number;
@@ -20,7 +20,7 @@ export function readServerSeed(): number {
 export class RngModule extends Module<RngModuleConfig | undefined> {
   override init(config: RngModuleConfig | undefined): void {
     const seed = config?.seed ?? readServerSeed();
-    this.world.component(WorldRng).add(Singleton);
+    this.world.module(Components);
     this.world.set(WorldRng, { prng: createPrng(seed) } as WorldRng);
   }
 }

@@ -1,3 +1,5 @@
+import { Module, Singleton } from '@vworlds/vecs';
+
 export type Prng = {
   next(): number;
   range(min: number, max: number): number;
@@ -43,4 +45,13 @@ export function randomNormal(rng: Prng): number {
  */
 export class WorldRng {
   prng: Prng | undefined;
+}
+
+/**
+ * Registers the `WorldRng` component as a singleton.
+ */
+export class Components extends Module {
+  override init(): void {
+    this.world.component(WorldRng).add(Singleton);
+  }
 }

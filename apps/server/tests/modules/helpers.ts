@@ -1,8 +1,6 @@
-import { World } from '@vworlds/vecs';
-import { phaserNetworkComponents } from '@vworlds/vecs-phaser';
+import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
 import { PhysicsModule } from '@vworlds/vecs-physics';
-import { Networked } from '@vworlds/vecs-server';
-import { NETWORK_COMPONENTS, TICK_RATE } from '@spacerocks/common';
+import { NetworkComponentsModule, TICK_RATE } from '@spacerocks/common';
 import { vi } from 'vitest';
 
 /**
@@ -31,20 +29,14 @@ export function mockVecsServer(): void {
   }));
 }
 
-export type WorldOptions = {
-  /** Extra module classes to load after physics. */
-  physics?: boolean;
-};
-
 /**
- * Builds a base `World` with the phaser network components + physics module
- * installed. Gameplay modules are loaded by the caller via `world.module(...)`.
+ * Builds a base `World` with the network components registered via
+ * `NetworkComponentsModule`. Gameplay modules are loaded by the caller via
+ * `world.module(...)`.
  */
 export function createBaseWorld(): World {
   const world = new World();
-  for (const component of NETWORK_COMPONENTS) world.component(component);
-  for (const component of phaserNetworkComponents) world.component(component);
-  world.component(Networked);
+  world.module(NetworkComponentsModule);
   return world;
 }
 
@@ -70,10 +62,7 @@ export function stepTicks(world: World, ticks: number): void {
   }
 }
 
-export function countEntities(
-  world: World,
-  component: import('@vworlds/vecs').ComponentClass,
-): number {
+export function countEntities(world: World, component: ComponentClass): number {
   let total = 0;
   world.filter([component]).forEach([], () => {
     total += 1;
@@ -81,11 +70,8 @@ export function countEntities(
   return total;
 }
 
-export function firstEntity(
-  world: World,
-  component: import('@vworlds/vecs').ComponentClass,
-): import('@vworlds/vecs').Entity {
-  let found: import('@vworlds/vecs').Entity | undefined;
+export function firstEntity(world: World, component: ComponentClass): Entity {
+  let found: Entity | undefined;
   world.filter([component]).forEach([], (entity) => {
     found ??= entity;
   });

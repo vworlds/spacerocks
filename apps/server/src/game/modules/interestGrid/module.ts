@@ -1,14 +1,14 @@
 import { PRE_STORE, type Entity, Module } from '@vworlds/vecs';
 import { Position as RenderPosition } from '@vworlds/vecs-phaser';
 import { NetworkClient, Networked, View } from '@vworlds/vecs-server';
-import { registerInterestGridComponents } from './components';
+import { Components } from './components';
 import {
   cellTagComponents,
   createCellViewDSL,
   getGridCellIndex,
   InCell,
 } from './grid';
-import { getOwnedShip } from '../playerSessions/shipFactory';
+import { getOwnedShip } from '../playerSessions/factories';
 
 /**
  * Spatial interest management: assigns each networked entity to a grid cell
@@ -18,8 +18,8 @@ import { getOwnedShip } from '../playerSessions/shipFactory';
  */
 export class InterestGridModule extends Module {
   override init(): void {
+    this.world.module(Components);
     const world = this.world;
-    registerInterestGridComponents(world);
 
     const cellEntities = cellTagComponents.map((CellTag) =>
       world.entity().add(CellTag),

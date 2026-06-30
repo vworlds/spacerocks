@@ -4,7 +4,7 @@ import {
   type ComponentClass,
   type Entity,
 } from '@vworlds/vecs';
-import { phaserNetworkComponents, Position } from '@vworlds/vecs-phaser';
+import { Position } from '@vworlds/vecs-phaser';
 import {
   Body,
   BodyType,
@@ -32,6 +32,7 @@ import {
   Health,
   HealthPickup,
   LaserWeapon,
+  NetworkComponentsModule,
   Pickup,
   PickupKind,
   PlayerShip,
@@ -41,30 +42,23 @@ import {
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { Networked } from '@vworlds/vecs-server';
+import { CombatModule } from '../../../src/game/modules/combat/module';
 import {
-  CombatModule,
-  registerCombatComponents,
+  Components as CombatComponents,
   RespawnTimer,
-} from '../../../src/game/modules/combat/module';
-import { createPlayerShip } from '../../../src/game/modules/playerSessions/shipFactory';
-import {
-  PlayerSession,
-  registerPlayerSessionComponents,
-} from '../../../src/game/modules/playerSessions/components';
+} from '../../../src/game/modules/combat/components';
+import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
+import { PlayerSession } from '../../../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/module';
 import { createPrng } from '../../../src/game/modules/rng/components';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
-import { registerSpawningComponents } from '../../../src/game/modules/spawning/components';
-import { createAsteroid } from '../../../src/game/modules/asteroids/factory';
-import { registerAsteroidsComponents } from '../../../src/game/modules/asteroids/components';
-import { createAlien } from '../../../src/game/modules/aliens/factory';
-import { registerAliensComponents } from '../../../src/game/modules/aliens/components';
+import { createAsteroid } from '../../../src/game/modules/asteroids/factories';
+import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+import { createAlien } from '../../../src/game/modules/aliens/factories';
 import { createBullet } from '../../../src/game/modules/weapons/factories';
-import { registerWeaponsComponents } from '../../../src/game/modules/weapons/components';
 import { WeaponsModule } from '../../../src/game/modules/weapons/module';
 import { AliensModule } from '../../../src/game/modules/aliens/module';
-import { registerPickupsComponents } from '../../../src/game/modules/pickups/components';
 import { PickupsModule } from '../../../src/game/modules/pickups/module';
 
 const DT_MS = 1000 / 60;
@@ -81,17 +75,12 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): { world: World } {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
-  world.component(Explosion);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
+  world.component(Explosion);
   world.module(RngModule);
-  registerPlayerSessionComponents(world);
-  registerSpawningComponents(world);
-  registerAsteroidsComponents(world);
-  registerAliensComponents(world);
-  registerWeaponsComponents(world);
-  registerCombatComponents(world);
-  registerPickupsComponents(world);
+  world.module(CombatComponents);
+  world.module(AsteroidsComponents);
   world.module(PhysicsModule, {
     gravity: { x: 0, y: 0 },
     fixedTimeStep: 1 / 60,

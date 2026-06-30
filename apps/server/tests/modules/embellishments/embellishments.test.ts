@@ -4,7 +4,6 @@ import {
   Arc,
   FillStyle,
   Line,
-  phaserNetworkComponents,
   Position,
   Rectangle,
   Rotation,
@@ -16,25 +15,26 @@ import {
   ENTITY_CONFIG,
   Health,
   LaserWeapon,
+  NetworkComponentsModule,
   Shield,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { Networked } from '@vworlds/vecs-server';
 import {
+  Components as EmbellishmentsComponents,
   Embellishments,
   FollowParent,
   FollowParentRotation,
   Offset,
-  registerEmbellishmentComponents,
 } from '../../../src/game/modules/embellishments/components';
 import {
   EmbellishmentsModule,
   rgbToU32,
 } from '../../../src/game/modules/embellishments/module';
-import { registerPlayerSessionComponents } from '../../../src/game/modules/playerSessions/components';
-import { registerWeaponsComponents } from '../../../src/game/modules/weapons/components';
-import { registerAsteroidsComponents } from '../../../src/game/modules/asteroids/components';
-import { registerAliensComponents } from '../../../src/game/modules/aliens/components';
+import { Components as PlayerSessionsComponents } from '../../../src/game/modules/playerSessions/components';
+import { Components as WeaponsComponents } from '../../../src/game/modules/weapons/components';
+import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+import { Components as AliensComponents } from '../../../src/game/modules/aliens/components';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -48,13 +48,13 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): World {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
-  registerPlayerSessionComponents(world);
-  registerWeaponsComponents(world);
-  registerAsteroidsComponents(world);
-  registerAliensComponents(world);
-  registerEmbellishmentComponents(world);
+  world.module(PlayerSessionsComponents);
+  world.module(WeaponsComponents);
+  world.module(AsteroidsComponents);
+  world.module(AliensComponents);
+  world.module(EmbellishmentsComponents);
   world.module(EmbellishmentsModule);
   return world;
 }

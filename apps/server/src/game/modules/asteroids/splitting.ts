@@ -12,7 +12,7 @@ import {
 } from '@spacerocks/common';
 import type { Prng } from '../rng/components';
 import { addScore, createExplosion } from '../gameState/helpers';
-import { asteroidRadius, createAsteroid } from './factory';
+import { asteroidRadius, createAsteroid } from './factories';
 
 function getPosition(entity: Entity): { x: number; y: number } | undefined {
   const position = entity.get(PhysicsPosition) ?? entity.get(Position);

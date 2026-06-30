@@ -1,4 +1,4 @@
-import type { World } from '@vworlds/vecs';
+import { Module } from '@vworlds/vecs';
 import {
   AuraWeapon,
   Boomerang,
@@ -18,15 +18,21 @@ export class ShootingCooldown {
   frames = 0;
 }
 
-export function registerWeaponsComponents(world: World): void {
-  world.component(ShootingCooldown);
-  world.component(LaserWeapon);
-  world.component(AuraWeapon);
-  world.component(RocketWeapon);
-  world.component(BoomerangWeapon);
-  world.component(Bullet);
-  world.component(Rocket);
-  world.component(Boomerang);
-  world.component(Decay);
-  world.component(DefaultWeapon);
+/**
+ * Registers the weapon/projectile components: `ShootingCooldown` (local) and
+ * the common weapon markers + projectile types + `Decay`.
+ */
+export class Components extends Module {
+  override init(): void {
+    this.world.component(ShootingCooldown);
+    this.world.component(LaserWeapon);
+    this.world.component(AuraWeapon);
+    this.world.component(RocketWeapon);
+    this.world.component(BoomerangWeapon);
+    this.world.component(Bullet);
+    this.world.component(Rocket);
+    this.world.component(Boomerang);
+    this.world.component(Decay);
+    this.world.component(DefaultWeapon);
+  }
 }

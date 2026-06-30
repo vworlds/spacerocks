@@ -1,21 +1,23 @@
 import { World } from '@vworlds/vecs';
-import { phaserNetworkComponents } from '@vworlds/vecs-phaser';
 import {
   LinearVelocity,
+  PhysicsModule,
   Rotation as PhysicsRotation,
 } from '@vworlds/vecs-physics';
-import { Bullet, COLORS } from '@spacerocks/common';
-import { Networked } from '@vworlds/vecs-server';
+import {
+  Bullet,
+  COLORS,
+  NetworkComponentsModule,
+  TICK_RATE,
+} from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
+import { Networked } from '@vworlds/vecs-server';
 import { MovementModule } from '../src/game/modules/movement/module';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
-import {
-  PlayerInputIntent,
-  registerPlayerSessionComponents,
-} from '../src/game/modules/playerSessions/components';
-import { createPlayerShip } from '../src/game/modules/playerSessions/shipFactory';
+import { PlayerInputIntent } from '../src/game/modules/playerSessions/components';
+import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
 import { createBullet } from '../src/game/modules/weapons/factories';
-import { registerWeaponsComponents } from '../src/game/modules/weapons/components';
+import { Components as WeaponsComponents } from '../src/game/modules/weapons/components';
 import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
 
@@ -31,12 +33,16 @@ vi.mock('@vworlds/vecs-server', () => ({
 
 function createTestWorld(): World {
   const world = new World();
-  for (const component of phaserNetworkComponents) world.component(component);
+  world.module(NetworkComponentsModule);
   world.component(Networked);
   world.module(RngModule);
   world.module(GameStateModule);
-  registerPlayerSessionComponents(world);
-  registerWeaponsComponents(world);
+  world.module(WeaponsComponents);
+  world.module(PhysicsModule, {
+    gravity: { x: 0, y: 0 },
+    fixedTimeStep: 1 / TICK_RATE,
+    subSteps: 4,
+  });
   world.module(PlayerSessionsModule);
   world.module(MovementModule);
   return world;
