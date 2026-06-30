@@ -7,7 +7,6 @@ import {
   Hyperspace,
   NetworkComponentsModule,
   Owner,
-  PlayerShip,
   TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -20,6 +19,7 @@ import {
   Components as PlayerSessionsComponents,
   PlayerInputIntent,
   PlayerSession,
+  PlayerShip,
 } from '../../../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/module';
 import { SHIP_SPRITE_SIZE_METERS } from '../../../src/game/modules/assets/sprite';

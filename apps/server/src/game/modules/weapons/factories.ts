@@ -22,10 +22,6 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
-  AuraWeapon,
-  Boomerang,
-  BoomerangWeapon,
-  Bullet,
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
@@ -33,15 +29,21 @@ import {
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
   COLORS,
-  Decay,
-  DefaultWeapon,
   ENTITY_CONFIG,
+  perSecond,
+} from '@spacerocks/common';
+import { Decay } from '../decay/components';
+import { Wraps } from '../movement/components';
+import {
+  AuraWeapon,
+  Boomerang,
+  BoomerangWeapon,
+  Bullet,
+  DefaultWeapon,
   LaserWeapon,
   Rocket,
   RocketWeapon,
-  perSecond,
-  Wraps,
-} from '@spacerocks/common';
+} from './components';
 
 const BULLET_LENGTH = 0.12;
 const BULLET_STROKE_WIDTH = 2;

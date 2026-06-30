@@ -7,14 +7,14 @@ import {
 import {
   ENTITY_CONFIG,
   Hyperspace,
-  PlayerShip,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
   WORLD_MIN_Y,
-  Wraps,
 } from '@spacerocks/common';
-import { PlayerInputIntent } from '../playerSessions/components';
+import { PlayerInputIntent, PlayerShip } from '../playerSessions/components';
+import { PlayerSessionsModule } from '../playerSessions/module';
+import { Components, Wraps } from './components';
 
 /**
  * Player ship control + world-wrap. `ShipControl` reads `PlayerInputIntent`
@@ -28,6 +28,9 @@ import { PlayerInputIntent } from '../playerSessions/components';
  */
 export class MovementModule extends Module {
   override init(): void {
+    this.world.module(PlayerSessionsModule);
+    this.world.module(Components);
+
     this.world
       .system('ShipControl')
       .with(PlayerShip, PlayerInputIntent, PhysicsRotation, Force)

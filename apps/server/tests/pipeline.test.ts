@@ -14,15 +14,11 @@ import {
   Material,
   Polygon as PhysicsPolygon,
 } from '@vworlds/vecs-physics';
-import {
-  Alien,
-  Asteroid,
-  COLORS,
-  Explosion,
-  GameStateView,
-  TICK_RATE,
-} from '@spacerocks/common';
+import { COLORS, Explosion, TICK_RATE } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
+import { Alien } from '../src/game/modules/aliens/components';
+import { Asteroid } from '../src/game/modules/asteroids/components';
+import { GameStateView } from '../src/game/modules/gameState/components';
 import { createExplosion } from '../src/game/modules/gameState/helpers';
 import { createGameWorld } from '../src/index';
 

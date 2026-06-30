@@ -11,21 +11,26 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
-  Alien,
-  Asteroid,
-  AsteroidView,
   COLORS,
   ENTITY_CONFIG,
-  Health,
-  NetworkComponentsModule,
-  PlayerShip,
   SCORING,
   SHIELD_DAMAGE,
-  Shield,
 } from '@spacerocks/common';
 import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
-import { Components, RespawnTimer } from './components';
-import { PlayerSession } from '../playerSessions/components';
+import { Alien, Components as AliensComponents } from '../aliens/components';
+import {
+  Asteroid,
+  AsteroidView,
+  Components as AsteroidsComponents,
+} from '../asteroids/components';
+import { Components as MovementComponents } from '../movement/components';
+import { Components as WeaponsComponents } from '../weapons/components';
+import { Components, Health, RespawnTimer, Shield } from './components';
+import {
+  Components as PlayerSessionsComponents,
+  PlayerSession,
+  PlayerShip,
+} from '../playerSessions/components';
 import { createPlayerShip } from '../playerSessions/factories';
 
 /**
@@ -101,7 +106,11 @@ function bodyOf(world: World, shape: Entity | undefined): Entity | undefined {
 export class CombatModule extends Module {
   override init(): void {
     const world = this.world;
-    world.module(NetworkComponentsModule);
+    world.module(PlayerSessionsComponents);
+    world.module(MovementComponents);
+    world.module(WeaponsComponents);
+    world.module(AsteroidsComponents);
+    world.module(AliensComponents);
     world.module(Components);
 
     world

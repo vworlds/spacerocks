@@ -18,21 +18,19 @@ import {
 import {
   CAT_PICKUP,
   CAT_PLAYER,
-  Decay,
   ENTITY_CONFIG,
-  HealthPickup,
   PICKUP_COLORS,
-  Pickup,
-  PickupKind,
   perSecond,
-  Wraps,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
   WORLD_MIN_Y,
+  GAME_CONFIG,
 } from '@spacerocks/common';
-import { GAME_CONFIG } from '@spacerocks/common';
+import { Decay } from '../decay/components';
+import { Wraps } from '../movement/components';
 import type { Prng } from '../rng/components';
+import { HealthPickup, Pickup, PickupKind } from './components';
 
 const PICKUP_TTL_FRAMES: Record<PickupKind, number> = {
   [PickupKind.Shield]: GAME_CONFIG.SHIELD_PICKUP_TTL_FRAMES,

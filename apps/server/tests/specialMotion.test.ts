@@ -17,51 +17,58 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
-  Alien,
-  Asteroid,
-  Boomerang,
-  BoomerangWeapon,
-  Bullet,
   CAT_PLAYER,
   COLORS,
-  Decay,
   ENTITY_CONFIG,
   Explosion,
-  GameStateView,
-  LaserWeapon,
   NetworkComponentsModule,
-  PlayerShip,
   perSecond,
-  Rocket,
   SCORING,
   TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
   WORLD_MIN_Y,
-  Wraps,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { registerNetworkFoundation } from './modules/helpers';
 import { CombatModule } from '../src/game/modules/combat/module';
 import { Components as CombatComponents } from '../src/game/modules/combat/components';
 import { MovementModule } from '../src/game/modules/movement/module';
+import { Wraps } from '../src/game/modules/movement/components';
 import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
-import { PlayerSession } from '../src/game/modules/playerSessions/components';
+import {
+  PlayerSession,
+  PlayerShip,
+} from '../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
 import { createPrng } from '../src/game/modules/rng/components';
 import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
+import { GameStateView } from '../src/game/modules/gameState/components';
 import { Components as SpawningComponents } from '../src/game/modules/spawning/components';
 import { createAlien } from '../src/game/modules/aliens/factories';
+import { Alien } from '../src/game/modules/aliens/components';
 import { createAsteroid } from '../src/game/modules/asteroids/factories';
-import { Components as AsteroidsComponents } from '../src/game/modules/asteroids/components';
+import {
+  Asteroid,
+  Components as AsteroidsComponents,
+} from '../src/game/modules/asteroids/components';
+import { Decay } from '../src/game/modules/decay/components';
+import { DecayModule } from '../src/game/modules/decay/module';
 import {
   createBoomerang,
   createBullet,
   createRocket,
 } from '../src/game/modules/weapons/factories';
-import { Components as WeaponsComponents } from '../src/game/modules/weapons/components';
+import {
+  Boomerang,
+  BoomerangWeapon,
+  Bullet,
+  Components as WeaponsComponents,
+  LaserWeapon,
+  Rocket,
+} from '../src/game/modules/weapons/components';
 import { WeaponsModule } from '../src/game/modules/weapons/module';
 
 const DT_MS = 1000 / TICK_RATE;
@@ -101,6 +108,7 @@ function createSpecialMotionWorld(
     world.module(PlayerSessionsModule);
     world.module(WeaponsModule);
   }
+  world.module(DecayModule);
   world.module(MovementModule);
   world.module(CombatModule);
   world.module(PhaserServerModule);
@@ -133,6 +141,7 @@ function createLaserWorld(): World {
   world.module(GameStateModule);
   world.module(PlayerSessionsModule);
   world.module(WeaponsModule);
+  world.module(DecayModule);
   world.module(CombatModule);
   return world;
 }

@@ -4,12 +4,7 @@ import {
   PhysicsModule,
   Rotation as PhysicsRotation,
 } from '@vworlds/vecs-physics';
-import {
-  Bullet,
-  COLORS,
-  NetworkComponentsModule,
-  TICK_RATE,
-} from '@spacerocks/common';
+import { COLORS, NetworkComponentsModule, TICK_RATE } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { registerNetworkFoundation } from './modules/helpers';
 import { MovementModule } from '../src/game/modules/movement/module';
@@ -17,7 +12,10 @@ import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module'
 import { PlayerInputIntent } from '../src/game/modules/playerSessions/components';
 import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
 import { createBullet } from '../src/game/modules/weapons/factories';
-import { Components as WeaponsComponents } from '../src/game/modules/weapons/components';
+import {
+  Bullet,
+  Components as WeaponsComponents,
+} from '../src/game/modules/weapons/components';
 import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
 

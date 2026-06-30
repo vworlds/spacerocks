@@ -17,9 +17,6 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
-  Asteroid,
-  Alien,
-  Bullet,
   CAT_ASTEROID,
   CAT_ENEMY,
   CAT_ENEMY_BULLET,
@@ -28,38 +25,50 @@ import {
   CAT_PLAYER_BULLET,
   Explosion,
   ENTITY_CONFIG,
-  GameStateView,
-  Health,
-  HealthPickup,
-  LaserWeapon,
   NetworkComponentsModule,
-  Pickup,
-  PickupKind,
-  PlayerShip,
-  RocketWeapon,
   SCORING,
-  Shield,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { registerNetworkFoundation } from '../helpers';
 import { CombatModule } from '../../../src/game/modules/combat/module';
 import {
   Components as CombatComponents,
+  Health,
   RespawnTimer,
+  Shield,
 } from '../../../src/game/modules/combat/components';
 import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
-import { PlayerSession } from '../../../src/game/modules/playerSessions/components';
+import {
+  PlayerSession,
+  PlayerShip,
+} from '../../../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/module';
 import { createPrng } from '../../../src/game/modules/rng/components';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
+import { GameStateView } from '../../../src/game/modules/gameState/components';
 import { createAsteroid } from '../../../src/game/modules/asteroids/factories';
-import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+import {
+  Asteroid,
+  Components as AsteroidsComponents,
+} from '../../../src/game/modules/asteroids/components';
 import { createAlien } from '../../../src/game/modules/aliens/factories';
+import { Alien } from '../../../src/game/modules/aliens/components';
 import { createBullet } from '../../../src/game/modules/weapons/factories';
+import {
+  Bullet,
+  LaserWeapon,
+  RocketWeapon,
+} from '../../../src/game/modules/weapons/components';
+import { DecayModule } from '../../../src/game/modules/decay/module';
 import { WeaponsModule } from '../../../src/game/modules/weapons/module';
 import { AliensModule } from '../../../src/game/modules/aliens/module';
 import { PickupsModule } from '../../../src/game/modules/pickups/module';
+import {
+  HealthPickup,
+  Pickup,
+  PickupKind,
+} from '../../../src/game/modules/pickups/components';
 
 const DT_MS = 1000 / 60;
 
@@ -92,6 +101,7 @@ function createTestWorld(): { world: World } {
   world.module(GameStateModule);
   world.module(PlayerSessionsModule);
   world.module(WeaponsModule);
+  world.module(DecayModule);
   world.module(AliensModule);
   world.module(CombatModule);
   world.module(PickupsModule);

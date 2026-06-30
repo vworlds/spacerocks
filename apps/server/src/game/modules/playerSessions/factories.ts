@@ -29,18 +29,17 @@ import {
   CAT_PICKUP,
   CAT_PLAYER,
   ENTITY_CONFIG,
-  Health,
-  DefaultWeapon,
   Hyperspace,
   Owner,
-  PlayerShip,
-  Wraps,
   PLAYER_COLORS,
   VIEWPORT_HEIGHT,
   VIEWPORT_WIDTH,
 } from '@spacerocks/common';
 import { pickShipSprite, SHIP_SPRITE_SIZE_METERS } from '../assets/sprite';
-import { PlayerInputIntent, PlayerSession } from './components';
+import { Health } from '../combat/components';
+import { DefaultWeapon } from '../weapons/components';
+import { Wraps } from '../movement/components';
+import { PlayerInputIntent, PlayerSession, PlayerShip } from './components';
 
 const SPAWN_POSITIONS = [
   { x: -VIEWPORT_WIDTH * 0.2, y: 0 },

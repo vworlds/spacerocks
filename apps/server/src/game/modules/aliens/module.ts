@@ -11,24 +11,28 @@ import {
   Rotation as PhysicsRotation,
   SensorEvents,
 } from '@vworlds/vecs-physics';
+import { COLORS, ENTITY_CONFIG, GAME_CONFIG } from '@spacerocks/common';
+import { Position } from '@vworlds/vecs-phaser';
+import { Components, Alien } from './components';
 import {
-  Alien,
   Asteroid,
   AsteroidView,
-  COLORS,
-  ENTITY_CONFIG,
-  GAME_CONFIG,
-  NetworkComponentsModule,
-  PlayerShip,
-  RandomClockKind,
-} from '@spacerocks/common';
-import { Position } from '@vworlds/vecs-phaser';
+  Components as AsteroidsComponents,
+} from '../asteroids/components';
+import { DecayModule } from '../decay/module';
+import { MovementModule } from '../movement/module';
+import { PlayerShip } from '../playerSessions/components';
+import { WeaponsModule } from '../weapons/module';
 import { createAlien } from './factories';
 import { damageEnemy } from './damage';
 import { createBullet } from '../weapons/factories';
 import { findNearestPlayer, rotateTowardTarget } from '../weapons/targeting';
 import { WorldRng } from '../rng/components';
-import { createSpawnTimer, SpawnTimer } from '../spawning/components';
+import {
+  createSpawnTimer,
+  RandomClockKind,
+  SpawnTimer,
+} from '../spawning/components';
 import { createExplosion, isPlaying } from '../gameState/helpers';
 import { SpawningModule } from '../spawning/module';
 import { RngModule } from '../rng/module';
@@ -61,8 +65,12 @@ export class AliensModule extends Module {
   override init(): void {
     const world = this.world;
     this.world.module(RngModule);
-    this.world.module(NetworkComponentsModule);
     this.world.module(SpawningModule);
+    this.world.module(AsteroidsComponents);
+    this.world.module(DecayModule);
+    this.world.module(MovementModule);
+    this.world.module(WeaponsModule);
+    this.world.module(Components);
     const rng = world.get(WorldRng)!.prng!;
 
     createSpawnTimer(

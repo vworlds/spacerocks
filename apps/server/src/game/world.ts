@@ -1,5 +1,6 @@
 import { Module } from '@vworlds/vecs';
 import type { AssetManager } from '@vworlds/vecs-phaser-server';
+import { NetworkComponentsModule } from '@spacerocks/common';
 import { AssetsModule } from './modules/assets/module';
 import { RngModule } from './modules/rng/module';
 import { GameStateModule } from './modules/gameState/module';
@@ -9,6 +10,7 @@ import { InterestGridModule } from './modules/interestGrid/module';
 import { MovementModule } from './modules/movement/module';
 import { CombatModule } from './modules/combat/module';
 import { WeaponsModule } from './modules/weapons/module';
+import { DecayModule } from './modules/decay/module';
 import { AsteroidsModule } from './modules/asteroids/module';
 import { AliensModule } from './modules/aliens/module';
 import { PickupsModule } from './modules/pickups/module';
@@ -36,6 +38,7 @@ export class WorldModule extends Module<WorldModuleConfig | undefined> {
     }
 
     // Plumbing
+    world.module(NetworkComponentsModule);
     world.module(RngModule);
     world.module(GameStateModule);
     world.module(SpawningModule);
@@ -46,6 +49,7 @@ export class WorldModule extends Module<WorldModuleConfig | undefined> {
     world.module(MovementModule);
     world.module(CombatModule);
     world.module(WeaponsModule);
+    world.module(DecayModule);
     world.module(AsteroidsModule);
     world.module(AliensModule);
     world.module(PickupsModule);

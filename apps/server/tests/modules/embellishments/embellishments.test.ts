@@ -13,10 +13,7 @@ import {
 import {
   COLORS,
   ENTITY_CONFIG,
-  Health,
-  LaserWeapon,
   NetworkComponentsModule,
-  Shield,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { registerNetworkFoundation } from '../helpers';
@@ -32,8 +29,12 @@ import {
   rgbToU32,
 } from '../../../src/game/modules/embellishments/module';
 import { Components as PlayerSessionsComponents } from '../../../src/game/modules/playerSessions/components';
-import { Components as WeaponsComponents } from '../../../src/game/modules/weapons/components';
+import {
+  Components as WeaponsComponents,
+  LaserWeapon,
+} from '../../../src/game/modules/weapons/components';
 import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+import { Health, Shield } from '../../../src/game/modules/combat/components';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {

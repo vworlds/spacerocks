@@ -21,8 +21,6 @@ import {
   type Vec2,
 } from '@vworlds/vecs-physics';
 import {
-  Asteroid,
-  AsteroidView,
   ASTEROID_FILL_COLORS,
   CAT_ASTEROID,
   CAT_BOOMERANG,
@@ -31,14 +29,14 @@ import {
   CAT_PLAYER,
   CAT_PLAYER_BULLET,
   COLORS,
-  Decay,
   ENTITY_CONFIG,
   perSecond,
-  Wraps,
 } from '@spacerocks/common';
+import { Decay } from '../decay/components';
+import { Wraps } from '../movement/components';
 import { randomNormal, type Prng } from '../rng/components';
 
-import { AsteroidMassTotal } from './components';
+import { Asteroid, AsteroidMassTotal, AsteroidView } from './components';
 
 const ASTEROID_OUTLINE_COLOR = 0xcccccc;
 

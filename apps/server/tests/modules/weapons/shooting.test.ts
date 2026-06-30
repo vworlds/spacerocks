@@ -25,11 +25,6 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
-  Alien,
-  Asteroid,
-  Boomerang,
-  BoomerangWeapon,
-  Bullet,
   CAT_ASTEROID,
   CAT_ENEMY_BULLET,
   CAT_PLAYER,
@@ -38,8 +33,6 @@ import {
   NetworkComponentsModule,
   PLAYER_COLORS,
   perSecond,
-  Rocket,
-  RocketWeapon,
   TICK_RATE,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
@@ -57,7 +50,12 @@ import {
   createRocket,
 } from '../../../src/game/modules/weapons/factories';
 import {
+  Boomerang,
+  BoomerangWeapon,
+  Bullet,
   Components as WeaponsComponents,
+  Rocket,
+  RocketWeapon,
   ShootingCooldown,
 } from '../../../src/game/modules/weapons/components';
 import { WeaponsModule } from '../../../src/game/modules/weapons/module';
@@ -65,7 +63,12 @@ import { AliensModule } from '../../../src/game/modules/aliens/module';
 import { SpawningModule } from '../../../src/game/modules/spawning/module';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
-import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+import {
+  Asteroid,
+  Components as AsteroidsComponents,
+} from '../../../src/game/modules/asteroids/components';
+import { Alien } from '../../../src/game/modules/aliens/components';
+import { DecayModule } from '../../../src/game/modules/decay/module';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -96,6 +99,7 @@ function createTestWorld(): { world: World } {
   world.module(AsteroidsComponents);
   world.module(PlayerSessionsModule);
   world.module(WeaponsModule);
+  world.module(DecayModule);
   world.module(SpawningModule);
   world.module(AliensModule);
   world.module(MovementModule);

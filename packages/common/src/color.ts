@@ -1,5 +1,3 @@
-import { PickupKind } from './components';
-
 /** Shared u32 RGB colors for vecs-phaser FillStyle/StrokeStyle components. */
 export function parseColor(css: string): number {
   const value = css.trim().replace(/^#/, '');
@@ -30,14 +28,14 @@ export const ASTEROID_FILL_COLORS = [
   0x161616, 0x555555, 0xb0b0b0,
 ] as const satisfies readonly number[];
 
-export const PICKUP_COLORS: Record<PickupKind, number> = {
-  [PickupKind.Shield]: 0x00ff00,
-  [PickupKind.Laser]: 0xff0000,
-  [PickupKind.Aura]: 0x33aaff,
-  [PickupKind.Rocket]: 0xff6600,
-  [PickupKind.Boomerang]: 0x006400,
-  [PickupKind.Health]: 0xffffff,
-};
+export const PICKUP_COLORS = {
+  shield: 0x00ff00,
+  laser: 0xff0000,
+  aura: 0x33aaff,
+  rocket: 0xff6600,
+  boomerang: 0x006400,
+  health: 0xffffff,
+} as const;
 
 export const COLORS = {
   white: 0xffffff,

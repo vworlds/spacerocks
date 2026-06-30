@@ -1,6 +1,15 @@
 import { Module, type World } from '@vworlds/vecs';
-import { RandomClockKind } from '@spacerocks/common';
 import type { Prng } from '../rng/components';
+
+export enum RandomClockKind {
+  Alien = 'alien',
+  ShieldPickup = 'shieldPickup',
+  LaserPickup = 'laserPickup',
+  AuraPickup = 'auraPickup',
+  RocketPickup = 'rocketPickup',
+  BoomerangPickup = 'boomerangPickup',
+  HealthPickup = 'healthPickup',
+}
 
 /**
  * Per-kind spawn timer. One entity per active spawn kind (alien, each pickup

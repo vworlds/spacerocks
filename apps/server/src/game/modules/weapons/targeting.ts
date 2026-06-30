@@ -4,14 +4,10 @@ import {
   Rotation as PhysicsRotation,
   physics,
 } from '@vworlds/vecs-physics';
-import {
-  Alien,
-  Asteroid,
-  CAT_ASTEROID,
-  CAT_ENEMY,
-  ENTITY_CONFIG,
-} from '@spacerocks/common';
+import { CAT_ASTEROID, CAT_ENEMY, ENTITY_CONFIG } from '@spacerocks/common';
 import { ChildOf } from '@vworlds/vecs';
+import { Alien } from '../aliens/components';
+import { Asteroid } from '../asteroids/components';
 
 export function findNearestPlayer(
   players: Iterable<Entity>,

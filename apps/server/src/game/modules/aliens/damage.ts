@@ -1,6 +1,7 @@
 import { type Entity, type World } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
-import { COLORS, ENTITY_CONFIG, Health, SCORING } from '@spacerocks/common';
+import { COLORS, ENTITY_CONFIG, SCORING } from '@spacerocks/common';
+import { Health } from '../combat/components';
 import { addScore, createExplosion } from '../gameState/helpers';
 
 /**

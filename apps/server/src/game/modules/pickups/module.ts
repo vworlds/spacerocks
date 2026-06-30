@@ -2,28 +2,34 @@ import { ChildOf, POST_UPDATE, Module, type Entity } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
 import { SensorEvents } from '@vworlds/vecs-physics';
 import {
-  AuraWeapon,
-  BoomerangWeapon,
   COLORS,
-  DefaultWeapon,
   ENTITY_CONFIG,
   GAME_CONFIG,
-  Health,
-  HealthPickup,
-  LaserWeapon,
-  NetworkComponentsModule,
-  Pickup,
-  PickupKind,
-  PlayerShip,
-  RocketWeapon,
-  RandomClockKind,
   SCORING,
-  Shield,
 } from '@spacerocks/common';
+import { Health, Shield } from '../combat/components';
+import { CombatModule } from '../combat/module';
+import { DecayModule } from '../decay/module';
+import { MovementModule } from '../movement/module';
+import { PlayerShip } from '../playerSessions/components';
+import { PlayerSessionsModule } from '../playerSessions/module';
+import {
+  AuraWeapon,
+  BoomerangWeapon,
+  DefaultWeapon,
+  LaserWeapon,
+  RocketWeapon,
+} from '../weapons/components';
+import { WeaponsModule } from '../weapons/module';
+import { Components, HealthPickup, Pickup, PickupKind } from './components';
 import { createPickup } from './factories';
 import { WorldRng } from '../rng/components';
 import { RngModule } from '../rng/module';
-import { createSpawnTimer, SpawnTimer } from '../spawning/components';
+import {
+  createSpawnTimer,
+  RandomClockKind,
+  SpawnTimer,
+} from '../spawning/components';
 import { SpawningModule } from '../spawning/module';
 import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
 
@@ -164,8 +170,13 @@ export class PickupsModule extends Module {
   override init(): void {
     const world = this.world;
     this.world.module(RngModule);
-    this.world.module(NetworkComponentsModule);
     this.world.module(SpawningModule);
+    this.world.module(CombatModule);
+    this.world.module(DecayModule);
+    this.world.module(MovementModule);
+    this.world.module(PlayerSessionsModule);
+    this.world.module(WeaponsModule);
+    this.world.module(Components);
     const rng = world.get(WorldRng)!.prng!;
 
     const now = Date.now();

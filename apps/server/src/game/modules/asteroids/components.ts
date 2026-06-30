@@ -1,5 +1,16 @@
 import { Module, Singleton } from '@vworlds/vecs';
 
+export class Asteroid {
+  mass = 16;
+  color = 0xaaaaaa;
+}
+
+export class AsteroidView {
+  color = 0x888888;
+  radius = 0.2;
+  mass = 16;
+}
+
 /**
  * Running total of live asteroid mass, held as a singleton so the world owns
  * it (no module-level per-world map). Maintained reactively by the
@@ -10,12 +21,13 @@ export class AsteroidMassTotal {
 }
 
 /**
- * Registers the `AsteroidMassTotal` singleton. `Asteroid`/`AsteroidView`
- * (common) are registered by `NetworkComponentsModule`; physics shape
- * components by `PhysicsModule`.
+ * Registers asteroid-owned components. Physics shape components are registered
+ * by `PhysicsModule`.
  */
 export class Components extends Module {
   override init(): void {
+    this.world.component(Asteroid);
+    this.world.component(AsteroidView);
     this.world.component(AsteroidMassTotal).add(Singleton);
   }
 }

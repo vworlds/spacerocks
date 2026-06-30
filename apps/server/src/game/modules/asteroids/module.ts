@@ -1,17 +1,18 @@
 import { Module, type Entity, type World } from '@vworlds/vecs';
 import { Position as RenderPosition } from '@vworlds/vecs-phaser';
 import {
-  Asteroid,
-  GameStateView,
   MAX_ASTEROIDS_TOTAL_MASS,
-  NetworkComponentsModule,
-  PlayerShip,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
   WORLD_MIN_Y,
 } from '@spacerocks/common';
-import { Components, AsteroidMassTotal } from './components';
+import { GameStateView } from '../gameState/components';
+import { GameStateModule } from '../gameState/module';
+import { DecayModule } from '../decay/module';
+import { MovementModule } from '../movement/module';
+import { PlayerShip } from '../playerSessions/components';
+import { Components, Asteroid, AsteroidMassTotal } from './components';
 import { createAsteroid, randomAsteroidMass } from './factories';
 import { WorldRng, type Prng } from '../rng/components';
 import { RngModule } from '../rng/module';
@@ -93,7 +94,9 @@ export class AsteroidsModule extends Module {
   override init(): void {
     const world = this.world;
     this.world.module(RngModule);
-    this.world.module(NetworkComponentsModule);
+    this.world.module(GameStateModule);
+    this.world.module(MovementModule);
+    this.world.module(DecayModule);
     this.world.module(Components);
     const rng = world.get(WorldRng)!.prng!;
 

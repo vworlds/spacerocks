@@ -11,27 +11,23 @@ import {
   physics,
 } from '@vworlds/vecs-physics';
 import {
-  Alien,
-  Asteroid,
-  AuraWeapon,
-  Boomerang,
-  BoomerangWeapon,
-  Bullet,
   CAT_ASTEROID,
   CAT_ENEMY,
   COLORS,
-  Decay,
-  DefaultWeapon,
   ENTITY_CONFIG,
-  LaserWeapon,
-  NetworkComponentsModule,
-  PlayerShip,
-  Rocket,
-  RocketWeapon,
   SCORING,
   perSecond,
 } from '@spacerocks/common';
-import { PlayerInputIntent } from '../playerSessions/components';
+import { Alien } from '../aliens/components';
+import { Components as AliensComponents } from '../aliens/components';
+import {
+  Asteroid,
+  Components as AsteroidsComponents,
+} from '../asteroids/components';
+import { DecayModule } from '../decay/module';
+import { MovementModule } from '../movement/module';
+import { PlayerInputIntent, PlayerShip } from '../playerSessions/components';
+import { PlayerSessionsModule } from '../playerSessions/module';
 import { WorldRng } from '../rng/components';
 import { RngModule } from '../rng/module';
 import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
@@ -41,7 +37,18 @@ import {
 } from '../asteroids/splitting';
 import { damageEnemy } from '../aliens/damage';
 import { damagePlayer } from '../combat/module';
-import { Components, ShootingCooldown } from './components';
+import {
+  AuraWeapon,
+  Boomerang,
+  BoomerangWeapon,
+  Bullet,
+  Components,
+  DefaultWeapon,
+  LaserWeapon,
+  Rocket,
+  RocketWeapon,
+  ShootingCooldown,
+} from './components';
 import {
   createBoomerang,
   createBullet,
@@ -66,7 +73,11 @@ export class WeaponsModule extends Module {
   override init(): void {
     const world = this.world;
     this.world.module(RngModule);
-    this.world.module(NetworkComponentsModule);
+    this.world.module(PlayerSessionsModule);
+    this.world.module(MovementModule);
+    this.world.module(DecayModule);
+    this.world.module(AsteroidsComponents);
+    this.world.module(AliensComponents);
     this.world.module(Components);
     const rng = world.get(WorldRng)!.prng!;
 
@@ -254,14 +265,6 @@ export class WeaponsModule extends Module {
         weapon.inFlight = Math.max(0, weapon.inFlight - 1);
         if (weapon.shots === 0 && weapon.inFlight === 0)
           switchToDefaultWeapon(owner);
-      });
-
-    world
-      .system('Decay')
-      .with(Decay)
-      .each([Decay], (entity, [decay]) => {
-        decay.life -= decay.decay;
-        if (decay.life <= 0) entity.destroy();
       });
 
     world

@@ -1,6 +1,8 @@
 import { ChildOf, Module } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
-import { NetworkComponentsModule } from '@spacerocks/common';
+import { Components as CombatComponents } from '../combat/components';
+import { Components as MovementComponents } from '../movement/components';
+import { Components as WeaponsComponents } from '../weapons/components';
 import { Components, PlayerInputIntent, PlayerSession } from './components';
 import { createPlayerShip, getOwnedShip, parseInputIntent } from './factories';
 
@@ -14,7 +16,9 @@ import { createPlayerShip, getOwnedShip, parseInputIntent } from './factories';
  */
 export class PlayerSessionsModule extends Module {
   override init(): void {
-    this.world.module(NetworkComponentsModule);
+    this.world.module(CombatComponents);
+    this.world.module(MovementComponents);
+    this.world.module(WeaponsComponents);
     this.world.module(Components);
 
     let nextPlayerIndex = 0;

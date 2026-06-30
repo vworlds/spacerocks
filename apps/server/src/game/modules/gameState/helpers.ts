@@ -1,13 +1,9 @@
 import { type Entity, type World } from '@vworlds/vecs';
 import { Networked } from '@vworlds/vecs-server';
 import { Position } from '@vworlds/vecs-phaser';
-import {
-  Decay,
-  ENTITY_CONFIG,
-  Explosion,
-  GameStateView,
-  TICK_RATE,
-} from '@spacerocks/common';
+import { ENTITY_CONFIG, Explosion, TICK_RATE } from '@spacerocks/common';
+import { Decay } from '../decay/components';
+import { GameStateView } from './components';
 
 const GAME_STATE_PLAYING = 0;
 

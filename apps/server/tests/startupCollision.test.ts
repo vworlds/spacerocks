@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Position as PhysicsPosition } from '@vworlds/vecs-physics';
-import { Asteroid } from '@spacerocks/common';
+import { Asteroid } from '../src/game/modules/asteroids/components';
 import { createGameWorld } from '../src/index';
 import { createBullet } from '../src/game/modules/weapons/factories';
 import { createPlayerShip } from '../src/game/modules/playerSessions/factories';

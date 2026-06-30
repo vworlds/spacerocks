@@ -4,14 +4,10 @@ import {
   LinearVelocity,
   Position as PhysicsPosition,
 } from '@vworlds/vecs-physics';
-import {
-  Asteroid,
-  AsteroidView,
-  ENTITY_CONFIG,
-  SCORING,
-} from '@spacerocks/common';
+import { ENTITY_CONFIG, SCORING } from '@spacerocks/common';
 import type { Prng } from '../rng/components';
 import { addScore, createExplosion } from '../gameState/helpers';
+import { Asteroid, AsteroidView } from './components';
 import { asteroidRadius, createAsteroid } from './factories';
 
 function getPosition(entity: Entity): { x: number; y: number } | undefined {

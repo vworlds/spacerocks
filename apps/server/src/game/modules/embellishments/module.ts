@@ -17,17 +17,26 @@ import {
   Size,
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
+import { COLORS, ENTITY_CONFIG, VIEWPORT_WIDTH } from '@spacerocks/common';
+import { Alien } from '../aliens/components';
+import { Components as AliensComponents } from '../aliens/components';
 import {
-  Alien,
   AsteroidView,
-  COLORS,
-  ENTITY_CONFIG,
+  Components as AsteroidsComponents,
+} from '../asteroids/components';
+import {
+  Components as CombatComponents,
   Health,
-  LaserWeapon,
-  PlayerShip,
   Shield,
-  VIEWPORT_WIDTH,
-} from '@spacerocks/common';
+} from '../combat/components';
+import {
+  Components as PlayerSessionsComponents,
+  PlayerShip,
+} from '../playerSessions/components';
+import {
+  Components as WeaponsComponents,
+  LaserWeapon,
+} from '../weapons/components';
 import {
   Components,
   Embellishments,
@@ -258,6 +267,11 @@ function ensureLaserBeam(
 export class EmbellishmentsModule extends Module {
   override init(): void {
     const world = this.world;
+    world.module(AliensComponents);
+    world.module(AsteroidsComponents);
+    world.module(CombatComponents);
+    world.module(PlayerSessionsComponents);
+    world.module(WeaponsComponents);
     world.module(Components);
 
     world

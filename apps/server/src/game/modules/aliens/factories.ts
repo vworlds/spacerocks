@@ -20,7 +20,6 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
-  Alien,
   CAT_ASTEROID,
   CAT_BOOMERANG,
   CAT_ENEMY,
@@ -28,17 +27,18 @@ import {
   CAT_PLAYER_BULLET,
   COLORS,
   ENTITY_CONFIG,
-  Health,
-  PlayerShip,
   perSecond,
   VIEWPORT_WIDTH,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
   WORLD_MIN_Y,
-  Wraps,
 } from '@spacerocks/common';
+import { Health } from '../combat/components';
+import { Wraps } from '../movement/components';
+import { PlayerShip } from '../playerSessions/components';
 import type { Prng } from '../rng/components';
+import { Alien } from './components';
 
 const ALIEN_SPAWN_MARGIN = 0.5;
 

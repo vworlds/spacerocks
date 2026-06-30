@@ -20,13 +20,11 @@ import {
   ENTITY_CONFIG,
   Hyperspace,
   NetworkComponentsModule,
-  PlayerShip,
   TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
   WORLD_MIN_Y,
-  Wraps,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { registerNetworkFoundation } from '../helpers';
@@ -35,7 +33,9 @@ import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/m
 import {
   Components as PlayerSessionsComponents,
   PlayerInputIntent,
+  PlayerShip,
 } from '../../../src/game/modules/playerSessions/components';
+import { Wraps } from '../../../src/game/modules/movement/components';
 import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';

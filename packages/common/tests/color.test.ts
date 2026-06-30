@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  parseColor,
-  PICKUP_COLORS,
-  PickupKind,
-  PLAYER_COLORS,
-} from '../src/index';
+import { parseColor, PICKUP_COLORS, PLAYER_COLORS } from '../src/index';
 
 describe('parseColor', () => {
   it('parses supported hex forms to u32 RGB', () => {
@@ -27,7 +22,7 @@ describe('color palettes', () => {
   });
 
   it('exports pickup colors by kind', () => {
-    expect(PICKUP_COLORS[PickupKind.Shield]).toBe(0x00ff00);
-    expect(PICKUP_COLORS[PickupKind.Boomerang]).toBe(0x006400);
+    expect(PICKUP_COLORS.shield).toBe(0x00ff00);
+    expect(PICKUP_COLORS.boomerang).toBe(0x006400);
   });
 });

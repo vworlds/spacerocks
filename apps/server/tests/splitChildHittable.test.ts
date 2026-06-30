@@ -11,8 +11,6 @@ import {
   SensorEvents,
 } from '@vworlds/vecs-physics';
 import {
-  Asteroid,
-  Bullet,
   CAT_ASTEROID,
   CAT_PLAYER_BULLET,
   ENTITY_CONFIG,
@@ -30,8 +28,14 @@ import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
 import { Components as SpawningComponents } from '../src/game/modules/spawning/components';
 import { createAsteroid } from '../src/game/modules/asteroids/factories';
-import { Components as AsteroidsComponents } from '../src/game/modules/asteroids/components';
-import { Components as WeaponsComponents } from '../src/game/modules/weapons/components';
+import {
+  Asteroid,
+  Components as AsteroidsComponents,
+} from '../src/game/modules/asteroids/components';
+import {
+  Bullet,
+  Components as WeaponsComponents,
+} from '../src/game/modules/weapons/components';
 import { WeaponsModule } from '../src/game/modules/weapons/module';
 
 const DT_MS = 1000 / 60;

@@ -7,13 +7,15 @@ import {
 import { NetworkClient, NetworkInput, View } from '@vworlds/vecs-server';
 import {
   ENTITY_CONFIG,
-  PlayerShip,
   TICK_RATE,
   WORLD_MIN_X,
   WORLD_MIN_Y,
 } from '@spacerocks/common';
 import { describe, expect, it } from 'vitest';
-import { PlayerSession } from '../../../src/game/modules/playerSessions/components';
+import {
+  PlayerSession,
+  PlayerShip,
+} from '../../../src/game/modules/playerSessions/components';
 import { createPrng } from '../../../src/game/modules/rng/components';
 import { createAsteroid } from '../../../src/game/modules/asteroids/factories';
 import { createGameWorld } from '../../../src/index';

@@ -19,20 +19,13 @@ import {
   Position as PhysicsPosition,
 } from '@vworlds/vecs-physics';
 import {
-  Alien,
-  Asteroid,
   ASTEROID_FILL_COLORS,
-  AsteroidView,
   CAT_ASTEROID,
   COLORS,
   ENTITY_CONFIG,
-  GameStateView,
   MAX_ASTEROIDS_TOTAL_MASS,
   NetworkComponentsModule,
-  PlayerShip,
-  Pickup,
   PICKUP_COLORS,
-  PickupKind,
   TICK_RATE,
   VIEWPORT_WIDTH,
   WORLD_MAX_X,
@@ -46,21 +39,36 @@ import { createPrng } from '../../../src/game/modules/rng/components';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import type { Prng } from '../../../src/game/modules/rng/components';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
+import { GameStateView } from '../../../src/game/modules/gameState/components';
 import { SpawningModule } from '../../../src/game/modules/spawning/module';
 import { Components as SpawningComponents } from '../../../src/game/modules/spawning/components';
-import { Components as PlayerSessionsComponents } from '../../../src/game/modules/playerSessions/components';
+import {
+  Components as PlayerSessionsComponents,
+  PlayerShip,
+} from '../../../src/game/modules/playerSessions/components';
 import {
   createAsteroid,
   getTotalAsteroidMass,
   randomAsteroidMass,
 } from '../../../src/game/modules/asteroids/factories';
-import { Components as AsteroidsComponents } from '../../../src/game/modules/asteroids/components';
+import {
+  Asteroid,
+  AsteroidView,
+  Components as AsteroidsComponents,
+} from '../../../src/game/modules/asteroids/components';
 import { AsteroidsModule } from '../../../src/game/modules/asteroids/module';
 import { createAlien } from '../../../src/game/modules/aliens/factories';
+import { Alien } from '../../../src/game/modules/aliens/components';
 import { AliensModule } from '../../../src/game/modules/aliens/module';
 import { createPickup } from '../../../src/game/modules/pickups/factories';
 import { PickupsModule } from '../../../src/game/modules/pickups/module';
+import {
+  Pickup,
+  PickupKind,
+} from '../../../src/game/modules/pickups/components';
 import { Components as WeaponsComponents } from '../../../src/game/modules/weapons/components';
+import { DecayModule } from '../../../src/game/modules/decay/module';
+import { Components as MovementComponents } from '../../../src/game/modules/movement/components';
 import { createGameWorld } from '../../../src/index';
 import {
   getGridCellIndex,
@@ -85,10 +93,12 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
     subSteps: 4,
   });
   world.module(PlayerSessionsComponents);
+  world.module(MovementComponents);
   world.module(SpawningComponents);
   world.module(AsteroidsComponents);
   world.module(WeaponsComponents);
   world.module(SpawningModule);
+  world.module(DecayModule);
   world.module(AsteroidsModule);
   world.module(AliensModule);
   world.module(PickupsModule);
@@ -101,6 +111,7 @@ function createPhysicsSpawnWorld(): World {
   registerNetworkFoundation(world);
   world.module(RngModule);
   world.module(PlayerSessionsComponents);
+  world.module(MovementComponents);
   world.module(SpawningComponents);
   world.module(AsteroidsComponents);
   world.module(PhysicsModule, {

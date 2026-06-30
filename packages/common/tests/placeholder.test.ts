@@ -6,13 +6,10 @@ import {
 import { Decoder, Encoder } from '@vworlds/vecs-wire';
 
 import {
-  AsteroidView,
   Explosion,
-  GameStateView,
   Hyperspace,
   NETWORK_COMPONENTS,
   Owner,
-  PlayerShip,
   VIEWPORT_HEIGHT,
   VIEWPORT_WIDTH,
   WORLD_HEIGHT,
@@ -57,9 +54,9 @@ describe('NETWORK_COMPONENTS', () => {
 
   it('uses vecs-wire encodable network components', () => {
     const cases = [
-      [PlayerShip, Object.assign(new PlayerShip(), { playerIndex: 7 })],
-      [AsteroidView, Object.assign(new AsteroidView(), { mass: 4 })],
-      [GameStateView, Object.assign(new GameStateView(), { wave: 13 })],
+      [Explosion, Object.assign(new Explosion(), { color: 0xff00ff })],
+      [Owner, Object.assign(new Owner(), { clientId: 'client-1' })],
+      [Hyperspace, Object.assign(new Hyperspace(), { seq: 7 })],
     ] as const;
 
     for (const [ComponentClass, value] of cases) {

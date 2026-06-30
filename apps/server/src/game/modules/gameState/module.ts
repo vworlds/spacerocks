@@ -1,16 +1,17 @@
 import { Module } from '@vworlds/vecs';
-import { NetworkComponentsModule } from '@spacerocks/common';
+import { DecayModule } from '../decay/module';
+import { Components } from './components';
 import { createGameStateEntity } from './helpers';
 
 /**
  * Creates the singleton game-state entity that tracks play state, wave,
  * score, and status. Other gameplay modules depend on this for `isPlaying` /
- * `addScore` / `createExplosion`. The `GameStateView` component is registered
- * by `NetworkComponentsModule`.
+ * `addScore` / `createExplosion`.
  */
 export class GameStateModule extends Module {
   override init(): void {
-    this.world.module(NetworkComponentsModule);
+    this.world.module(DecayModule);
+    this.world.module(Components);
     createGameStateEntity(this.world);
   }
 }
