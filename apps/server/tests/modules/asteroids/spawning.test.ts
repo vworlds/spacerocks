@@ -42,10 +42,8 @@ import { GameStateModule } from '../../../src/game/modules/gameState/module';
 import { GameStateView } from '../../../src/game/modules/gameState/components';
 import { SpawningModule } from '../../../src/game/modules/spawning/module';
 import { Components as SpawningComponents } from '../../../src/game/modules/spawning/components';
-import {
-  Components as PlayerSessionsComponents,
-  PlayerShip,
-} from '../../../src/game/modules/playerSessions/components';
+import { Components as PlayerSessionsComponents } from '../../../src/game/modules/playerSessions/components';
+import { PlayerShip } from '../../../src/game/modules/playerShips/components';
 import {
   createAsteroid,
   getTotalAsteroidMass,

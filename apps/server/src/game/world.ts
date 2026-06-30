@@ -5,6 +5,7 @@ import { AssetsModule } from './modules/assets/module';
 import { RngModule } from './modules/rng/module';
 import { GameStateModule } from './modules/gameState/module';
 import { SpawningModule } from './modules/spawning/module';
+import { PlayerShipsModule } from './modules/playerShips/module';
 import { PlayerSessionsModule } from './modules/playerSessions/module';
 import { InterestGridModule } from './modules/interestGrid/module';
 import { MovementModule } from './modules/movement/module';
@@ -21,9 +22,9 @@ export type WorldModuleConfig = {
 };
 
 /**
- * Loads every gameplay module in dependency order. Comment out a feature
- * module line and the game runs minus that functionality (cross-module code
- * paths simply never match because no entities carry the absent components).
+ * Loads the gameplay feature modules. Feature modules also load their own
+ * dependencies idempotently, so this order is mostly the high-level install
+ * shape; phases, not this list, should encode independent ordering needs.
  *
  * `PhysicsModule` and `PhaserServerModule` are loaded by `index.ts` BEFORE
  * this module (physics must exist before any system spawns bodies;
@@ -37,15 +38,16 @@ export class WorldModule extends Module<WorldModuleConfig | undefined> {
       world.module(AssetsModule, { manager: config.manager });
     }
 
-    // Plumbing
+    // Foundation and world-owned state
     world.module(NetworkComponentsModule);
     world.module(RngModule);
     world.module(GameStateModule);
     world.module(SpawningModule);
+    world.module(PlayerShipsModule);
     world.module(PlayerSessionsModule);
     world.module(InterestGridModule);
 
-    // Features (depend on plumbing; not on each other)
+    // Gameplay features
     world.module(MovementModule);
     world.module(CombatModule);
     world.module(WeaponsModule);

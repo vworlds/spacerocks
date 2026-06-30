@@ -11,7 +11,7 @@ import { GameStateView } from '../gameState/components';
 import { GameStateModule } from '../gameState/module';
 import { DecayModule } from '../decay/module';
 import { MovementModule } from '../movement/module';
-import { PlayerShip } from '../playerSessions/components';
+import { PlayerShip } from '../playerShips/components';
 import { Components, Asteroid, AsteroidMassTotal } from './components';
 import { createAsteroid, randomAsteroidMass } from './factories';
 import { WorldRng, type Prng } from '../rng/components';

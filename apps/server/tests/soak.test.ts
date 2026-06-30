@@ -15,10 +15,8 @@ import {
 } from '@vworlds/vecs-physics';
 import { ENTITY_CONFIG, Explosion, TICK_RATE } from '@spacerocks/common';
 import { describe, expect, it } from 'vitest';
-import {
-  PlayerSession,
-  PlayerShip,
-} from '../src/game/modules/playerSessions/components';
+import { PlayerSession } from '../src/game/modules/playerSessions/components';
+import { PlayerShip } from '../src/game/modules/playerShips/components';
 import { Asteroid } from '../src/game/modules/asteroids/components';
 import { GameStateView } from '../src/game/modules/gameState/components';
 import { Bullet } from '../src/game/modules/weapons/components';

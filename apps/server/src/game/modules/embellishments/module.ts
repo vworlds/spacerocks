@@ -30,9 +30,9 @@ import {
   Shield,
 } from '../combat/components';
 import {
-  Components as PlayerSessionsComponents,
+  Components as PlayerShipsComponents,
   PlayerShip,
-} from '../playerSessions/components';
+} from '../playerShips/components';
 import {
   Components as WeaponsComponents,
   LaserWeapon,
@@ -270,7 +270,7 @@ export class EmbellishmentsModule extends Module {
     world.module(AliensComponents);
     world.module(AsteroidsComponents);
     world.module(CombatComponents);
-    world.module(PlayerSessionsComponents);
+    world.module(PlayerShipsComponents);
     world.module(WeaponsComponents);
     world.module(Components);
 

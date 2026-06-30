@@ -36,7 +36,7 @@ import {
 } from '@spacerocks/common';
 import { Health } from '../combat/components';
 import { Wraps } from '../movement/components';
-import { PlayerShip } from '../playerSessions/components';
+import { PlayerShip } from '../playerShips/components';
 import type { Prng } from '../rng/components';
 import { Alien } from './components';
 

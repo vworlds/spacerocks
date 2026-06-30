@@ -19,8 +19,8 @@ import {
   Components as PlayerSessionsComponents,
   PlayerInputIntent,
   PlayerSession,
-  PlayerShip,
 } from '../../../src/game/modules/playerSessions/components';
+import { PlayerShip } from '../../../src/game/modules/playerShips/components';
 import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/module';
 import { SHIP_SPRITE_SIZE_METERS } from '../../../src/game/modules/assets/sprite';
 import {

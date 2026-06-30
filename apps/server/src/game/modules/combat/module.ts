@@ -24,14 +24,15 @@ import {
   Components as AsteroidsComponents,
 } from '../asteroids/components';
 import { Components as MovementComponents } from '../movement/components';
+import { PlayerShip } from '../playerShips/components';
+import { createPlayerShip } from '../playerShips/factories';
+import { PlayerShipsModule } from '../playerShips/module';
 import { Components as WeaponsComponents } from '../weapons/components';
 import { Components, Health, RespawnTimer, Shield } from './components';
 import {
   Components as PlayerSessionsComponents,
   PlayerSession,
-  PlayerShip,
 } from '../playerSessions/components';
-import { createPlayerShip } from '../playerSessions/factories';
 
 /**
  * Applies shield or health damage to a player. While shielded, damage drains
@@ -101,12 +102,13 @@ function bodyOf(world: World, shape: Entity | undefined): Entity | undefined {
  * damage) or an alien (mutual destruction, player takes alien-body damage,
  * alien is destroyed and scored).
  *
- * Depends on `PlayerSessionsModule` (respawn uses `createPlayerShip`).
+ * Depends on `PlayerShipsModule` (respawn uses `createPlayerShip`).
  */
 export class CombatModule extends Module {
   override init(): void {
     const world = this.world;
     world.module(PlayerSessionsComponents);
+    world.module(PlayerShipsModule);
     world.module(MovementComponents);
     world.module(WeaponsComponents);
     world.module(AsteroidsComponents);

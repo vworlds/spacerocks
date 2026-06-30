@@ -11,7 +11,7 @@ import { Health, Shield } from '../combat/components';
 import { CombatModule } from '../combat/module';
 import { DecayModule } from '../decay/module';
 import { MovementModule } from '../movement/module';
-import { PlayerShip } from '../playerSessions/components';
+import { PlayerShip } from '../playerShips/components';
 import { PlayerSessionsModule } from '../playerSessions/module';
 import {
   AuraWeapon,

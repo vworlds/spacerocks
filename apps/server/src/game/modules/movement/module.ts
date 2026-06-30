@@ -12,7 +12,8 @@ import {
   WORLD_MIN_X,
   WORLD_MIN_Y,
 } from '@spacerocks/common';
-import { PlayerInputIntent, PlayerShip } from '../playerSessions/components';
+import { PlayerShip } from '../playerShips/components';
+import { PlayerInputIntent } from '../playerSessions/components';
 import { PlayerSessionsModule } from '../playerSessions/module';
 import { Components, Wraps } from './components';
 

@@ -33,10 +33,10 @@ import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/m
 import {
   Components as PlayerSessionsComponents,
   PlayerInputIntent,
-  PlayerShip,
 } from '../../../src/game/modules/playerSessions/components';
+import { PlayerShip } from '../../../src/game/modules/playerShips/components';
 import { Wraps } from '../../../src/game/modules/movement/components';
-import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
+import { createPlayerShip } from '../../../src/game/modules/playerShips/factories';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
 

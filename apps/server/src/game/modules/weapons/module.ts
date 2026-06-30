@@ -26,7 +26,8 @@ import {
 } from '../asteroids/components';
 import { DecayModule } from '../decay/module';
 import { MovementModule } from '../movement/module';
-import { PlayerInputIntent, PlayerShip } from '../playerSessions/components';
+import { PlayerShip } from '../playerShips/components';
+import { PlayerInputIntent } from '../playerSessions/components';
 import { PlayerSessionsModule } from '../playerSessions/module';
 import { WorldRng } from '../rng/components';
 import { RngModule } from '../rng/module';

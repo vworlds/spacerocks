@@ -21,7 +21,7 @@ import {
 } from '../asteroids/components';
 import { DecayModule } from '../decay/module';
 import { MovementModule } from '../movement/module';
-import { PlayerShip } from '../playerSessions/components';
+import { PlayerShip } from '../playerShips/components';
 import { WeaponsModule } from '../weapons/module';
 import { createAlien } from './factories';
 import { damageEnemy } from './damage';

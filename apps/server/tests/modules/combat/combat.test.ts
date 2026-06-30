@@ -37,11 +37,9 @@ import {
   RespawnTimer,
   Shield,
 } from '../../../src/game/modules/combat/components';
-import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
-import {
-  PlayerSession,
-  PlayerShip,
-} from '../../../src/game/modules/playerSessions/components';
+import { createPlayerShip } from '../../../src/game/modules/playerShips/factories';
+import { PlayerShip } from '../../../src/game/modules/playerShips/components';
+import { PlayerSession } from '../../../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../../../src/game/modules/playerSessions/module';
 import { createPrng } from '../../../src/game/modules/rng/components';
 import { RngModule } from '../../../src/game/modules/rng/module';

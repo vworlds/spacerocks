@@ -2,11 +2,6 @@ import { Module } from '@vworlds/vecs';
 
 export type PlayerId = 0 | 1;
 
-export class PlayerShip {
-  playerIndex = 0;
-  color = 0xffffff;
-}
-
 /**
  * Server-side session record linking a connected client to its player slot.
  */
@@ -32,7 +27,6 @@ export class PlayerInputIntent {
  */
 export class Components extends Module {
   override init(): void {
-    this.world.component(PlayerShip);
     this.world.component(PlayerSession);
     this.world.component(PlayerInputIntent);
   }

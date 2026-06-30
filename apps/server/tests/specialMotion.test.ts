@@ -36,11 +36,9 @@ import { CombatModule } from '../src/game/modules/combat/module';
 import { Components as CombatComponents } from '../src/game/modules/combat/components';
 import { MovementModule } from '../src/game/modules/movement/module';
 import { Wraps } from '../src/game/modules/movement/components';
-import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
-import {
-  PlayerSession,
-  PlayerShip,
-} from '../src/game/modules/playerSessions/components';
+import { createPlayerShip } from '../src/game/modules/playerShips/factories';
+import { PlayerShip } from '../src/game/modules/playerShips/components';
+import { PlayerSession } from '../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
 import { createPrng } from '../src/game/modules/rng/components';
 import { RngModule } from '../src/game/modules/rng/module';

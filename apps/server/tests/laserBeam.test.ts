@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LaserWeapon } from '../src/game/modules/weapons/components';
 import { createGameWorld } from '../src/index';
-import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
+import { createPlayerShip } from '../src/game/modules/playerShips/factories';
 import { PlayerSession } from '../src/game/modules/playerSessions/components';
 import { Embellishments } from '../src/game/modules/embellishments/components';
 

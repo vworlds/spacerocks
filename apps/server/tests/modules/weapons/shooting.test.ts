@@ -38,7 +38,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import { registerNetworkFoundation } from '../helpers';
 import { MovementModule } from '../../../src/game/modules/movement/module';
-import { createPlayerShip } from '../../../src/game/modules/playerSessions/factories';
+import { createPlayerShip } from '../../../src/game/modules/playerShips/factories';
 import {
   Components as PlayerSessionsComponents,
   PlayerInputIntent,

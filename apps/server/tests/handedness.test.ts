@@ -10,7 +10,7 @@ import { registerNetworkFoundation } from './modules/helpers';
 import { MovementModule } from '../src/game/modules/movement/module';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
 import { PlayerInputIntent } from '../src/game/modules/playerSessions/components';
-import { createPlayerShip } from '../src/game/modules/playerSessions/factories';
+import { createPlayerShip } from '../src/game/modules/playerShips/factories';
 import { createBullet } from '../src/game/modules/weapons/factories';
 import {
   Bullet,

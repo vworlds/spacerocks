@@ -1,24 +1,21 @@
 import { ChildOf, Module } from '@vworlds/vecs';
 import { NetworkClient, NetworkInput } from '@vworlds/vecs-server';
-import { Components as CombatComponents } from '../combat/components';
-import { Components as MovementComponents } from '../movement/components';
-import { Components as WeaponsComponents } from '../weapons/components';
+import { createPlayerShip } from '../playerShips/factories';
+import { PlayerShipsModule } from '../playerShips/module';
 import { Components, PlayerInputIntent, PlayerSession } from './components';
-import { createPlayerShip, getOwnedShip, parseInputIntent } from './factories';
+import { getOwnedShip, parseInputIntent } from './factories';
 
 /**
  * Owns player session lifecycle: creates a `PlayerSession` + player ship when
  * a `NetworkClient` connects, and translates each client's `NetworkInput`
  * into the ship's `PlayerInputIntent` (read by movement/shooting systems).
  *
- * Depends on `AssetsModule` (the ship factory calls `pickShipSprite`, which
- * reads the `WorldAssets` singleton); load it first.
+ * Depends on `PlayerShipsModule` to create the owned ship archetype when a
+ * network client connects.
  */
 export class PlayerSessionsModule extends Module {
   override init(): void {
-    this.world.module(CombatComponents);
-    this.world.module(MovementComponents);
-    this.world.module(WeaponsComponents);
+    this.world.module(PlayerShipsModule);
     this.world.module(Components);
 
     let nextPlayerIndex = 0;
