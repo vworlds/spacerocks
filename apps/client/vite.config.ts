@@ -16,6 +16,12 @@ export default defineConfig({
           import.meta.url,
         ),
       ),
+      phaser: fileURLToPath(
+        new URL(
+          '../../node_modules/phaser/dist/phaser.esm.min.js',
+          import.meta.url,
+        ),
+      ),
     },
   },
   test: {
