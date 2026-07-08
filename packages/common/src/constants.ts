@@ -413,6 +413,9 @@ export const CARGO = {
   grabDefaultOn: true,
 } as const;
 
+/** Edge length of a resource container's square visual, in meters (§5.1). */
+export const CONTAINER_SIZE = 0.24; // meters
+
 // --- Death (§11.1) ------------------------------------------------------------
 
 export const DEATH = {
