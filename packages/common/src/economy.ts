@@ -15,6 +15,8 @@
  * reconciliation note 1).
  */
 
+import type { ResourceType } from './resources';
+
 /**
  * A resource cost. Tuple order `(ore, crystal, alloy)` is normative
  * everywhere. All amounts are non-negative integers (container counts).
@@ -67,13 +69,12 @@ export const PRICE_RESOURCES = [
 
 /**
  * A single container unit of a resource. `priceContainers` expands a
- * {@link Price} into these.
- *
- * TODO(E1-T3): align `resource` with the `ResourceType` enum introduced by
- * E1-T3 (design #40 §8.1). Until that lands we key by the resource name.
+ * {@link Price} into these. `resource` is the shared {@link ResourceType}
+ * (design #40 §8.1); because {@link ResourceType} is `'ore' | 'crystal' |
+ * 'alloy'` — identical to `keyof Price` — it lines up with the tuple order.
  */
 export type PriceContainer = {
-  resource: keyof Price;
+  resource: ResourceType;
   /** Always 1 — one container per unit. Included so callers can scale if needed. */
   amount: 1;
 };
@@ -134,11 +135,8 @@ export function deduct(buffer: Price, price: Price): Price {
  *
  * `(2,1,0)` → `[ { ore, 1 }, { ore, 1 }, { crystal, 1 } ]`. Order is normative
  * (ore units first, then crystal, then alloy) so callers that care about
- * determinism get a stable sequence.
- *
- * TODO(E1-T3): coordinate the `resource` shape with E1-T3's `ResourceType`
- * enum (design #40 §8.1). Until E1-T3 lands, `resource` is keyed by the three
- * resource names.
+ * determinism get a stable sequence. `resource` is the shared
+ * {@link ResourceType} (design #40 §8.1).
  */
 export function priceContainers(price: Price): PriceContainer[] {
   const containers: PriceContainer[] = [];

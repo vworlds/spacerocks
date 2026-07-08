@@ -14,6 +14,7 @@ import { WeaponsModule } from './modules/weapons/module';
 import { DecayModule } from './modules/decay/module';
 import { AsteroidsModule } from './modules/asteroids/module';
 import { EmbellishmentsModule } from './modules/embellishments/module';
+import { ResourcesModule } from './modules/resources/module';
 
 export type WorldModuleConfig = {
   manager?: AssetManager;
@@ -57,5 +58,6 @@ export class WorldModule extends Module<WorldModuleConfig | undefined> {
     world.module(DecayModule);
     world.module(AsteroidsModule);
     world.module(EmbellishmentsModule);
+    world.module(ResourcesModule);
   }
 }
