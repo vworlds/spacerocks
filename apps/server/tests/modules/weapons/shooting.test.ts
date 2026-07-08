@@ -26,8 +26,6 @@ import {
 } from '@vworlds/vecs-physics';
 import {
   CAT_ASTEROID,
-  CAT_ENEMY_BULLET,
-  CAT_PLAYER,
   COLORS,
   ENTITY_CONFIG,
   NetworkComponentsModule,
@@ -59,7 +57,6 @@ import {
   ShootingCooldown,
 } from '../../../src/game/modules/weapons/components';
 import { WeaponsModule } from '../../../src/game/modules/weapons/module';
-import { AliensModule } from '../../../src/game/modules/aliens/module';
 import { SpawningModule } from '../../../src/game/modules/spawning/module';
 import { RngModule } from '../../../src/game/modules/rng/module';
 import { GameStateModule } from '../../../src/game/modules/gameState/module';
@@ -67,7 +64,6 @@ import {
   Asteroid,
   Components as AsteroidsComponents,
 } from '../../../src/game/modules/asteroids/components';
-import { Alien } from '../../../src/game/modules/aliens/components';
 import { DecayModule } from '../../../src/game/modules/decay/module';
 
 vi.mock('@vworlds/vecs-server', () => ({
@@ -101,7 +97,6 @@ function createTestWorld(): { world: World } {
   world.module(WeaponsModule);
   world.module(DecayModule);
   world.module(SpawningModule);
-  world.module(AliensModule);
   world.module(MovementModule);
   return { world };
 }
@@ -179,92 +174,6 @@ describe('server shooting systems', () => {
     world.progress((1000 / 60) * 2, 1000 / 60);
 
     expect(count(world, Bullet)).toBe(1);
-  });
-
-  it('creates enemy bullets from alien cooldown targeting the nearest player', () => {
-    const { world, ship } = createStartedWorldWithShip();
-    ship.set(PhysicsPosition, { x: 1, y: 0 });
-    const alien = world
-      .entity()
-      .set(Body, { type: BodyType.Dynamic })
-      .set(PhysicsPosition, { x: 0, y: 0 })
-      .set(PhysicsRotation, { angle: 0 })
-      .set(Alien, { shootCooldown: 0 });
-
-    world.progress(0, 1000 / 60);
-
-    expect(count(world, Bullet)).toBe(1);
-    const bullet = firstEntity(world, Bullet);
-    const shape = [...bullet.children(ChildOf)].find((child) =>
-      child.get(Circle),
-    );
-    expect(bullet.get(Bullet)).toMatchObject({ ownerType: 'alien' });
-    expect(bullet.get(ChildOf)?.target).toBe(alien);
-    expect(bullet.get(StrokeStyle)).toMatchObject({ color: COLORS.orange });
-    expect(shape?.get(CollisionFilter)).toMatchObject({
-      categoryBits: CAT_ENEMY_BULLET,
-      maskBits: CAT_ASTEROID | CAT_PLAYER,
-    });
-    expect(bullet.get(LinearVelocity)!.x).toBeGreaterThan(0);
-    expect(Math.abs(bullet.get(LinearVelocity)!.y)).toBeLessThan(1e-9);
-    expect(alien.get(Alien)?.shootCooldown).toBe(
-      ENTITY_CONFIG.ALIEN.SHOOT_COOLDOWN_BASE,
-    );
-  });
-
-  it('does not fire enemy bullets at players outside alien sight range', () => {
-    const { world, ship } = createStartedWorldWithShip();
-    ship.set(PhysicsPosition, {
-      x: ENTITY_CONFIG.ALIEN.TARGET_DIST_MAX + 0.1,
-      y: 0,
-    });
-    const alien = world
-      .entity()
-      .set(Body, { type: BodyType.Dynamic })
-      .set(PhysicsPosition, { x: 0, y: 0 })
-      .set(PhysicsRotation, { angle: 0 })
-      .set(Alien, { shootCooldown: 0 });
-
-    world.progress(0, 1000 / 60);
-
-    expect(count(world, Bullet)).toBe(0);
-    expect(alien.get(Alien)?.shootCooldown).toBe(0);
-  });
-
-  it('rotates aliens toward players before firing enemy bullets', () => {
-    const { world, ship } = createStartedWorldWithShip();
-    ship.set(PhysicsPosition, { x: 0, y: 1 });
-    const alien = world
-      .entity()
-      .set(Body, { type: BodyType.Dynamic })
-      .set(PhysicsPosition, { x: 0, y: 0 })
-      .set(PhysicsRotation, { angle: 0 })
-      .set(Alien, { shootCooldown: 0 });
-
-    world.progress(0, 1000 / 60);
-
-    expect(count(world, Bullet)).toBe(0);
-    expect(alien.get(PhysicsRotation)?.angle).toBeGreaterThan(0);
-
-    // The alien fires once it faces the player (~tick 12). The bullet travels
-    // toward the ship and is destroyed on impact, so capture its aim and
-    // velocity while it is in flight (before the hit).
-    let bulletAngle: number | undefined;
-    let bulletVy: number | undefined;
-    for (let i = 0; i < 20; i += 1) {
-      world.progress((i + 1) * (1000 / TICK_RATE), 1000 / TICK_RATE);
-      if (bulletAngle === undefined) {
-        world.filter([Bullet]).forEach([], (e) => {
-          if (bulletAngle !== undefined) return;
-          bulletAngle = e.get(PhysicsRotation)?.angle;
-          bulletVy = e.get(LinearVelocity)?.y;
-        });
-      }
-    }
-
-    expect(bulletAngle).toBeDefined();
-    expect(bulletAngle!).toBeCloseTo(Math.PI / 2, 1);
-    expect(bulletVy!).toBeGreaterThan(0);
   });
 
   it('creates rockets from server-owned ammo and homes after the straight timer', () => {

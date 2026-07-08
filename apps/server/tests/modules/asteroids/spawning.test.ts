@@ -5,7 +5,6 @@ import {
   type Entity,
 } from '@vworlds/vecs';
 import {
-  Arc,
   FillStyle,
   Polygon,
   Position,
@@ -21,13 +20,10 @@ import {
 import {
   ASTEROID_FILL_COLORS,
   CAT_ASTEROID,
-  COLORS,
   ENTITY_CONFIG,
   MAX_ASTEROIDS_TOTAL_MASS,
   NetworkComponentsModule,
-  PICKUP_COLORS,
   TICK_RATE,
-  VIEWPORT_WIDTH,
   WORLD_MAX_X,
   WORLD_MAX_Y,
   WORLD_MIN_X,
@@ -55,15 +51,6 @@ import {
   Components as AsteroidsComponents,
 } from '../../../src/game/modules/asteroids/components';
 import { AsteroidsModule } from '../../../src/game/modules/asteroids/module';
-import { createAlien } from '../../../src/game/modules/aliens/factories';
-import { Alien } from '../../../src/game/modules/aliens/components';
-import { AliensModule } from '../../../src/game/modules/aliens/module';
-import { createPickup } from '../../../src/game/modules/pickups/factories';
-import { PickupsModule } from '../../../src/game/modules/pickups/module';
-import {
-  Pickup,
-  PickupKind,
-} from '../../../src/game/modules/pickups/components';
 import { Components as WeaponsComponents } from '../../../src/game/modules/weapons/components';
 import { DecayModule } from '../../../src/game/modules/decay/module';
 import { Components as MovementComponents } from '../../../src/game/modules/movement/components';
@@ -98,8 +85,6 @@ function createTestWorld(seedOrRng: number | Prng = 1234): {
   world.module(SpawningModule);
   world.module(DecayModule);
   world.module(AsteroidsModule);
-  world.module(AliensModule);
-  world.module(PickupsModule);
   return { world };
 }
 
@@ -146,18 +131,6 @@ function actualAsteroidMass(world: World): number {
   return total;
 }
 
-function fixedAngleRng(angle: number): Prng {
-  return {
-    next: () => 0,
-    int: () => 0,
-    bool: () => false,
-    range: (min: number, max: number) => {
-      if (min === 0 && max === Math.PI * 2) return angle;
-      return (min + max) / 2;
-    },
-  };
-}
-
 function firstEntity(
   world: World,
   component: ComponentClass,
@@ -190,8 +163,6 @@ describe('server spawning systems', () => {
     expect(firstEntity(world, GameStateView)?.get(GameStateView)).toMatchObject(
       {
         state: 0,
-        wave: 1,
-        score: 0,
       },
     );
     expect(count(world, GameStateView)).toBe(1);
@@ -316,62 +287,6 @@ describe('server spawning systems', () => {
     expect(right.get(LinearVelocity)!.x).toBeGreaterThan(0);
   });
 
-  it('creates phaser alien render components', () => {
-    const { world } = createTestWorld();
-    const alien = createAlien(world, createPrng(1234));
-
-    expect(alien.get(Polygon)?.points).toEqual([
-      0.15, 0, -0.1, 0.1, -0.05, 0, -0.1, -0.1,
-    ]);
-    expect(alien.get(StrokeStyle)).toMatchObject({
-      color: COLORS.orange,
-      alpha: 1,
-      width: 2,
-    });
-  });
-
-  it('spawns aliens just outside an active player viewport', () => {
-    const { world } = createTestWorld();
-    world
-      .entity()
-      .set(PlayerShip, { playerIndex: 0, color: 0xffffff })
-      .set(Position, { x: 1, y: 2 });
-
-    const alien = createAlien(world, fixedAngleRng(0));
-
-    expect(alien.get(Position)).toMatchObject({
-      x: 1 + VIEWPORT_WIDTH * 0.6,
-      y: 2,
-    });
-  });
-
-  it('clamps player-relative alien spawns inside world bounds', () => {
-    const { world } = createTestWorld();
-    world
-      .entity()
-      .set(PlayerShip, { playerIndex: 0, color: 0xffffff })
-      .set(Position, { x: WORLD_MAX_X - 0.1, y: WORLD_MAX_Y - 0.1 });
-
-    const alien = createAlien(world, fixedAngleRng(Math.PI / 4));
-
-    expect(alien.get(Position)).toMatchObject({
-      x: WORLD_MAX_X - 0.5,
-      y: WORLD_MAX_Y - 0.5,
-    });
-  });
-
-  it('creates pickup arc and u32 stroke color render components', () => {
-    const { world } = createTestWorld();
-    const pickup = createPickup(world, createPrng(1234), PickupKind.Health);
-
-    expect(pickup.get(Arc)).toMatchObject({ radius: 0.15 });
-    expect(pickup.get(StrokeStyle)).toMatchObject({
-      color: PICKUP_COLORS[PickupKind.Health],
-      alpha: 1,
-      width: 2,
-    });
-  });
-
   it('does not continuously spawn asteroids while total mass is at the cap', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
@@ -382,11 +297,6 @@ describe('server spawning systems', () => {
     runSimulation(world, 1000);
     runSimulation(world, 2000);
 
-    expect(firstEntity(world, GameStateView)?.get(GameStateView)).toMatchObject(
-      {
-        wave: 1,
-      },
-    );
     expect(startingMass).toBeGreaterThanOrEqual(MAX_ASTEROIDS_TOTAL_MASS);
     expect(count(world, Asteroid)).toBe(startingCount);
   });
@@ -413,12 +323,7 @@ describe('server spawning systems', () => {
       GameStateView,
     );
     if (!gameStateEntity) throw new Error('Expected GameStateView entity');
-    gameStateEntity.set(GameStateView, {
-      state: 1,
-      wave: 1,
-      score: 0,
-      status: 'Paused',
-    });
+    gameStateEntity.set(GameStateView, { state: 1 });
 
     const destroyedAsteroids: Entity[] = [];
     world.filter([Asteroid]).forEach([], (entity) => {
@@ -439,12 +344,7 @@ describe('server spawning systems', () => {
       actualAsteroidMass(world as unknown as World),
     );
 
-    gameStateEntity.set(GameStateView, {
-      state: 0,
-      wave: 1,
-      score: 0,
-      status: '',
-    });
+    gameStateEntity.set(GameStateView, { state: 0 });
     for (let tick = 2; tick <= 120; tick += 1) {
       world.progress(tick * dt, dt);
     }
@@ -498,81 +398,14 @@ describe('server spawning systems', () => {
     for (const entity of asteroids) entity.destroy();
     const gameStateEntity = firstEntity(world, GameStateView);
     if (!gameStateEntity) throw new Error('Expected GameStateView entity');
-    gameStateEntity.set(GameStateView, {
-      state: 1,
-      wave: 1,
-      score: 0,
-      status: 'Paused',
-    });
+    gameStateEntity.set(GameStateView, { state: 1 });
 
     runSimulation(world, 1000);
     runSimulation(world, 2000);
 
     expect(gameStateEntity.get(GameStateView)).toMatchObject({
       state: 1,
-      wave: 1,
-      status: 'Paused',
     });
     expect(count(world, Asteroid)).toBe(0);
-  });
-
-  it('spawns aliens and pickups from server timers while playing', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    const { world } = createTestWorld();
-
-    vi.setSystemTime(120_000);
-    runSimulation(world, 120_000);
-
-    expect(count(world, Alien)).toBeGreaterThan(0);
-    expect(count(world, Pickup)).toBeGreaterThan(0);
-  });
-
-  it('pauses timed spawns when GameStateView is not playing', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(0);
-    const { world } = createTestWorld();
-    const gameStateEntity = firstEntity(world, GameStateView);
-    if (!gameStateEntity) throw new Error('Expected GameStateView entity');
-    gameStateEntity.set(GameStateView, {
-      state: 1,
-      wave: 1,
-      score: 0,
-      status: '',
-    });
-
-    vi.setSystemTime(120_000);
-    runSimulation(world, 120_000);
-
-    expect(count(world, Alien)).toBe(0);
-    expect(count(world, Pickup)).toBe(0);
-  });
-
-  it('uses deterministic server RNG for asteroid and pickup metadata', () => {
-    const { world: worldA } = createTestWorld(999);
-    const { world: worldB } = createTestWorld(999);
-    const rngA = createPrng(42);
-    const rngB = createPrng(42);
-
-    const asteroidA = createAsteroid(
-      worldA,
-      rngA,
-      0.1,
-      0.2,
-      ENTITY_CONFIG.ASTEROID.MASS,
-    )!;
-    const asteroidB = createAsteroid(
-      worldB,
-      rngB,
-      0.1,
-      0.2,
-      ENTITY_CONFIG.ASTEROID.MASS,
-    )!;
-    const pickupA = createPickup(worldA, rngA, PickupKind.Health);
-    const pickupB = createPickup(worldB, rngB, PickupKind.Health);
-
-    expect(asteroidA.get(AsteroidView)).toEqual(asteroidB.get(AsteroidView));
-    expect(pickupA.get(StrokeStyle)).toEqual(pickupB.get(StrokeStyle));
-    expect(pickupA.get(Position)).toEqual(pickupB.get(Position));
   });
 });

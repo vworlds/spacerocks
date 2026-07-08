@@ -4,9 +4,9 @@ import {
   LinearVelocity,
   Position as PhysicsPosition,
 } from '@vworlds/vecs-physics';
-import { ENTITY_CONFIG, SCORING } from '@spacerocks/common';
+import { ENTITY_CONFIG } from '@spacerocks/common';
 import type { Prng } from '../rng/components';
-import { addScore, createExplosion } from '../gameState/helpers';
+import { createExplosion } from '../gameState/helpers';
 import { Asteroid, AsteroidView } from './components';
 import { asteroidRadius, createAsteroid } from './factories';
 
@@ -27,9 +27,9 @@ function dot(a: { x: number; y: number }, b: { x: number; y: number }): number {
 
 /**
  * Splits an asteroid into fragments along the axis perpendicular to the
- * projectile/impact direction, destroys the original, and scores. The small
- * fragment becomes non-collidable "dust" with a TTL when below the collidable
- * mass threshold.
+ * projectile/impact direction and destroys the original. The small fragment
+ * becomes non-collidable "dust" with a TTL when below the collidable mass
+ * threshold.
  */
 export function splitAsteroid(
   world: World,
@@ -37,7 +37,6 @@ export function splitAsteroid(
   asteroid: Entity,
   hitPoint: { x: number; y: number } | undefined,
   shotDirection: { x: number; y: number } | undefined,
-  score: boolean,
 ): void {
   const asteroidData = asteroid.get(Asteroid);
   const asteroidView = asteroid.get(AsteroidView);
@@ -112,7 +111,6 @@ export function splitAsteroid(
   }
 
   asteroid.destroy();
-  if (score) addScore(world, SCORING.ASTEROID_BASE);
 }
 
 /**
@@ -124,7 +122,6 @@ export function splitAsteroidFromProjectile(
   rng: Prng,
   asteroid: Entity,
   projectile: Entity,
-  score: boolean,
 ): void {
   const hitPoint = getPosition(projectile) ?? getPosition(asteroid);
   const projectileVelocity = projectile.get(LinearVelocity);
@@ -138,5 +135,5 @@ export function splitAsteroidFromProjectile(
         }
       : { x: 1, y: 0 };
 
-  splitAsteroid(world, rng, asteroid, hitPoint, shotDirection, score);
+  splitAsteroid(world, rng, asteroid, hitPoint, shotDirection);
 }

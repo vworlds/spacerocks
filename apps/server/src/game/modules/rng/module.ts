@@ -14,8 +14,8 @@ export function readServerSeed(): number {
 
 /**
  * Registers the `WorldRng` singleton holding a seeded `Prng`. Other modules
- * (asteroids, aliens, pickups, combat) read it via `world.get(WorldRng)` and
- * capture the instance in their `init()`.
+ * (asteroids, combat) read it via `world.get(WorldRng)` and capture the
+ * instance in their `init()`.
  */
 export class RngModule extends Module<RngModuleConfig | undefined> {
   override init(config: RngModuleConfig | undefined): void {

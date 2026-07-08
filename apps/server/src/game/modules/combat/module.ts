@@ -6,18 +6,9 @@ import {
   type World,
 } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
-import {
-  Position as PhysicsPosition,
-  SensorEvents,
-} from '@vworlds/vecs-physics';
-import {
-  COLORS,
-  ENTITY_CONFIG,
-  SCORING,
-  SHIELD_DAMAGE,
-} from '@spacerocks/common';
-import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
-import { Alien, Components as AliensComponents } from '../aliens/components';
+import { SensorEvents } from '@vworlds/vecs-physics';
+import { COLORS, ENTITY_CONFIG, SHIELD_DAMAGE } from '@spacerocks/common';
+import { createExplosion, isPlaying } from '../gameState/helpers';
 import {
   Asteroid,
   AsteroidView,
@@ -38,7 +29,7 @@ import {
  * Applies shield or health damage to a player. While shielded, damage drains
  * the shield and returns false; once the shield breaks or is absent, health
  * takes 10 hp per hit and returns true if the player dies (spawning a
- * `RespawnTimer`). Asteroid/alien contact and alien-bullet hits route here.
+ * `RespawnTimer`). Asteroid contact routes here.
  */
 export function damagePlayer(
   world: World,
@@ -84,11 +75,6 @@ function killPlayer(world: World, player: Entity): void {
   player.destroy();
 }
 
-function getPosition(entity: Entity): { x: number; y: number } | undefined {
-  const position = entity.get(PhysicsPosition) ?? entity.get(Position);
-  return position ? { x: position.x, y: position.y } : undefined;
-}
-
 function bodyOf(world: World, shape: Entity | undefined): Entity | undefined {
   if (!shape || shape.destroyed) return undefined;
   const body = shape.target(ChildOf);
@@ -99,8 +85,7 @@ function bodyOf(world: World, shape: Entity | undefined): Entity | undefined {
 /**
  * Player-body collision system: handles a player ship bumping into an
  * asteroid (shields absorb; otherwise the player takes asteroid-collision
- * damage) or an alien (mutual destruction, player takes alien-body damage,
- * alien is destroyed and scored).
+ * damage).
  *
  * Depends on `PlayerShipsModule` (respawn uses `createPlayerShip`).
  */
@@ -112,7 +97,6 @@ export class CombatModule extends Module {
     world.module(MovementComponents);
     world.module(WeaponsComponents);
     world.module(AsteroidsComponents);
-    world.module(AliensComponents);
     world.module(Components);
 
     world
@@ -195,34 +179,6 @@ export class CombatModule extends Module {
                 view?.color ?? COLORS.asteroidGrey,
                 0.05,
               );
-            contactConsumed.add(self.eid);
-            continue;
-          }
-
-          if (other.get(Alien)) {
-            const playerPos = self.get(Position);
-            const shielded = self.get(Shield) !== undefined;
-            damagePlayer(world, self, SHIELD_DAMAGE.ALIEN_BODY);
-            if (playerPos)
-              createExplosion(
-                world,
-                playerPos.x,
-                playerPos.y,
-                COLORS.orange,
-                shielded ? 0.2 : 0.05,
-              );
-            const alienPos = getPosition(other);
-            if (alienPos)
-              createExplosion(
-                world,
-                alienPos.x,
-                alienPos.y,
-                COLORS.orange,
-                0.15,
-              );
-            other.destroy();
-            addScore(world, SCORING.ALIEN);
-            contactConsumed.add(other.eid);
             contactConsumed.add(self.eid);
             continue;
           }

@@ -18,8 +18,6 @@ import {
   StrokeStyle,
 } from '@vworlds/vecs-phaser';
 import { COLORS, ENTITY_CONFIG, VIEWPORT_WIDTH } from '@spacerocks/common';
-import { Alien } from '../aliens/components';
-import { Components as AliensComponents } from '../aliens/components';
 import {
   AsteroidView,
   Components as AsteroidsComponents,
@@ -86,7 +84,6 @@ function healthFillOffsetX(ratio: number): number {
 function getBodyRadius(entity: Entity): number {
   const asteroidView = entity.get(AsteroidView);
   if (asteroidView) return asteroidView.radius;
-  if (entity.get(Alien)) return ENTITY_CONFIG.ALIEN.RADIUS;
   if (entity.get(PlayerShip)) return ENTITY_CONFIG.SHIP.RADIUS;
   return ENTITY_CONFIG.SHIP.RADIUS;
 }
@@ -259,15 +256,14 @@ function ensureLaserBeam(
  * as child entities to bodies with `Health`/`Shield`/`LaserWeapon`, plus the
  * PRE_STORE systems that make children follow their parent's pose.
  *
- * Dependencies: `CombatModule`/`PlayerSessionsModule`/`AliensModule`
- * (the `Health`/`Shield`/`LaserWeapon`/`PlayerShip`/`Alien`/`AsteroidView`
+ * Dependencies: `CombatModule`/`PlayerSessionsModule`
+ * (the `Health`/`Shield`/`LaserWeapon`/`PlayerShip`/`AsteroidView`
  * components those register). Load after `PhaserServerModule` so its
  * PRE_STORE pose-sync runs before the child-follow systems.
  */
 export class EmbellishmentsModule extends Module {
   override init(): void {
     const world = this.world;
-    world.module(AliensComponents);
     world.module(AsteroidsComponents);
     world.module(CombatComponents);
     world.module(PlayerShipsComponents);

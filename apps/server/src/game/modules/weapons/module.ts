@@ -12,14 +12,10 @@ import {
 } from '@vworlds/vecs-physics';
 import {
   CAT_ASTEROID,
-  CAT_ENEMY,
   COLORS,
   ENTITY_CONFIG,
-  SCORING,
   perSecond,
 } from '@spacerocks/common';
-import { Alien } from '../aliens/components';
-import { Components as AliensComponents } from '../aliens/components';
 import {
   Asteroid,
   Components as AsteroidsComponents,
@@ -31,13 +27,11 @@ import { PlayerInputIntent } from '../playerSessions/components';
 import { PlayerSessionsModule } from '../playerSessions/module';
 import { WorldRng } from '../rng/components';
 import { RngModule } from '../rng/module';
-import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
+import { isPlaying } from '../gameState/helpers';
 import {
   splitAsteroid,
   splitAsteroidFromProjectile,
 } from '../asteroids/splitting';
-import { damageEnemy } from '../aliens/damage';
-import { damagePlayer } from '../combat/module';
 import {
   AuraWeapon,
   Boomerang,
@@ -66,9 +60,8 @@ const LASER_LENGTH = 10;
  * return, decay, and projectile-impact collision (`ProjectileImpact`).
  *
  * Dependencies: `PlayerSessionsModule` (`PlayerInputIntent`), `RngModule`
- * (splitting/damage use the seeded Prng), `AsteroidsModule` (`splitAsteroid`),
- * `AliensModule` (`damageEnemy`), `CombatModule` (`damagePlayer`),
- * `GameStateModule` (`addScore`/`isPlaying`/`createExplosion`).
+ * (splitting uses the seeded Prng), `AsteroidsModule` (`splitAsteroid`),
+ * `GameStateModule` (`isPlaying`).
  */
 export class WeaponsModule extends Module {
   override init(): void {
@@ -78,7 +71,6 @@ export class WeaponsModule extends Module {
     this.world.module(MovementModule);
     this.world.module(DecayModule);
     this.world.module(AsteroidsComponents);
-    this.world.module(AliensComponents);
     this.world.module(Components);
     const rng = world.get(WorldRng)!.prng!;
 
@@ -306,30 +298,14 @@ export class WeaponsModule extends Module {
             continue;
 
           if (other.get(Asteroid)) {
-            splitAsteroidFromProjectile(world, rng, other, self, true);
+            splitAsteroidFromProjectile(world, rng, other, self);
             projectileConsumed.add(other.eid);
             projectileConsumed.add(self.eid);
             self.destroy();
             continue;
           }
 
-          if (other.get(Alien)) {
-            const killed = damageEnemy(world, other, projectileDamage(self));
-            if (killed) projectileConsumed.add(other.eid);
-            projectileConsumed.add(self.eid);
-            self.destroy();
-            continue;
-          }
-
           if (other.get(PlayerShip)) {
-            const bullet = self.get(Bullet);
-            if (bullet?.ownerType === 'alien') {
-              damagePlayer(world, other, ENTITY_CONFIG.BULLET.DAMAGE);
-              projectileConsumed.add(self.eid);
-              self.destroy();
-              continue;
-            }
-
             const boomerang = self.get(Boomerang);
             if (
               boomerang &&
@@ -351,12 +327,6 @@ export class WeaponsModule extends Module {
         }
       });
   }
-}
-
-function projectileDamage(projectile: Entity): number {
-  if (projectile.get(Rocket)) return ENTITY_CONFIG.ROCKET.DAMAGE;
-  if (projectile.get(Boomerang)) return ENTITY_CONFIG.BOOMERANG.DAMAGE;
-  return ENTITY_CONFIG.BULLET.DAMAGE;
 }
 
 function bodyOf(
@@ -384,7 +354,7 @@ function resolveLaserHits(
   const hits = physics(world).rayCastAll({
     from: start,
     to: end,
-    filter: { maskBits: CAT_ASTEROID | CAT_ENEMY },
+    filter: { maskBits: CAT_ASTEROID },
   });
 
   for (const hit of hits) {
@@ -392,20 +362,10 @@ function resolveLaserHits(
     if (!body || !world.getEntity(body.eid)) continue;
 
     if (body.get(Asteroid)) {
-      splitAsteroid(
-        world,
-        rng,
-        body,
-        hit.point,
-        { x: end.x - start.x, y: end.y - start.y },
-        true,
-      );
-    } else if (body.get(Alien)) {
-      const position = body.get(RenderPosition);
-      if (position)
-        createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
-      body.destroy();
-      addScore(world, SCORING.ALIEN);
+      splitAsteroid(world, rng, body, hit.point, {
+        x: end.x - start.x,
+        y: end.y - start.y,
+      });
     }
   }
 }
