@@ -18,6 +18,10 @@ import { registerNetworkFoundation } from '../helpers';
 import { ResourceContainer } from '../../../src/game/modules/resources/components';
 import { Components as ResourcesComponents } from '../../../src/game/modules/resources/components';
 import { createResourceContainer } from '../../../src/game/modules/resources/factories';
+import {
+  FollowParent,
+  Offset,
+} from '../../../src/game/modules/embellishments/components';
 
 vi.mock('@vworlds/vecs-server', () => ({
   NetworkClient: class NetworkClient {
@@ -72,6 +76,10 @@ describe('createResourceContainer', () => {
       value: RESOURCE_DISPLAY.crystal.char,
       align: TextAlign.Center,
     });
+    // The character tracks a moving container: FollowParent + zero Offset lets
+    // the embellishments position cascade pin it to the square's centre.
+    expect(textChild!.get(FollowParent)).toBeDefined();
+    expect(textChild!.get(Offset)).toMatchObject({ x: 0, y: 0 });
   });
 
   it('derives color and char purely from RESOURCE_DISPLAY for every type', () => {

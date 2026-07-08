@@ -1,4 +1,5 @@
 import { Module } from '@vworlds/vecs';
+import { Components as EmbellishmentsComponents } from '../embellishments/components';
 
 /**
  * Server-side gameplay component marking an entity as a resource container of
@@ -18,10 +19,14 @@ export class ResourceContainer {
 }
 
 /**
- * Registers the `ResourceContainer` server-only component.
+ * Registers the `ResourceContainer` server-only component, and (idempotently)
+ * the embellishment components — `createResourceContainer` gives the character
+ * child `FollowParent` + `Offset` so it tracks a moving container, and those
+ * component classes must be registered wherever containers are spawned.
  */
 export class Components extends Module {
   override init(): void {
+    this.world.module(EmbellishmentsComponents);
     this.world.component(ResourceContainer);
   }
 }
