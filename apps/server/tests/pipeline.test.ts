@@ -16,7 +16,6 @@ import {
 } from '@vworlds/vecs-physics';
 import { COLORS, Explosion, TICK_RATE } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
-import { Alien } from '../src/game/modules/aliens/components';
 import { Asteroid } from '../src/game/modules/asteroids/components';
 import { GameStateView } from '../src/game/modules/gameState/components';
 import { createExplosion } from '../src/game/modules/gameState/helpers';
@@ -78,7 +77,7 @@ describe('server game world pipeline', () => {
     expect(explosion?.get(Networked)).toBeTruthy();
   });
 
-  it('continuously spawns asteroid bodies with shapes without incrementing wave state', async () => {
+  it('continuously spawns asteroid bodies with shapes without changing play state', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
     const world = await createGameWorld();
@@ -86,17 +85,16 @@ describe('server game world pipeline', () => {
     world.progress(0, dt);
     const stateEntity = entitiesWith(GameStateView, world)[0];
     if (!stateEntity) throw new Error('Expected GameStateView entity');
-    const startingWave = stateEntity.get(GameStateView)?.wave ?? 0;
+    const startingState = stateEntity.get(GameStateView)?.state ?? 0;
 
     for (const asteroid of entitiesWith(Asteroid, world)) asteroid.destroy();
-    for (const alien of entitiesWith(Alien, world)) alien.destroy();
     world.flush();
 
     for (let i = 0; i < 40; i += 1) {
       world.progress((i + 1) * dt, dt);
     }
 
-    expect(stateEntity.get(GameStateView)?.wave).toBe(startingWave);
+    expect(stateEntity.get(GameStateView)?.state).toBe(startingState);
     const asteroids = entitiesWith(Asteroid, world);
     expect(asteroids.length).toBeGreaterThan(0);
     for (const asteroid of asteroids) {

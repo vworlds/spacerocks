@@ -1,13 +1,16 @@
 import { type Entity, type World } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
-import { COLORS, ENTITY_CONFIG, SCORING } from '@spacerocks/common';
+import { COLORS, ENTITY_CONFIG } from '@spacerocks/common';
 import { Health } from '../combat/components';
-import { addScore, createExplosion } from '../gameState/helpers';
+import { createExplosion } from '../gameState/helpers';
 
 /**
- * Applies damage to an alien's `Health`, destroys it and scores when hp hits
- * zero, and spawns an explosion at the alien's position. Returns whether the
- * alien died this hit.
+ * Applies damage to an alien's `Health`, destroys it when hp hits zero, and
+ * spawns an explosion at the alien's position. Returns whether the alien died
+ * this hit.
+ *
+ * Kept in-tree for cannibalization by Epic 8 (tugbots may reuse the
+ * damage/explosion pattern). Unplugged from the world install by E1-T4.
  */
 export function damageEnemy(
   world: World,
@@ -26,6 +29,5 @@ export function damageEnemy(
   if (position)
     createExplosion(world, position.x, position.y, COLORS.orange, 0.15);
   enemy.destroy();
-  addScore(world, SCORING.ALIEN);
   return true;
 }

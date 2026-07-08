@@ -4,9 +4,8 @@ import { Components } from './components';
 import { createGameStateEntity } from './helpers';
 
 /**
- * Creates the singleton game-state entity that tracks play state, wave,
- * score, and status. Other gameplay modules depend on this for `isPlaying` /
- * `addScore` / `createExplosion`.
+ * Creates the singleton game-state entity that tracks play state. Other
+ * gameplay modules depend on this for `isPlaying` / `createExplosion`.
  */
 export class GameStateModule extends Module {
   override init(): void {

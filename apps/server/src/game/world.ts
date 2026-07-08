@@ -13,8 +13,6 @@ import { CombatModule } from './modules/combat/module';
 import { WeaponsModule } from './modules/weapons/module';
 import { DecayModule } from './modules/decay/module';
 import { AsteroidsModule } from './modules/asteroids/module';
-import { AliensModule } from './modules/aliens/module';
-import { PickupsModule } from './modules/pickups/module';
 import { EmbellishmentsModule } from './modules/embellishments/module';
 
 export type WorldModuleConfig = {
@@ -29,6 +27,11 @@ export type WorldModuleConfig = {
  * `PhysicsModule` and `PhaserServerModule` are loaded by `index.ts` BEFORE
  * this module (physics must exist before any system spawns bodies;
  * PhaserServerModule's PRE_STORE pose-sync must run before embellishments).
+ *
+ * E1-T4 retirement: `AliensModule` and `PickupsModule` are no longer
+ * installed here — the asteroid-only clean slate has no aliens or pickups.
+ * Their directories stay in-tree for later cannibalization (Epic 8/10); see
+ * `RETIREMENT-NOTES.md`.
  */
 export class WorldModule extends Module<WorldModuleConfig | undefined> {
   override init(config: WorldModuleConfig | undefined): void {
@@ -53,8 +56,6 @@ export class WorldModule extends Module<WorldModuleConfig | undefined> {
     world.module(WeaponsModule);
     world.module(DecayModule);
     world.module(AsteroidsModule);
-    world.module(AliensModule);
-    world.module(PickupsModule);
     world.module(EmbellishmentsModule);
   }
 }

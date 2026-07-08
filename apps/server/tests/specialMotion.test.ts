@@ -23,7 +23,6 @@ import {
   Explosion,
   NetworkComponentsModule,
   perSecond,
-  SCORING,
   TICK_RATE,
   WORLD_MAX_X,
   WORLD_MAX_Y,
@@ -45,8 +44,6 @@ import { RngModule } from '../src/game/modules/rng/module';
 import { GameStateModule } from '../src/game/modules/gameState/module';
 import { GameStateView } from '../src/game/modules/gameState/components';
 import { Components as SpawningComponents } from '../src/game/modules/spawning/components';
-import { createAlien } from '../src/game/modules/aliens/factories';
-import { Alien } from '../src/game/modules/aliens/components';
 import { createAsteroid } from '../src/game/modules/asteroids/factories';
 import {
   Asteroid,
@@ -113,9 +110,6 @@ function createSpecialMotionWorld(
   if (!(options.installShooting ?? true)) {
     world.entity().set(GameStateView, {
       state: 0,
-      wave: 1,
-      score: 0,
-      status: '',
     });
   }
   return world;
@@ -209,14 +203,6 @@ function count(world: World, component: ComponentClass): number {
   return total;
 }
 
-function score(world: World): number {
-  let value = 0;
-  world.filter([GameStateView]).forEach([GameStateView], (_entity, [state]) => {
-    value = state.score;
-  });
-  return value;
-}
-
 describe('special motion under physics', () => {
   it('wraps physics bodies on both axes and syncs render position', () => {
     const world = createSpecialMotionWorld();
@@ -267,61 +253,6 @@ describe('special motion under physics', () => {
     const finalAngle = angleBetween(velocity, targetDirection);
 
     expect(finalAngle).toBeLessThan(initialAngle);
-    expect(velocity.y).toBeGreaterThan(0);
-    expect(rocket.get(PhysicsRotation)?.angle).toBeCloseTo(
-      Math.atan2(velocity.y, velocity.x),
-    );
-  });
-
-  it('homes rockets toward aliens before equal-distance asteroids from overlapCircle candidates', () => {
-    const world = createSpecialMotionWorld();
-    const ship = createShip(world);
-    const rocket = createRocket(
-      world as unknown as Parameters<typeof createRocket>[0],
-      ship,
-      0,
-      0,
-      0,
-    );
-    rocket.set(Rocket, { straightTimer: 0 });
-    rocket.set(PhysicsPosition, { x: 0, y: 0 });
-    rocket.set(RenderPosition, { x: 0, y: 0 });
-    rocket.set(LinearVelocity, {
-      x: perSecond(ENTITY_CONFIG.ROCKET.SPEED),
-      y: 0,
-    });
-    rocket.set(PhysicsRotation, { angle: 0 });
-
-    const alien = createAlien(
-      world as unknown as Parameters<typeof createAlien>[0],
-      createPrng(2),
-    );
-    alien.set(PhysicsPosition, { x: 1, y: 1 });
-    alien.set(RenderPosition, { x: 1, y: 1 });
-    alien.set(LinearVelocity, { x: 0, y: 0 });
-
-    const equalDistanceAsteroid = createAsteroid(
-      world as unknown as Parameters<typeof createAsteroid>[0],
-      createPrng(3),
-      1,
-      -1,
-      ENTITY_CONFIG.ASTEROID.MASS,
-    )!;
-    equalDistanceAsteroid.set(LinearVelocity, { x: 0, y: 0 });
-    const outsideAsteroid = createAsteroid(
-      world as unknown as Parameters<typeof createAsteroid>[0],
-      createPrng(4),
-      0,
-      ENTITY_CONFIG.ROCKET.HOME_RANGE + 1,
-      ENTITY_CONFIG.ASTEROID.MASS,
-    )!;
-    outsideAsteroid.set(LinearVelocity, { x: 0, y: 0 });
-
-    step(world, 5);
-
-    const velocity = rocket.get(LinearVelocity)!;
-    expect(count(world, Alien)).toBe(1);
-    expect(count(world, Asteroid)).toBe(2);
     expect(velocity.y).toBeGreaterThan(0);
     expect(rocket.get(PhysicsRotation)?.angle).toBeCloseTo(
       Math.atan2(velocity.y, velocity.x),
@@ -387,7 +318,7 @@ describe('special motion under physics', () => {
     expect(world.getEntity(boomerang.eid)).toBeUndefined();
   });
 
-  it('laser raycasts split only asteroids along the beam and score the hit', () => {
+  it('laser raycasts split only asteroids along the beam', () => {
     const world = createLaserWorld();
     const ship = world
       .entity()
@@ -418,7 +349,6 @@ describe('special motion under physics', () => {
 
     expect(world.getEntity(offBeam.eid)).toBe(offBeam);
     expect(count(world, Asteroid)).toBe(3);
-    expect(score(world)).toBe(SCORING.ASTEROID_BASE);
   });
 
   it('expires projectile decay and destroys the entity', () => {

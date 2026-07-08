@@ -1,12 +1,7 @@
 import { ChildOf, POST_UPDATE, Module, type Entity } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
 import { SensorEvents } from '@vworlds/vecs-physics';
-import {
-  COLORS,
-  ENTITY_CONFIG,
-  GAME_CONFIG,
-  SCORING,
-} from '@spacerocks/common';
+import { COLORS, ENTITY_CONFIG, GAME_CONFIG } from '@spacerocks/common';
 import { Health, Shield } from '../combat/components';
 import { CombatModule } from '../combat/module';
 import { DecayModule } from '../decay/module';
@@ -31,7 +26,7 @@ import {
   SpawnTimer,
 } from '../spawning/components';
 import { SpawningModule } from '../spawning/module';
-import { addScore, createExplosion, isPlaying } from '../gameState/helpers';
+import { createExplosion, isPlaying } from '../gameState/helpers';
 
 type PickupSpawnSpec = {
   kind: PickupKind;
@@ -114,29 +109,20 @@ function setActiveWeapon(player: Entity, kind: PickupKind): void {
   }
 }
 
-function applyPickupEffect(
-  world: import('@vworlds/vecs').World,
-  player: Entity,
-  pickupEntity: Entity,
-): void {
+function applyPickupEffect(player: Entity, pickupEntity: Entity): void {
   const pickup = pickupEntity.get(Pickup);
   if (!pickup) return;
 
   if (pickup.kind === PickupKind.Shield) {
     player.set(Shield, { shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION });
-    addScore(world, SCORING.SHIELD);
   } else if (pickup.kind === PickupKind.Laser) {
     setActiveWeapon(player, PickupKind.Laser);
-    addScore(world, SCORING.LASER);
   } else if (pickup.kind === PickupKind.Aura) {
     setActiveWeapon(player, PickupKind.Aura);
-    addScore(world, SCORING.AURA);
   } else if (pickup.kind === PickupKind.Rocket) {
     setActiveWeapon(player, PickupKind.Rocket);
-    addScore(world, SCORING.ROCKET);
   } else if (pickup.kind === PickupKind.Boomerang) {
     setActiveWeapon(player, PickupKind.Boomerang);
-    addScore(world, SCORING.BOOMERANG);
   } else {
     const healthPickup = pickupEntity.get(HealthPickup);
     const health = player.getMut(Health);
@@ -147,12 +133,6 @@ function applyPickupEffect(
       );
       health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
       player.modified(Health);
-      addScore(
-        world,
-        healthPickup.amount <= 0.25
-          ? SCORING.HEALTH_SMALL
-          : SCORING.HEALTH_LARGE,
-      );
     }
   }
 }
@@ -164,7 +144,7 @@ function applyPickupEffect(
  * swap, shield, heal) and destroys the pickup.
  *
  * Dependencies: `RngModule`, `SpawningModule` (`SpawnTimer`),
- * `GameStateModule` (`isPlaying`, `createExplosion`, `addScore`).
+ * `GameStateModule` (`isPlaying`, `createExplosion`).
  */
 export class PickupsModule extends Module {
   override init(): void {
@@ -222,7 +202,7 @@ export class PickupsModule extends Module {
           if (!other || other === self || other.destroyed) continue;
 
           if (other.get(PlayerShip)) {
-            applyPickupEffect(world, other, self);
+            applyPickupEffect(other, self);
             const pos = other.get(Position);
             if (pos) createExplosion(world, pos.x, pos.y, COLORS.white, 0.2);
             self.destroy();

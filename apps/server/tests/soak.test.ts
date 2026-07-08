@@ -18,7 +18,6 @@ import { describe, expect, it } from 'vitest';
 import { PlayerSession } from '../src/game/modules/playerSessions/components';
 import { PlayerShip } from '../src/game/modules/playerShips/components';
 import { Asteroid } from '../src/game/modules/asteroids/components';
-import { GameStateView } from '../src/game/modules/gameState/components';
 import { Bullet } from '../src/game/modules/weapons/components';
 import { createPrng } from '../src/game/modules/rng/components';
 import { createAsteroid } from '../src/game/modules/asteroids/factories';
@@ -74,12 +73,6 @@ function entitiesWith(world: GameWorld, component: ComponentClass): Entity[] {
 
 function count(world: GameWorld, component: ComponentClass): number {
   return entitiesWith(world, component).length;
-}
-
-function getGameState(world: GameWorld): GameStateView {
-  const state = entitiesWith(world, GameStateView)[0]?.get(GameStateView);
-  if (!state) throw new Error('Expected GameStateView entity');
-  return state;
 }
 
 function assertFiniteVector(
@@ -161,7 +154,6 @@ describe('server game world soak', () => {
     seedDeterministicTarget(world, shipA);
 
     const startPosition = { ...shipA.get(PhysicsPosition)! };
-    const startScore = getGameState(world).score;
     let maxBodies = count(world, Body);
     let maxCircles = count(world, Circle);
     let maxBullets = 0;
@@ -244,10 +236,6 @@ describe('server game world soak', () => {
     expect(maxShipDistance).toBeGreaterThan(0.01);
     assertFinitePhysicsState(world);
     expect(maxBullets).toBeGreaterThan(0);
-    expect(
-      getGameState(world).score,
-      `minimum bullet/asteroid distance: ${minBulletAsteroidDistance}`,
-    ).toBeGreaterThan(startScore);
     expect(count(world, Bullet)).toBeLessThan(maxBullets);
     expect(minBulletAsteroidDistance).toBeLessThan(0.5);
     expect(maxExplosions).toBeGreaterThan(0);

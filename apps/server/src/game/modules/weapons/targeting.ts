@@ -1,12 +1,11 @@
-import { type Entity, type World } from '@vworlds/vecs';
+import { type ComponentClass, type Entity, type World } from '@vworlds/vecs';
 import {
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
   physics,
 } from '@vworlds/vecs-physics';
-import { CAT_ASTEROID, CAT_ENEMY, ENTITY_CONFIG } from '@spacerocks/common';
+import { CAT_ASTEROID, ENTITY_CONFIG } from '@spacerocks/common';
 import { ChildOf } from '@vworlds/vecs';
-import { Alien } from '../aliens/components';
 import { Asteroid } from '../asteroids/components';
 
 export function findNearestPlayer(
@@ -34,15 +33,14 @@ export function findRocketTarget(
   world: World,
   position: PhysicsPosition,
 ): { x: number; y: number } | undefined {
-  const alienTarget = findNearest(world, position, CAT_ENEMY, Alien);
-  return alienTarget ?? findNearest(world, position, CAT_ASTEROID, Asteroid);
+  return findNearest(world, position, CAT_ASTEROID, Asteroid);
 }
 
 export function findNearest(
   world: World,
   source: PhysicsPosition,
   maskBits: number,
-  component: typeof Alien | typeof Asteroid,
+  component: ComponentClass,
 ): { x: number; y: number } | undefined {
   let target: { x: number; y: number } | undefined;
   let minDistance = Infinity;
