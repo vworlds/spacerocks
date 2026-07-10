@@ -1,4 +1,4 @@
-import { type as wireType } from '@vworlds/vecs-wire';
+import { wireType } from '@vworlds/vecs-wire';
 
 export class Owner {
   @wireType('string')
