@@ -8,6 +8,8 @@ import {
   Hyperspace,
   NETWORK_COMPONENTS,
   Owner,
+  ProgressBar,
+  ResourceContainer,
 } from '@spacerocks/common';
 
 describe('client network schema', () => {
@@ -17,6 +19,8 @@ describe('client network schema', () => {
       Explosion,
       Owner,
       Hyperspace,
+      ProgressBar,
+      ResourceContainer,
     ]);
     expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });

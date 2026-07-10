@@ -2,7 +2,7 @@ import { ChildOf, POST_UPDATE, Module, type Entity } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
 import { SensorEvents } from '@vworlds/vecs-physics';
 import { COLORS, ENTITY_CONFIG, GAME_CONFIG } from '@spacerocks/common';
-import { Health, Shield } from '../combat/components';
+import { Health } from '../combat/components';
 import { CombatModule } from '../combat/module';
 import { DecayModule } from '../decay/module';
 import { MovementModule } from '../movement/module';
@@ -12,7 +12,6 @@ import {
   AuraWeapon,
   BoomerangWeapon,
   DefaultWeapon,
-  LaserWeapon,
   RocketWeapon,
 } from '../weapons/components';
 import { WeaponsModule } from '../weapons/module';
@@ -85,19 +84,12 @@ function bodyOf(
 }
 
 function setActiveWeapon(player: Entity, kind: PickupKind): void {
-  if (player.get(LaserWeapon)) player.remove(LaserWeapon);
   if (player.get(AuraWeapon)) player.remove(AuraWeapon);
   if (player.get(RocketWeapon)) player.remove(RocketWeapon);
   if (player.get(BoomerangWeapon)) player.remove(BoomerangWeapon);
   if (player.get(DefaultWeapon)) player.remove(DefaultWeapon);
 
-  if (kind === PickupKind.Laser) {
-    player.set(LaserWeapon, {
-      shots: ENTITY_CONFIG.SHIP.LASER_SHOT_COUNT,
-      firing: false,
-      timer: 0,
-    });
-  } else if (kind === PickupKind.Aura) {
+  if (kind === PickupKind.Aura) {
     player.set(AuraWeapon, { shots: ENTITY_CONFIG.SHIP.AURA_SHOT_COUNT });
   } else if (kind === PickupKind.Rocket) {
     player.set(RocketWeapon, { shots: ENTITY_CONFIG.ROCKET.SHOT_COUNT });
@@ -113,11 +105,7 @@ function applyPickupEffect(player: Entity, pickupEntity: Entity): void {
   const pickup = pickupEntity.get(Pickup);
   if (!pickup) return;
 
-  if (pickup.kind === PickupKind.Shield) {
-    player.set(Shield, { shieldTime: ENTITY_CONFIG.SHIP.SHIELD_DURATION });
-  } else if (pickup.kind === PickupKind.Laser) {
-    setActiveWeapon(player, PickupKind.Laser);
-  } else if (pickup.kind === PickupKind.Aura) {
+  if (pickup.kind === PickupKind.Aura) {
     setActiveWeapon(player, PickupKind.Aura);
   } else if (pickup.kind === PickupKind.Rocket) {
     setActiveWeapon(player, PickupKind.Rocket);

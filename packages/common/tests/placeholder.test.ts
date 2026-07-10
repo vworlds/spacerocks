@@ -10,6 +10,8 @@ import {
   Hyperspace,
   NETWORK_COMPONENTS,
   Owner,
+  ProgressBar,
+  ResourceContainer,
   VIEWPORT_HEIGHT,
   VIEWPORT_WIDTH,
   WORLD_HEIGHT,
@@ -41,6 +43,8 @@ describe('NETWORK_COMPONENTS', () => {
       Explosion,
       Owner,
       Hyperspace,
+      ProgressBar,
+      ResourceContainer,
     ]);
     expect(NETWORK_COMPONENTS.indexOf(PhaserPosition) + 1).toBe(1);
   });

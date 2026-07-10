@@ -9,10 +9,6 @@ export class Health {
   healthBarTimer = 0;
 }
 
-export class Shield {
-  shieldTime = 0;
-}
-
 /**
  * Per-player respawn countdown. Created by `killPlayer`; the
  * `ServerRespawnSystem` decrements it and respawns the ship when it hits zero.
@@ -29,7 +25,6 @@ export class RespawnTimer {
 export class Components extends Module {
   override init(): void {
     this.world.component(Health);
-    this.world.component(Shield);
     this.world.component(RespawnTimer);
   }
 }

@@ -8,14 +8,8 @@ import {
   Position as PhysicsPosition,
   Rotation as PhysicsRotation,
   SensorEvents,
-  physics,
 } from '@vworlds/vecs-physics';
-import {
-  CAT_ASTEROID,
-  COLORS,
-  ENTITY_CONFIG,
-  perSecond,
-} from '@spacerocks/common';
+import { COLORS, ENTITY_CONFIG, perSecond } from '@spacerocks/common';
 import {
   Asteroid,
   Components as AsteroidsComponents,
@@ -28,10 +22,7 @@ import { PlayerSessionsModule } from '../playerSessions/module';
 import { WorldRng } from '../rng/components';
 import { RngModule } from '../rng/module';
 import { isPlaying } from '../gameState/helpers';
-import {
-  splitAsteroid,
-  splitAsteroidFromProjectile,
-} from '../asteroids/splitting';
+import { splitAsteroidFromProjectile } from '../asteroids/splitting';
 import {
   AuraWeapon,
   Boomerang,
@@ -39,7 +30,6 @@ import {
   Bullet,
   Components,
   DefaultWeapon,
-  LaserWeapon,
   Rocket,
   RocketWeapon,
   ShootingCooldown,
@@ -52,12 +42,10 @@ import {
 } from './factories';
 import { findRocketTarget, wrapAngle } from './targeting';
 
-const LASER_LENGTH = 10;
-
 /**
- * Player + projectile weapon systems: cooldown, firing (default/aura/laser/
- * rocket/boomerang), laser-beam collision ray, rocket homing, boomerang
- * return, decay, and projectile-impact collision (`ProjectileImpact`).
+ * Player + projectile weapon systems: cooldown, firing (default/aura/
+ * rocket/boomerang), rocket homing, boomerang return, decay, and
+ * projectile-impact collision (`ProjectileImpact`).
  *
  * Dependencies: `PlayerSessionsModule` (`PlayerInputIntent`), `RngModule`
  * (splitting uses the seeded Prng), `AsteroidsModule` (`splitAsteroid`),
@@ -105,7 +93,6 @@ export class WeaponsModule extends Module {
 
           const color = ship.get(PlayerShip)?.color ?? COLORS.white;
           const aura = ship.getMut(AuraWeapon);
-          const laser = ship.getMut(LaserWeapon);
           const rocketWeapon = ship.getMut(RocketWeapon);
           const boomerangWeapon = ship.getMut(BoomerangWeapon);
 
@@ -122,11 +109,6 @@ export class WeaponsModule extends Module {
             }
             aura.shots -= 1;
             if (aura.shots <= 0) switchToDefaultWeapon(ship);
-            cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
-          } else if (laser && laser.shots > 0) {
-            laser.firing = true;
-            laser.timer = ENTITY_CONFIG.SHIP.LASER_TIMER;
-            laser.shots -= 1;
             cooldown.frames = ENTITY_CONFIG.SHIP.SHOOT_COOLDOWN;
           } else if (rocketWeapon && rocketWeapon.shots > 0) {
             createRocket(world, ship, position.x, position.y, rotation.angle);
@@ -156,20 +138,6 @@ export class WeaponsModule extends Module {
           }
         },
       );
-
-    world
-      .system('LaserSystem')
-      .with(PlayerShip, LaserWeapon)
-      .each([LaserWeapon], (ship, [laser]) => {
-        if (!laser.firing) return;
-
-        laser.timer -= 1;
-        if (laser.timer > 0) return;
-
-        laser.firing = false;
-        ship.modified(LaserWeapon);
-        if (laser.shots <= 0) switchToDefaultWeapon(ship);
-      });
 
     world
       .system('RocketSystem')
@@ -260,17 +228,6 @@ export class WeaponsModule extends Module {
           switchToDefaultWeapon(owner);
       });
 
-    world
-      .system('ServerLaserCollisionSystem')
-      .with(PlayerShip, RenderPosition, RenderRotation, LaserWeapon)
-      .each(
-        [RenderPosition, RenderRotation, LaserWeapon],
-        (_ship, [position, rotation, laser]) => {
-          if (!laser.firing) return;
-          resolveLaserHits(world, rng, position, rotation);
-        },
-      );
-
     const projectileConsumed = new Set<number>();
 
     world
@@ -337,35 +294,4 @@ function bodyOf(
   const body = shape.target(ChildOf);
   if (!body || body.destroyed || !world.getEntity(body.eid)) return undefined;
   return body;
-}
-
-function resolveLaserHits(
-  world: import('@vworlds/vecs').World,
-  rng: import('../rng/components').Prng,
-  origin: RenderPosition,
-  rotation: RenderRotation,
-): void {
-  const start = { x: origin.x, y: origin.y };
-  const end = {
-    x: origin.x + Math.cos(rotation.angle) * LASER_LENGTH,
-    y: origin.y + Math.sin(rotation.angle) * LASER_LENGTH,
-  };
-
-  const hits = physics(world).rayCastAll({
-    from: start,
-    to: end,
-    filter: { maskBits: CAT_ASTEROID },
-  });
-
-  for (const hit of hits) {
-    const body = hit.entity.target(ChildOf);
-    if (!body || !world.getEntity(body.eid)) continue;
-
-    if (body.get(Asteroid)) {
-      splitAsteroid(world, rng, body, hit.point, {
-        x: end.x - start.x,
-        y: end.y - start.y,
-      });
-    }
-  }
 }

@@ -7,7 +7,8 @@ import {
 } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
 import { SensorEvents } from '@vworlds/vecs-physics';
-import { COLORS, ENTITY_CONFIG, SHIELD_DAMAGE } from '@spacerocks/common';
+import { COLORS, ENTITY_CONFIG } from '@spacerocks/common';
+import { ProgressBar } from '@spacerocks/common';
 import { createExplosion, isPlaying } from '../gameState/helpers';
 import {
   Asteroid,
@@ -19,31 +20,18 @@ import { PlayerShip } from '../playerShips/components';
 import { createPlayerShip } from '../playerShips/factories';
 import { PlayerShipsModule } from '../playerShips/module';
 import { Components as WeaponsComponents } from '../weapons/components';
-import { Components, Health, RespawnTimer, Shield } from './components';
+import { Components, Health, RespawnTimer } from './components';
 import {
   Components as PlayerSessionsComponents,
   PlayerSession,
 } from '../playerSessions/components';
 
 /**
- * Applies shield or health damage to a player. While shielded, damage drains
- * the shield and returns false; once the shield breaks or is absent, health
- * takes 10 hp per hit and returns true if the player dies (spawning a
- * `RespawnTimer`). Asteroid contact routes here.
+ * Applies health damage to a player. Health takes 10 hp per hit and returns
+ * true if the player dies (spawning a `RespawnTimer`). Asteroid contact
+ * routes here.
  */
-export function damagePlayer(
-  world: World,
-  player: Entity,
-  shieldDamage: number,
-): boolean {
-  const shield = player.getMut(Shield);
-  if (shield) {
-    shield.shieldTime = Math.max(0, shield.shieldTime - shieldDamage);
-    player.modified(Shield);
-    if (shield.shieldTime <= 0) clearShield(player);
-    return false;
-  }
-
+export function damagePlayer(world: World, player: Entity): boolean {
   const health = player.getMut(Health);
   if (!health) return false;
   health.hp -= 10;
@@ -54,10 +42,6 @@ export function damagePlayer(
     return true;
   }
   return false;
-}
-
-export function clearShield(entity: Entity): void {
-  if (entity.get(Shield)) entity.remove(Shield);
 }
 
 function killPlayer(world: World, player: Entity): void {
@@ -100,21 +84,29 @@ export class CombatModule extends Module {
     world.module(Components);
 
     world
-      .system('ServerShieldSystem')
-      .with(Shield)
-      .each([Shield], (entity, [shield]) => {
-        shield.shieldTime -= 1;
-        entity.modified(Shield);
-        if (shield.shieldTime <= 0) clearShield(entity);
-      });
-
-    world
       .system('ServerHealthSystem')
       .with(Health)
       .each([Health], (entity, [health]) => {
         if (health.healthBarTimer > 0) {
           health.healthBarTimer -= 1;
           entity.modified(Health);
+        }
+        // Sync the networked ProgressBar from Health while the health bar
+        // timer is active (recently damaged). When it expires, remove the
+        // ProgressBar so the bar hides. The value is a 0–100 percentage.
+        if (health.healthBarTimer > 0 && health.maxHp > 0) {
+          const value = Math.round((health.hp / health.maxHp) * 100);
+          const bar = entity.getMut(ProgressBar);
+          if (bar) {
+            if (bar.value !== value) {
+              bar.value = value;
+              entity.modified(ProgressBar);
+            }
+          } else {
+            entity.set(ProgressBar, { value });
+          }
+        } else {
+          if (entity.get(ProgressBar)) entity.remove(ProgressBar);
         }
       });
 
@@ -167,15 +159,12 @@ export class CombatModule extends Module {
           if (other.get(Asteroid)) {
             const view = other.get(AsteroidView);
             const asteroidPos = other.get(Position);
-            const playerPos = self.get(Position);
-            const shielded = self.get(Shield) !== undefined;
-            damagePlayer(world, self, SHIELD_DAMAGE.ASTEROID);
-            const explosionPos = shielded ? asteroidPos : playerPos;
-            if (explosionPos)
+            damagePlayer(world, self);
+            if (asteroidPos)
               createExplosion(
                 world,
-                explosionPos.x,
-                explosionPos.y,
+                asteroidPos.x,
+                asteroidPos.y,
                 view?.color ?? COLORS.asteroidGrey,
                 0.05,
               );

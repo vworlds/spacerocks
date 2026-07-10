@@ -13,6 +13,8 @@ import {
 } from '@spacerocks/common';
 import type Phaser from 'phaser';
 import { ExplosionEffectModule } from '../render/ExplosionEffectModule';
+import { ProgressBarModule } from '../render/ProgressBarModule';
+import { ResourceContainerRenderModule } from '../render/ResourceContainerRenderModule';
 
 const DEFAULT_SERVER_PORT = 2567;
 const DEFAULT_WORLD_NAME = 'main';
@@ -100,7 +102,7 @@ export async function createClientWorld(
     apiBasePath: `${apiBasePath}/world`,
   });
 
-  // IdPool layout (18 network components → localComponentMin = 32,
+  // IdPool layout (26 network components → localComponentMin = 32,
   // localEntityIdStart = 1_000_000):
   //   network:         1 – 31
   //   component:       32 – 899
@@ -119,6 +121,8 @@ export async function createClientWorld(
     catalog,
   });
   world.module(ExplosionEffectModule, { scene: config.scene });
+  world.module(ProgressBarModule, { scene: config.scene });
+  world.module(ResourceContainerRenderModule, { scene: config.scene });
 
   const tStarted = performance.now();
 

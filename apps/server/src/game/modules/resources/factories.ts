@@ -1,35 +1,30 @@
-import { ChildOf, type Entity, type World } from '@vworlds/vecs';
+import { type Entity, type World } from '@vworlds/vecs';
 import { Networked } from '@vworlds/vecs-server';
 import {
   FillStyle,
   Position as RenderPosition,
   Rectangle,
   Size,
-  Text,
-  TextAlign,
 } from '@vworlds/vecs-phaser';
 import {
   CONTAINER_SIZE,
   RESOURCE_DISPLAY,
   type ResourceType,
+  ResourceContainer,
+  toResourceWire,
 } from '@spacerocks/common';
-import { ResourceContainer } from './components';
-
-/** Font for the centered container character (retro look, design #40 §8.1). */
-const CONTAINER_FONT_FAMILY = 'monospace';
-/** Font size in screen pixels for the centered container character. */
-const CONTAINER_FONT_SIZE = 14;
 
 /**
- * Spawn a resource container entity: a square `Rectangle` (per-type
- * `FillStyle` color) with a **child entity** carrying the centered `Text`
- * character. Mirrors how `embellishments/module.ts` composes child visuals
- * via `ChildOf` + `Networked`.
+ * Spawn a resource container entity: a square `Rectangle` with per-type
+ * `FillStyle` color and a networked `ResourceContainer` component carrying
+ * the resource identity. The client renders the centered character
+ * client-side from `ResourceContainer.resourceType` + `RESOURCE_DISPLAY` —
+ * no child `Text` entity on the wire.
  *
- * Color and character derive purely from {@link RESOURCE_DISPLAY} — no
- * literals at the spawn site. The visual flows to the client through the
- * existing render pipeline (no per-entity render code, no new networked
- * component).
+ * Color derives purely from {@link RESOURCE_DISPLAY} — no literals at the
+ * spawn site. The visual flows to the client through the existing render
+ * pipeline (`Rectangle` + `FillStyle` for the square) plus a client-side
+ * `ResourceContainerRenderModule` that draws the centered letter.
  */
 export function createResourceContainer(
   world: World,
@@ -38,30 +33,12 @@ export function createResourceContainer(
   y: number,
 ): Entity {
   const display = RESOURCE_DISPLAY[type];
-  const parent = world
+  return world
     .entity()
     .add(Networked)
     .set(RenderPosition, { x, y })
     .add(Rectangle)
     .set(Size, { width: CONTAINER_SIZE, height: CONTAINER_SIZE })
     .set(FillStyle, { color: display.color, alpha: 1 })
-    .set(ResourceContainer, { type });
-
-  world
-    .entity()
-    .add(Networked)
-    .set(ChildOf, { target: parent })
-    .set(RenderPosition, { x, y })
-    .add(Text)
-    .set(Text, {
-      value: display.char,
-      fontFamily: CONTAINER_FONT_FAMILY,
-      fontSize: CONTAINER_FONT_SIZE,
-      color: 0x000000,
-      backgroundColor: 0,
-      backgroundAlpha: 0,
-      align: TextAlign.Center,
-    });
-
-  return parent;
+    .set(ResourceContainer, { resourceType: toResourceWire(type) });
 }

@@ -40,7 +40,6 @@ import {
   BoomerangWeapon,
   Bullet,
   DefaultWeapon,
-  LaserWeapon,
   Rocket,
   RocketWeapon,
 } from './components';
@@ -180,7 +179,6 @@ export function createBoomerang(
 }
 
 export function switchToDefaultWeapon(ship: Entity): void {
-  if (ship.get(LaserWeapon)) ship.remove(LaserWeapon);
   if (ship.get(AuraWeapon)) ship.remove(AuraWeapon);
   if (ship.get(RocketWeapon)) ship.remove(RocketWeapon);
   if (ship.get(BoomerangWeapon)) ship.remove(BoomerangWeapon);

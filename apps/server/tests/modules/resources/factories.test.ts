@@ -1,21 +1,15 @@
-import { ChildOf, World, type Entity } from '@vworlds/vecs';
-import {
-  FillStyle,
-  Position,
-  Rectangle,
-  Size,
-  Text,
-  TextAlign,
-} from '@vworlds/vecs-phaser';
+import { World } from '@vworlds/vecs';
+import { FillStyle, Position, Rectangle, Size } from '@vworlds/vecs-phaser';
 import {
   CONTAINER_SIZE,
   NetworkComponentsModule,
   RESOURCE_DISPLAY,
   RESOURCE_TYPES,
+  ResourceContainer,
+  fromResourceWire,
 } from '@spacerocks/common';
 import { describe, expect, it, vi } from 'vitest';
 import { registerNetworkFoundation } from '../helpers';
-import { ResourceContainer } from '../../../src/game/modules/resources/components';
 import { Components as ResourcesComponents } from '../../../src/game/modules/resources/components';
 import { createResourceContainer } from '../../../src/game/modules/resources/factories';
 
@@ -41,7 +35,7 @@ function createTestWorld(): World {
 }
 
 describe('createResourceContainer', () => {
-  it('spawns a square Rectangle parent with per-type FillStyle and ResourceContainer', () => {
+  it('spawns a square Rectangle with per-type FillStyle and networked ResourceContainer', () => {
     const world = createTestWorld();
     const container = createResourceContainer(world, 'ore', 1, 2);
 
@@ -55,26 +49,27 @@ describe('createResourceContainer', () => {
       alpha: 1,
     });
     expect(container.get(Position)).toMatchObject({ x: 1, y: 2 });
-    expect(container.get(ResourceContainer)?.type).toBe('ore');
+    expect(container.get(ResourceContainer)).toBeDefined();
+    expect(
+      fromResourceWire(container.get(ResourceContainer)!.resourceType),
+    ).toBe('ore');
   });
 
-  it('spawns a child Text entity carrying the centered character', () => {
+  it('does not spawn a child Text entity (client-side rendering)', () => {
     const world = createTestWorld();
     const container = createResourceContainer(world, 'crystal', 0, 0);
 
-    let textChild: Entity | undefined;
-    world.filter([Text]).forEach([], (entity) => {
-      textChild = entity;
+    // The container is the only entity with ResourceContainer — no child
+    // Text entity is spawned (the character is drawn client-side).
+    let count = 0;
+    world.filter([ResourceContainer]).forEach([], () => {
+      count++;
     });
-    expect(textChild).toBeDefined();
-    expect(textChild!.get(ChildOf)?.target).toBe(container);
-    expect(textChild!.get(Text)).toMatchObject({
-      value: RESOURCE_DISPLAY.crystal.char,
-      align: TextAlign.Center,
-    });
+    expect(count).toBe(1);
+    expect(container.get(ResourceContainer)).toBeDefined();
   });
 
-  it('derives color and char purely from RESOURCE_DISPLAY for every type', () => {
+  it('derives color from RESOURCE_DISPLAY and sets resourceType for every type', () => {
     for (const type of RESOURCE_TYPES) {
       const world = createTestWorld();
       const container = createResourceContainer(world, type, 0, 0);
@@ -82,12 +77,9 @@ describe('createResourceContainer', () => {
       expect(container.get(FillStyle)?.color).toBe(
         RESOURCE_DISPLAY[type].color,
       );
-
-      let textChild: Entity | undefined;
-      world.filter([Text]).forEach([], (entity) => {
-        textChild = entity;
-      });
-      expect(textChild!.get(Text)?.value).toBe(RESOURCE_DISPLAY[type].char);
+      expect(
+        fromResourceWire(container.get(ResourceContainer)!.resourceType),
+      ).toBe(type);
     }
   });
 });

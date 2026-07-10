@@ -1,9 +1,6 @@
 import { World, type ComponentClass, type Entity } from '@vworlds/vecs';
 import { PhaserServerModule } from '@vworlds/vecs-phaser-server';
-import {
-  Position as RenderPosition,
-  Rotation as RenderRotation,
-} from '@vworlds/vecs-phaser';
+import { Position as RenderPosition } from '@vworlds/vecs-phaser';
 import {
   Body,
   BodyType,
@@ -36,7 +33,6 @@ import { Components as CombatComponents } from '../src/game/modules/combat/compo
 import { MovementModule } from '../src/game/modules/movement/module';
 import { Wraps } from '../src/game/modules/movement/components';
 import { createPlayerShip } from '../src/game/modules/playerShips/factories';
-import { PlayerShip } from '../src/game/modules/playerShips/components';
 import { PlayerSession } from '../src/game/modules/playerSessions/components';
 import { PlayerSessionsModule } from '../src/game/modules/playerSessions/module';
 import { createPrng } from '../src/game/modules/rng/components';
@@ -45,10 +41,7 @@ import { GameStateModule } from '../src/game/modules/gameState/module';
 import { GameStateView } from '../src/game/modules/gameState/components';
 import { Components as SpawningComponents } from '../src/game/modules/spawning/components';
 import { createAsteroid } from '../src/game/modules/asteroids/factories';
-import {
-  Asteroid,
-  Components as AsteroidsComponents,
-} from '../src/game/modules/asteroids/components';
+import { Components as AsteroidsComponents } from '../src/game/modules/asteroids/components';
 import { Decay } from '../src/game/modules/decay/components';
 import { DecayModule } from '../src/game/modules/decay/module';
 import {
@@ -61,7 +54,6 @@ import {
   BoomerangWeapon,
   Bullet,
   Components as WeaponsComponents,
-  LaserWeapon,
   Rocket,
 } from '../src/game/modules/weapons/components';
 import { WeaponsModule } from '../src/game/modules/weapons/module';
@@ -112,29 +104,6 @@ function createSpecialMotionWorld(
       state: 0,
     });
   }
-  return world;
-}
-
-function createLaserWorld(): World {
-  const world = new World();
-  world.module(NetworkComponentsModule);
-  registerNetworkFoundation(world);
-  world.component(Explosion);
-  world.module(RngModule);
-  world.module(CombatComponents);
-  world.module(SpawningComponents);
-  world.module(AsteroidsComponents);
-  world.module(WeaponsComponents);
-  world.module(PhysicsModule, {
-    gravity: { x: 0, y: 0 },
-    fixedTimeStep: 1 / TICK_RATE,
-    subSteps: 4,
-  });
-  world.module(GameStateModule);
-  world.module(PlayerSessionsModule);
-  world.module(WeaponsModule);
-  world.module(DecayModule);
-  world.module(CombatModule);
   return world;
 }
 
@@ -316,39 +285,6 @@ describe('special motion under physics', () => {
 
     expect(ship.get(BoomerangWeapon)?.shots).toBe(1);
     expect(world.getEntity(boomerang.eid)).toBeUndefined();
-  });
-
-  it('laser raycasts split only asteroids along the beam', () => {
-    const world = createLaserWorld();
-    const ship = world
-      .entity()
-      .set(PlayerShip, { playerIndex: 0, color: COLORS.white })
-      .set(PhysicsPosition, { x: 0, y: 0 })
-      .set(PhysicsRotation, { angle: 0 })
-      .set(RenderPosition, { x: 0, y: 0 })
-      .set(RenderRotation, { angle: 0 })
-      .set(LaserWeapon, { shots: 1, firing: false, timer: 10 });
-    createAsteroid(
-      world as unknown as Parameters<typeof createAsteroid>[0],
-      createPrng(2),
-      1,
-      0,
-      ENTITY_CONFIG.ASTEROID.MASS,
-    );
-    const offBeam = createAsteroid(
-      world as unknown as Parameters<typeof createAsteroid>[0],
-      createPrng(3),
-      1,
-      1,
-      ENTITY_CONFIG.ASTEROID.MASS,
-    )!;
-    step(world);
-    ship.set(LaserWeapon, { shots: 1, firing: true, timer: 10 });
-
-    step(world);
-
-    expect(world.getEntity(offBeam.eid)).toBe(offBeam);
-    expect(count(world, Asteroid)).toBe(3);
   });
 
   it('expires projectile decay and destroys the entity', () => {

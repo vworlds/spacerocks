@@ -2,12 +2,6 @@ import { Module } from '@vworlds/vecs';
 
 export type OwnerType = 'player' | 'alien';
 
-export class LaserWeapon {
-  shots = 0;
-  firing = false;
-  timer = 0;
-}
-
 export class AuraWeapon {
   shots = 0;
 }
@@ -48,7 +42,6 @@ export class ShootingCooldown {
  */
 export class Components extends Module {
   override init(): void {
-    this.world.component(LaserWeapon);
     this.world.component(AuraWeapon);
     this.world.component(RocketWeapon);
     this.world.component(BoomerangWeapon);
