@@ -16,10 +16,10 @@
   "//": "Leave @vworlds/vecs dependency set to * so this picks up the root package.json's value",
   "dependencies": {
     "@spacerocks/common": "file:../../packages/common",
-    "@vworlds/vecs": "1.0.42",
-    "@vworlds/vecs-phaser-server": "1.0.42",
-    "@vworlds/vecs-physics": "1.0.42",
-    "@vworlds/vecs-server": "1.0.42",
+    "@vworlds/vecs": "1.0.43",
+    "@vworlds/vecs-phaser-server": "1.0.43",
+    "@vworlds/vecs-physics": "1.0.43",
+    "@vworlds/vecs-server": "1.0.43",
     "express": "^5.2.1",
     "pino": "^10.3.1",
     "pino-pretty": "^13.1.3"
