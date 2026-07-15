@@ -64,7 +64,7 @@ describe('HealthBarModule', () => {
     expect(target.has(Networked)).toBe(true);
     expect(target.get(ProgressBar)).toEqual({ value: 75 });
     expect(target.target(DrawBy)).toBe(entity);
-    expect(target.get(Offset)).toEqual({ x: 0, y: 0 });
+    expect(target.get(Offset)).toEqual({ x: 0, y: 0.27 });
     expect(target.has(Position)).toBe(false);
     expect(entity.has(ProgressBar)).toBe(false);
 

@@ -121,7 +121,7 @@ export async function createClientWorld(
     catalog,
   });
   world.module(ExplosionEffectModule, { scene: config.scene });
-  world.module(ProgressBarModule, { scene: config.scene });
+  world.module(ProgressBarModule);
   world.module(ResourceContainerRenderModule, { scene: config.scene });
 
   const tStarted = performance.now();

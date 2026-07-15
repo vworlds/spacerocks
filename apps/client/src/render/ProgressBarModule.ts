@@ -1,74 +1,85 @@
-import { Module } from '@vworlds/vecs';
-import { Position } from '@vworlds/vecs-phaser';
-import { CoordSpace } from '@vworlds/vecs-phaser-client';
-import { PIXELS_PER_METER, ProgressBar } from '@spacerocks/common';
-import type Phaser from 'phaser';
+import { ChildOf, type Entity, Module, PRE_STORE } from '@vworlds/vecs';
+import {
+  Container,
+  DrawIn,
+  FillStyle,
+  Offset,
+  Rectangle,
+  Size,
+  StrokeStyle,
+} from '@vworlds/vecs-phaser';
+import { ProgressBar } from '@spacerocks/common';
 
 const BAR_WIDTH_METERS = 0.3;
 const BAR_HEIGHT_METERS = 0.05;
-const BAR_OFFSET_METERS = 0.27;
 const BAR_BORDER_COLOR = 0x00ff00;
 const BAR_BORDER_WIDTH = 1;
 
-export type ProgressBarModuleConfig = {
-  scene: Phaser.Scene;
-};
+export class ProgressBarView {
+  border!: Entity;
+  fill!: Entity;
+}
 
-/**
- * Client-side progress bar renderer. When an entity has a `ProgressBar`
- * networked component (value 0–100), draws a bar above it. The server
- * controls visibility by adding/removing the component — no bar when absent.
- *
- * The first use is the ship health bar (combat sets ProgressBar from Health
- * while `healthBarTimer > 0`), but the component is generic — any system
- * can attach it to show progress.
- */
-export class ProgressBarModule extends Module<ProgressBarModuleConfig> {
-  override init(config: ProgressBarModuleConfig): void {
-    const { scene } = config;
-    const coords = new CoordSpace(scene, PIXELS_PER_METER);
-    const barWidthPx = BAR_WIDTH_METERS * PIXELS_PER_METER;
-    const barHeightPx = BAR_HEIGHT_METERS * PIXELS_PER_METER;
-    const offsetY = BAR_OFFSET_METERS;
-    const graphicsByEntity = new Map<number, Phaser.GameObjects.Graphics>();
+/** Expands ProgressBar data into client-local vecs-phaser render entities. */
+export class ProgressBarModule extends Module {
+  override init(): void {
+    const world = this.world;
+    world.component(ProgressBarView);
 
-    this.world
-      .system('ProgressBarRender')
-      .with(ProgressBar, Position)
-      .each([ProgressBar, Position], (entity, [bar, position]) => {
-        let graphics = graphicsByEntity.get(entity.eid);
-        if (!graphics) {
-          graphics = scene.add.graphics();
-          graphicsByEntity.set(entity.eid, graphics);
+    world.component(ProgressBar).onRemove((entity) => {
+      const view = entity.get(ProgressBarView);
+      view?.border.destroy();
+      view?.fill.destroy();
+
+      if (!entity.destroyed) {
+        if (entity.has(ProgressBarView)) entity.remove(ProgressBarView);
+        if (entity.has(Container)) entity.remove(Container);
+      }
+    });
+
+    world
+      .system('ExpandProgressBar')
+      .phase(PRE_STORE)
+      .update({ watch: ProgressBar, onEnter: true }, (entity, bar) => {
+        let view = entity.get(ProgressBarView);
+        if (!view) {
+          entity.add(Container);
+
+          const fill = world
+            .entity()
+            .set(ChildOf, { target: entity })
+            .set(DrawIn, { target: entity })
+            .add(Rectangle)
+            .set(FillStyle, { color: healthColor(bar.value), alpha: 1 });
+          const border = world
+            .entity()
+            .set(ChildOf, { target: entity })
+            .set(DrawIn, { target: entity })
+            .add(Rectangle)
+            .set(Size, {
+              width: BAR_WIDTH_METERS,
+              height: BAR_HEIGHT_METERS,
+            })
+            .set(Offset, { x: 0, y: 0 })
+            .set(StrokeStyle, {
+              color: BAR_BORDER_COLOR,
+              alpha: 1,
+              width: BAR_BORDER_WIDTH,
+            });
+
+          entity.set(ProgressBarView, { border, fill });
+          view = { border, fill };
         }
 
-        const x = coords.x(position.x);
-        const y = coords.y(position.y + offsetY);
-        const ratio = bar.value / 100;
-        const color = healthColor(bar.value);
-
-        graphics.clear();
-        graphics.lineStyle(BAR_BORDER_WIDTH, BAR_BORDER_COLOR, 1);
-        graphics.strokeRect(
-          x - barWidthPx / 2,
-          y - barHeightPx / 2,
-          barWidthPx,
-          barHeightPx,
-        );
-        graphics.fillStyle(color, 1);
-        graphics.fillRect(
-          x - barWidthPx / 2,
-          y - barHeightPx / 2,
-          barWidthPx * ratio,
-          barHeightPx,
-        );
-      })
-      .exit([], (entity) => {
-        const graphics = graphicsByEntity.get(entity.eid);
-        if (graphics) {
-          graphics.destroy();
-          graphicsByEntity.delete(entity.eid);
-        }
+        const ratio = Math.max(0, Math.min(1, bar.value / 100));
+        const fillWidth = BAR_WIDTH_METERS * ratio;
+        view.fill
+          .set(Size, { width: fillWidth, height: BAR_HEIGHT_METERS })
+          .set(Offset, {
+            x: (fillWidth - BAR_WIDTH_METERS) / 2,
+            y: 0,
+          })
+          .set(FillStyle, { color: healthColor(bar.value), alpha: 1 });
       });
   }
 }

@@ -5,6 +5,8 @@ import { ProgressBar } from '@spacerocks/common';
 import { Components as CombatComponents, Health } from '../combat/components';
 import { HealthBar } from './components';
 
+const HEALTH_BAR_OFFSET_METERS = 0.27;
+
 export class HealthBarModule extends Module {
   override init(): void {
     const world = this.world;
@@ -21,7 +23,7 @@ export class HealthBarModule extends Module {
         target
           .add(Networked)
           .set(DrawBy, { target: entity })
-          .set(Offset, { x: 0, y: 0 });
+          .set(Offset, { x: 0, y: HEALTH_BAR_OFFSET_METERS });
       })
       .update({ watch: Health, onEnter: true }, (entity, health) => {
         const target = entity.target(HealthBar);
