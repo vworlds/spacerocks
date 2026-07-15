@@ -1,5 +1,9 @@
 import { PRE_STORE, type Entity, Module } from '@vworlds/vecs';
-import { DrawIn, Position as RenderPosition } from '@vworlds/vecs-phaser';
+import {
+  DrawBy,
+  DrawIn,
+  Position as RenderPosition,
+} from '@vworlds/vecs-phaser';
 import { NetworkClient, Networked, View } from '@vworlds/vecs-server';
 import { Components } from './components';
 import {
@@ -58,32 +62,47 @@ export class InterestGridModule extends Module {
       );
 
     // Cascade InCell from parent to display children that don't have their
-    // own RenderPosition (e.g. children parented via DrawIn to a Container).
+    // own RenderPosition (e.g. children parented via DrawIn or DrawBy).
     // Without this, parented children are invisible in cell-based views
     // because they never get an InCell assignment. Uses InCell onSet/onRemove
     // hooks so the cascade is immediate.
     world.component(InCell).onSet((entity) => {
       const cell = entity.target(InCell);
-      for (const child of entity.children(DrawIn)) {
-        if (child.has(Networked) && !child.has(RenderPosition)) {
-          if (child.target(InCell) !== cell) {
-            child.set(InCell, { target: cell! });
+      for (const relationship of [DrawIn, DrawBy]) {
+        for (const child of entity.children(relationship)) {
+          if (child.has(Networked) && !child.has(RenderPosition)) {
+            if (child.target(InCell) !== cell) {
+              child.set(InCell, { target: cell! });
+            }
           }
         }
       }
     });
 
     world.component(InCell).onRemove((entity) => {
-      for (const child of entity.children(DrawIn)) {
-        if (
-          child.has(Networked) &&
-          !child.has(RenderPosition) &&
-          child.has(InCell)
-        ) {
-          child.remove(InCell);
+      for (const relationship of [DrawIn, DrawBy]) {
+        for (const child of entity.children(relationship)) {
+          if (
+            child.has(Networked) &&
+            !child.has(RenderPosition) &&
+            child.has(InCell)
+          ) {
+            child.remove(InCell);
+          }
         }
       }
     });
+
+    world
+      .system('AssignDisplayChildCells')
+      .with(Networked)
+      .phase(PRE_STORE)
+      .update({ watch: DrawBy, onEnter: true }, (entity, drawBy) => {
+        const cell = drawBy.target.target(InCell);
+        if (cell && entity.target(InCell) !== cell) {
+          entity.set(InCell, { target: cell });
+        }
+      });
 
     world
       .system('UpdatePlayerViews')

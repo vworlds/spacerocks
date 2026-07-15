@@ -8,7 +8,6 @@ import {
 import { Position } from '@vworlds/vecs-phaser';
 import { SensorEvents } from '@vworlds/vecs-physics';
 import { COLORS, ENTITY_CONFIG } from '@spacerocks/common';
-import { ProgressBar } from '@spacerocks/common';
 import { createExplosion, isPlaying } from '../gameState/helpers';
 import {
   Asteroid,
@@ -16,6 +15,10 @@ import {
   Components as AsteroidsComponents,
 } from '../asteroids/components';
 import { Components as MovementComponents } from '../movement/components';
+import { Decay } from '../decay/components';
+import { DecayModule } from '../decay/module';
+import { HealthBar } from '../healthBar/components';
+import { HealthBarModule } from '../healthBar/module';
 import { PlayerShip } from '../playerShips/components';
 import { createPlayerShip } from '../playerShips/factories';
 import { PlayerShipsModule } from '../playerShips/module';
@@ -35,8 +38,11 @@ export function damagePlayer(world: World, player: Entity): boolean {
   const health = player.getMut(Health);
   if (!health) return false;
   health.hp -= 10;
-  health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
   player.modified(Health);
+  player.ensureTarget(HealthBar).set(Decay, {
+    life: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
+    decay: 1,
+  });
   if (health.hp <= 0) {
     killPlayer(world, player);
     return true;
@@ -82,33 +88,8 @@ export class CombatModule extends Module {
     world.module(WeaponsComponents);
     world.module(AsteroidsComponents);
     world.module(Components);
-
-    world
-      .system('ServerHealthSystem')
-      .with(Health)
-      .each([Health], (entity, [health]) => {
-        if (health.healthBarTimer > 0) {
-          health.healthBarTimer -= 1;
-          entity.modified(Health);
-        }
-        // Sync the networked ProgressBar from Health while the health bar
-        // timer is active (recently damaged). When it expires, remove the
-        // ProgressBar so the bar hides. The value is a 0–100 percentage.
-        if (health.healthBarTimer > 0 && health.maxHp > 0) {
-          const value = Math.round((health.hp / health.maxHp) * 100);
-          const bar = entity.getMut(ProgressBar);
-          if (bar) {
-            if (bar.value !== value) {
-              bar.value = value;
-              entity.modified(ProgressBar);
-            }
-          } else {
-            entity.set(ProgressBar, { value });
-          }
-        } else {
-          if (entity.get(ProgressBar)) entity.remove(ProgressBar);
-        }
-      });
+    world.module(DecayModule);
+    world.module(HealthBarModule);
 
     world
       .system('ServerRespawnSystem')

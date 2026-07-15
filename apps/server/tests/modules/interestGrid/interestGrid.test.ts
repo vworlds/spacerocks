@@ -14,6 +14,8 @@ import {
 import { describe, expect, it } from 'vitest';
 import { PlayerSession } from '../../../src/game/modules/playerSessions/components';
 import { PlayerShip } from '../../../src/game/modules/playerShips/components';
+import { Health } from '../../../src/game/modules/combat/components';
+import { HealthBar } from '../../../src/game/modules/healthBar/components';
 import { createPrng } from '../../../src/game/modules/rng/components';
 import { createAsteroid } from '../../../src/game/modules/asteroids/factories';
 import { createGameWorld } from '../../../src/index';
@@ -147,6 +149,36 @@ describe('server interest grid', () => {
     expect(neighbourIndices(0)).toHaveLength(4);
     expect(neighbourIndices(1)).toHaveLength(6);
     expect(neighbourIndices(GRID_COLUMNS + 1)).toHaveLength(9);
+  });
+
+  it('inherits grid cells for networked DrawBy children', async () => {
+    const world = await createGameWorld();
+    const parent = createAsteroid(
+      world,
+      createPrng(0x1757),
+      WORLD_MIN_X + 0.25,
+      WORLD_MIN_Y + 0.25,
+      ENTITY_CONFIG.ASTEROID.MASS,
+      { velocity: { x: 0, y: 0 } },
+    )!;
+    progressTicks(world, 2);
+
+    parent.set(Health, { hp: 50, maxHp: 100 });
+    const child = parent.ensureTarget(HealthBar);
+    progressTicks(world, 1, 2);
+
+    expect(child.has(RenderPosition)).toBe(false);
+    expect(child.target(InCell)).toBe(parent.target(InCell));
+
+    const newPosition = {
+      x: WORLD_MIN_X + GRID_CELL_WIDTH * 3 + 0.25,
+      y: WORLD_MIN_Y + 0.25,
+    };
+    parent.set(RenderPosition, newPosition);
+    parent.set(PhysicsPosition, newPosition);
+    progressTicks(world, 1, 3);
+
+    expect(child.target(InCell)).toBe(parent.target(InCell));
   });
 
   it('returns random points within the requested cell bounds', () => {

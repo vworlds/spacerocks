@@ -192,7 +192,7 @@ describe('server combat systems', () => {
     const ship = createPlayerShip(world, session, 0);
     ship.set(Position, { x: 30, y: 30 });
     ship.set(PhysicsPosition, { x: 30, y: 30 });
-    ship.set(Health, { hp: 10, maxHp: 100, healthBarTimer: 0 });
+    ship.set(Health, { hp: 10, maxHp: 100 });
     createAsteroid(world, createPrng(2), 30, 30, ENTITY_CONFIG.ASTEROID.MASS);
 
     runFrame(world);
@@ -258,7 +258,7 @@ describe('server combat systems', () => {
     const ship = createPlayerShip(world, session, 0);
     ship.set(Position, { x: 0, y: 0 });
     ship.set(PhysicsPosition, { x: 0, y: 0 });
-    ship.set(Health, { hp: 100, maxHp: 100, healthBarTimer: 0 });
+    ship.set(Health, { hp: 100, maxHp: 100 });
     const bullet = createBullet(world, ship, 0, 0, 0, 0xffffff);
     bullet.set(Position, { x: 0, y: 0 });
     bullet.set(PhysicsPosition, { x: 0, y: 0 });
@@ -307,7 +307,7 @@ describe('server combat systems', () => {
     const ship = createPlayerShip(world, session, 0);
     ship.set(Position, { x: 0, y: 0 });
     ship.set(PhysicsPosition, { x: 0, y: 0 });
-    ship.set(Health, { hp: 100, maxHp: 100, healthBarTimer: 0 });
+    ship.set(Health, { hp: 100, maxHp: 100 });
     createAsteroid(world, createPrng(5), 0, 0, ENTITY_CONFIG.ASTEROID.MASS);
 
     runFrame(world);

@@ -62,7 +62,6 @@ export function createAlien(world: World, rng: Prng): Entity {
     .set(Health, {
       hp: ENTITY_CONFIG.ALIEN.MAX_HP,
       maxHp: ENTITY_CONFIG.ALIEN.MAX_HP,
-      healthBarTimer: 0,
     })
     .add(Wraps)
     .set(StrokeStyle, { color: COLORS.orange, alpha: 1, width: 2 })

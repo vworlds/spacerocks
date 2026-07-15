@@ -3,7 +3,9 @@ import { Position } from '@vworlds/vecs-phaser';
 import { SensorEvents } from '@vworlds/vecs-physics';
 import { COLORS, ENTITY_CONFIG, GAME_CONFIG } from '@spacerocks/common';
 import { Health } from '../combat/components';
+import { HealthBar } from '../healthBar/components';
 import { CombatModule } from '../combat/module';
+import { Decay } from '../decay/components';
 import { DecayModule } from '../decay/module';
 import { MovementModule } from '../movement/module';
 import { PlayerShip } from '../playerShips/components';
@@ -119,8 +121,11 @@ function applyPickupEffect(player: Entity, pickupEntity: Entity): void {
         health.hp + health.maxHp * healthPickup.amount,
         health.maxHp,
       );
-      health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
       player.modified(Health);
+      player.ensureTarget(HealthBar).set(Decay, {
+        life: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
+        decay: 1,
+      });
     }
   }
 }

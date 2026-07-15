@@ -83,7 +83,6 @@ export function createPlayerShip(
     .set(Health, {
       hp: ENTITY_CONFIG.SHIP.MAX_HP,
       maxHp: ENTITY_CONFIG.SHIP.MAX_HP,
-      healthBarTimer: 0,
     })
     .add(DefaultWeapon)
     .set(PlayerInputIntent, {})

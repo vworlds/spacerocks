@@ -6,7 +6,6 @@ const RESPAWN_DELAY_FRAMES = toFrames(3_000);
 export class Health {
   hp = 100;
   maxHp = 100;
-  healthBarTimer = 0;
 }
 
 /**

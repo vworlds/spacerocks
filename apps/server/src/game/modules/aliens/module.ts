@@ -20,6 +20,7 @@ import {
   Components as AsteroidsComponents,
 } from '../asteroids/components';
 import { DecayModule } from '../decay/module';
+import { HealthBarModule } from '../healthBar/module';
 import { MovementModule } from '../movement/module';
 import { PlayerShip } from '../playerShips/components';
 import { WeaponsModule } from '../weapons/module';
@@ -68,6 +69,7 @@ export class AliensModule extends Module {
     this.world.module(SpawningModule);
     this.world.module(AsteroidsComponents);
     this.world.module(DecayModule);
+    this.world.module(HealthBarModule);
     this.world.module(MovementModule);
     this.world.module(WeaponsModule);
     this.world.module(Components);

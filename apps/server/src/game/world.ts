@@ -14,6 +14,7 @@ import { WeaponsModule } from './modules/weapons/module';
 import { DecayModule } from './modules/decay/module';
 import { AsteroidsModule } from './modules/asteroids/module';
 import { ResourcesModule } from './modules/resources/module';
+import { HealthBarModule } from './modules/healthBar/module';
 
 export type WorldModuleConfig = {
   manager?: AssetManager;
@@ -56,6 +57,7 @@ export class WorldModule extends Module<WorldModuleConfig | undefined> {
 
     // Gameplay features
     world.module(MovementModule);
+    world.module(HealthBarModule);
     world.module(CombatModule);
     world.module(WeaponsModule);
     world.module(DecayModule);

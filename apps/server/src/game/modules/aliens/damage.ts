@@ -2,7 +2,9 @@ import { type Entity, type World } from '@vworlds/vecs';
 import { Position } from '@vworlds/vecs-phaser';
 import { COLORS, ENTITY_CONFIG } from '@spacerocks/common';
 import { Health } from '../combat/components';
+import { Decay } from '../decay/components';
 import { createExplosion } from '../gameState/helpers';
+import { HealthBar } from '../healthBar/components';
 
 /**
  * Applies damage to an alien's `Health`, destroys it when hp hits zero, and
@@ -20,8 +22,11 @@ export function damageEnemy(
   const health = enemy.getMut(Health);
   if (health) {
     health.hp -= damage;
-    health.healthBarTimer = ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER;
     enemy.modified(Health);
+    enemy.ensureTarget(HealthBar).set(Decay, {
+      life: ENTITY_CONFIG.SHIP.HEALTH_BAR_TIMER,
+      decay: 1,
+    });
     if (health.hp > 0) return false;
   }
 
